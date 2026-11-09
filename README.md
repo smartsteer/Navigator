@@ -56,5 +56,9 @@ GitHub Actions budują APK i instalator Windows przy każdym pushu — pliki są
 
 ## Licencja
 
-Kod własny SmartSteer, wszelkie prawa zastrzeżone. Projekt nie zawiera kodu AgOpenGPS —
-korzysta jedynie z publicznego protokołu komunikacji z płytkami.
+GNU General Public License v3.0 (GPLv3). Projekt korzysta z rozwiązań i algorytmów AgOpenGPS
+(© Brian Tischler i współtwórcy, GPLv3) — fragmenty przeniesione z AgOpenGPS są oznaczone w kodzie.
+Program rozpowszechniany jest z kodem źródłowym, na tej samej licencji.
+
+WAR (Wirtualny Asystent Rolnika) jest osobnym programem i nie jest objęty tą licencją —
+wymienia dane z Navigatorem przez interfejs (mapy dawek, ewidencja zabiegów).
