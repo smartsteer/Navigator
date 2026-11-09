@@ -1,8 +1,6 @@
 package eu.smartsteer.navigator
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,40 +11,75 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import eu.smartsteer.navigator.ui.theme.Ss
+import eu.smartsteer.navigator.ui.DemoController
+import eu.smartsteer.navigator.ui.components.IconKind
+import eu.smartsteer.navigator.ui.components.NavIcon
+import eu.smartsteer.navigator.ui.components.Pill
+import eu.smartsteer.navigator.ui.pl
+import eu.smartsteer.navigator.ui.screens.ConnectionsScreen
+import eu.smartsteer.navigator.ui.screens.FieldsScreen
+import eu.smartsteer.navigator.ui.screens.ImplementScreen
+import eu.smartsteer.navigator.ui.screens.MapScreen
+import eu.smartsteer.navigator.ui.screens.SteerScreen
 import eu.smartsteer.navigator.ui.theme.SmartSteerTheme
+import eu.smartsteer.navigator.ui.theme.Ss
+import kotlin.math.abs
+import kotlin.math.ceil
 
-enum class Screen(val label: String) {
-    Map("Mapa"), Fields("Pola"), Steer("Sterowanie"), Implement("Maszyna"), Connections("Połączenia")
+enum class Screen(val label: String, val icon: IconKind) {
+    Map("Mapa", IconKind.Map),
+    Fields("Pola", IconKind.Field),
+    Steer("Sterowanie", IconKind.Steer),
+    Implement("Maszyna", IconKind.Implement),
+    Connections("Połączenia", IconKind.Network),
 }
 
 @Composable
 fun App() {
     SmartSteerTheme {
+        val ctrl = remember { DemoController() }
         var screen by remember { mutableStateOf(Screen.Map) }
+
+        // pętla symulacji: krok co klatkę ekranu
+        LaunchedEffect(ctrl) {
+            var last = withFrameNanos { it }
+            while (true) {
+                withFrameNanos { now ->
+                    ctrl.advance((now - last) / 1e9)
+                    last = now
+                }
+            }
+        }
+
         Column(Modifier.fillMaxSize().background(Ss.Ground)) {
-            TopBar()
+            TopBar(ctrl)
             Row(Modifier.fillMaxSize()) {
                 NavRail(screen) { screen = it }
                 Box(Modifier.fillMaxSize()) {
                     when (screen) {
-                        Screen.Map -> GuidanceScreen()
-                        else -> Placeholder(screen.label)
+                        Screen.Map -> MapScreen(ctrl)
+                        Screen.Fields -> FieldsScreen(ctrl)
+                        Screen.Steer -> SteerScreen(ctrl)
+                        Screen.Implement -> ImplementScreen(ctrl)
+                        Screen.Connections -> ConnectionsScreen(ctrl)
                     }
                 }
             }
@@ -55,87 +88,84 @@ fun App() {
 }
 
 @Composable
-private fun TopBar() {
+private fun TopBar(ctrl: DemoController) {
+    ctrl.frame
+    val s = ctrl.session
     Row(
-        Modifier.fillMaxWidth().height(64.dp).background(Ss.Surface).padding(horizontal = 20.dp),
+        Modifier.fillMaxWidth().height(64.dp).background(Ss.Surface).padding(start = 20.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Text("SmartSteer", color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Box(Modifier.weight(1f))
-        Chip("Brak GPS", Ss.Warning)
-        Text("0,0 km/h", color = Ss.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Row(Modifier.width(224.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            NavIcon(IconKind.Logo, Ss.Accent, 30.dp)
+            Column {
+                Text("SmartSteer", color = Ss.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("Pole demo · symulator", color = Ss.TextMuted, fontSize = 12.sp)
+            }
+        }
+        LightBar(s.xteCm, Modifier.weight(1f))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Pill("RTK FIX", Ss.Accent, Ss.AccentSoft)
+            Pill("SYMULATOR", Ss.Warning)
+            Row(Modifier.padding(start = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(s.speedKmh.pl(1), color = Ss.Text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                Text("km/h", color = Ss.TextMuted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp))
+            }
+        }
     }
 }
 
+/** Lightbar: każda kratka = 2 cm odchyłki, środek świeci na zielono, gdy jesteśmy na linii. */
 @Composable
-private fun Chip(text: String, color: androidx.compose.ui.graphics.Color) {
-    Text(
-        text,
-        color = color,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.clip(RoundedCornerShape(50)).background(Ss.SurfaceHigh).padding(horizontal = 12.dp, vertical = 6.dp),
-    )
+private fun LightBar(xteCm: Double, modifier: Modifier) {
+    val a = abs(xteCm)
+    val lit = if (a < 1.5) 0 else minOf(7, ceil(a / 2.0).toInt())
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (i in 0 until 15) {
+                val d = i - 7
+                val on = d != 0 && abs(d) <= lit && (d > 0) == (xteCm > 0)
+                val color = when {
+                    d == 0 -> if (lit == 0) Ss.Accent else Ss.Dim
+                    on -> if (abs(d) >= 5) androidx.compose.ui.graphics.Color(0xFFFF7A59) else Ss.Warning
+                    else -> Ss.Border
+                }
+                Box(Modifier.size(width = 22.dp, height = if (d == 0) 22.dp else 14.dp).clip(RoundedCornerShape(4.dp)).background(color))
+            }
+        }
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Odchyłka", color = Ss.TextMuted, fontSize = 12.sp)
+            Text(
+                "${xteCm.pl(1, plusSign = true)} cm",
+                color = if (lit == 0) Ss.Accent else Ss.Warning, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+            )
+            Text(
+                when { lit == 0 -> "na linii"; xteCm > 0 -> "w prawo"; else -> "w lewo" },
+                color = Ss.TextMuted, fontSize = 12.sp,
+            )
+        }
+    }
 }
 
 @Composable
 private fun NavRail(current: Screen, onSelect: (Screen) -> Unit) {
     Column(
-        Modifier.width(96.dp).fillMaxHeight().background(Ss.Surface).padding(vertical = 10.dp, horizontal = 8.dp),
+        Modifier.width(88.dp).fillMaxHeight().background(Ss.Surface).padding(vertical = 10.dp, horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Screen.entries.forEach { s ->
             val active = s == current
-            Box(
+            val color = if (active) Ss.Accent else Ss.TextMuted
+            Column(
                 Modifier.fillMaxWidth().height(68.dp).clip(RoundedCornerShape(12.dp))
-                    .background(if (active) Ss.SurfaceHigh else Ss.Surface)
-                    .clickable { onSelect(s) },
-                contentAlignment = Alignment.Center,
+                    .background(if (active) Ss.AccentSoft else Ss.Surface)
+                    .clickable(role = Role.Tab) { onSelect(s) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
             ) {
-                Text(s.label, color = if (active) Ss.Accent else Ss.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                NavIcon(s.icon, color)
+                Text(s.label, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
-    }
-}
-
-@Composable
-private fun GuidanceScreen() {
-    var engaged by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxSize()) {
-        Canvas(Modifier.weight(1f).fillMaxHeight().background(Ss.MapGround)) {
-            val step = 46.dp.toPx()
-            var x = 0f
-            while (x < size.width) { drawLine(Ss.Border, Offset(x, 0f), Offset(x, size.height)); x += step }
-            var y = 0f
-            while (y < size.height) { drawLine(Ss.Border, Offset(0f, y), Offset(size.width, y)); y += step }
-            drawLine(Ss.Accent, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), strokeWidth = 3.dp.toPx())
-        }
-        Column(
-            Modifier.width(240.dp).fillMaxHeight().background(Ss.Surface).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Box(
-                Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(20.dp))
-                    .border(3.dp, Ss.Accent, RoundedCornerShape(20.dp))
-                    .background(if (engaged) Ss.Accent else Ss.Surface)
-                    .clickable { engaged = !engaged },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    if (engaged) "AUTOSTER" else "RĘCZNIE",
-                    color = if (engaged) Ss.OnAccent else Ss.Text,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Placeholder(title: String) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("$title — w przygotowaniu", color = Ss.TextMuted, fontSize = 18.sp)
     }
 }
