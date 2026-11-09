@@ -16,5 +16,13 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 - [ ] 10. Import KML / ISOXML (granice, linie)
 - [ ] 11. Integracja z WAR — **wymaga decyzji właściciela, nie robić w nocy**
 
+## Zasady interfejsu (obowiązują przy każdym etapie)
+
+- Grafika ma być **najbardziej intuicyjna ze wszystkich systemów** prowadzenia na rynku: rolnik ma ogarnąć ekran bez instrukcji, w rękawicy, w słońcu i w trzęsącej kabinie.
+- Kolorystyka zostaje bez zmian (ciemny motyw, zielony akcent #8BE36B, bursztyn #FFB547 do ostrzeżeń — obiekt Ss w Theme.kt).
+- Najważniejsze akcje (autoster, sekcje, linia) zawsze pod ręką na ekranie Mapa, bez wchodzenia w menu; ustawienia i diagnostyka osobno.
+- Duże przyciski (min. 52 dp), czytelne liczby, polskie nazwy bez żargonu, stan zawsze opisany słowem, nie tylko kolorem.
+- Nowe ekrany zgodne z projektem graficznym (ten sam układ: górny pasek z lightbarem, menu po lewej, panel akcji po prawej).
+
 ## Notatki z przebiegów
 
