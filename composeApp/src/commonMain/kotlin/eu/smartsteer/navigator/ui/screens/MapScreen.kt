@@ -74,12 +74,6 @@ private fun InfoCards(ctrl: DemoController, modifier: Modifier) {
                 color = Ss.TextSoft, fontSize = 13.sp,
             )
         }
-        Row(Modifier.overlay().padding(horizontal = 14.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-            val left = (s.interiorAreaM2 - s.workedM2).coerceAtLeast(0.0)
-            Stat("Obrobione", "${(s.workedM2 / 10_000).pl(2)} ha")
-            Stat("Wydajność", "${s.workRateHaH.pl(1)} ha/h")
-            Stat("Zostało", "${(left / 10_000).pl(2)} ha")
-        }
     }
 }
 
@@ -202,11 +196,19 @@ private fun RightPanel(ctrl: DemoController) {
             )
         }
 
-        Row(
+        Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Ss.Panel2).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Box(Modifier.weight(1f)) { Stat("Kąt zadany", "${s.steerSetDeg.pl(1)}°", valueSize = 20.sp) }
-            Box(Modifier.weight(1f)) { Stat("Rzeczywisty", "${s.sim.actualSteerDeg.pl(1)}°", valueSize = 20.sp) }
+            val left = (s.interiorAreaM2 - s.workedM2).coerceAtLeast(0.0)
+            Row {
+                Box(Modifier.weight(1f)) { Stat("Prędkość", "${s.speedKmh.pl(1)} km/h", valueSize = 18.sp) }
+                Box(Modifier.weight(1f)) { Stat("Obrobione", "${(s.workedM2 / 10_000).pl(2)} ha", valueSize = 18.sp) }
+            }
+            Row {
+                Box(Modifier.weight(1f)) { Stat("Wydajność", "${s.workRateHaH.pl(1)} ha/h", valueSize = 18.sp) }
+                Box(Modifier.weight(1f)) { Stat("Zostało", "${(left / 10_000).pl(2)} ha", valueSize = 18.sp) }
+            }
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
