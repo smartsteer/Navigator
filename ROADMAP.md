@@ -13,7 +13,7 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 - [x] 6. Sekcje przez PGN 239, czasy włączania/wyłączania z wyprzedzeniem, zapis mapy pokrycia
 - [x] 7. Klient NTRIP (poprawki RTK przez internet tabletu → do odbiornika przez UDP)
 - [x] 8. IMU: kompensacja przechyłu (wysokość anteny), kurs z IMU
-- [ ] 9. Auto‑zawroty przeniesione z AgOpenGPS (YouTurn) na prawdziwych granicach
+- [x] 9. Auto‑zawroty przeniesione z AgOpenGPS (YouTurn) na prawdziwych granicach
 - [ ] 10. Import KML / ISOXML (granice, linie)
 - [ ] 11. Integracja z WAR — **wymaga decyzji właściciela, nie robić w nocy**
 
@@ -42,3 +42,5 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
   W polu sprawdzić: założyć pole, objechać granicę, ustawić uwrocie; czy moduł maszyny przełącza sekcje; czy przy wjeździe na obrobione sekcje gasną z właściwym wyprzedzeniem (dobrać czasy); po zamknięciu i otwarciu pola wraca granica, linia i pokrycie. Jeszcze nie ma: zapisu konturu z polem, osobnych szerokości sekcji, ustawień modułu maszyny (PGN 238).
 - 2026-11-10 — etap 7 (NTRIP) + test silnika i wykresy: klient NTRIP 1.0 (logowanie, pozycja GGA do castera VRS, ponawianie połączenia) przekazuje RTCM do płytki na UDP 2233 jak AgIO (NTRIPComm.Designer.cs); Ustawienia → NTRIP, stan na ekranie Połączenia. Test silnika „Free drive” z AgOpenGPS (Ustawienia → Moduł skrętu, ±1°/±5°, wyłącza się powyżej 3 km/h i po wyjściu z zakładki). Wykresy 30 s: kąt zadany/rzeczywisty i odchyłka w panelu „Na żywo”.
   W polu sprawdzić: wpisać dane castera, czy status zmienia się na „Odbieram poprawki” i odbiornik przechodzi w RTK FIX; test silnika — czy koła idą w stronę przycisku i kąt na wykresie nadąża za zadanym.
+- 2026-11-10 — etap 9: auto-zawrót na granicy pola (wzorowany na CYouTurn.cs): zaczyna się, gdy linia AB/krzywa dochodzi do linii zawrotu (granica − odstęp), kształt „U” albo „omega” o promieniu R (domyślnie 8,1 m jak w AgOpenGPS), cofany aż zmieści się w granicy, na przejazd co ustawioną liczbę; kierunek zmienia się sam po każdym zawrocie, przycisk „Następny w prawo/lewo” i „Przerwij zawrót”; gdy zawrót się nie mieści — autoster staje przed granicą zamiast wyjeżdżać z pola.
+  W polu sprawdzić: na wolnej prędkości, z granicą i uwrociem co najmniej 2 szerokości — czy zawrót zaczyna się w dobrym miejscu, nie wychodzi za granicę i ciągnik łapie sąsiedni przejazd; dobrać promień do ciągnika z maszyną.

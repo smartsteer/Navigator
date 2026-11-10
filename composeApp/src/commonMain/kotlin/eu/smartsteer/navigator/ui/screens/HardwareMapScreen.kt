@@ -200,7 +200,41 @@ private fun HwRightPanel(hw: HardwareController) {
                 ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm += 2; hw.touch() }) { NavIcon(IconKind.ChevronRight, Ss.Text, 22.dp, 2.4f) }
             }
         }
+        if (s.mode != GuidanceMode.CONTOUR) TurnControls(hw)
         HwStats(hw)
+    }
+}
+
+/** Auto-zawrót: włącznik, kierunek najbliższego zawrotu, przerwanie trwającego. */
+@Composable
+private fun TurnControls(hw: HardwareController) {
+    val s = hw.session
+    val hasBoundary = s.boundary != null
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActionButton(
+            Modifier.weight(1f),
+            background = if (s.autoUturn) Ss.AccentSoft else Ss.SurfaceHigh,
+            border = if (s.autoUturn) Ss.Accent else Ss.BorderStrong,
+            onClick = { s.autoUturn = !s.autoUturn; if (!s.autoUturn) s.cancelTurn(); hw.touch() },
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                ButtonText("Zawrót", size = 13.sp)
+                ButtonText(if (s.autoUturn) "AUTO" else "WYŁ.", color = if (s.autoUturn) Ss.Accent else Ss.TextMuted, size = 15.sp, weight = FontWeight.Bold)
+            }
+        }
+        ActionButton(Modifier.weight(1f), onClick = { s.uTurnRight = !s.uTurnRight; hw.touch() }) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                ButtonText("Następny", size = 13.sp)
+                ButtonText(if (s.uTurnRight) "w prawo ▶" else "◀ w lewo", size = 15.sp, weight = FontWeight.Bold)
+            }
+        }
+    }
+    if (s.youTurnPath != null) {
+        ActionButton(Modifier.fillMaxWidth(), background = Ss.Warning, border = Ss.Warning, onClick = { s.cancelTurn(); hw.touch() }) {
+            ButtonText("Przerwij zawrót", color = Ss.OnWarning, weight = FontWeight.Bold)
+        }
+    } else if (s.autoUturn && !hasBoundary) {
+        Label("Auto-zawrót potrzebuje granicy pola (ekran Pola).", Ss.Warning, 12.sp)
     }
 }
 
@@ -419,6 +453,12 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
                 }
                 GuidanceMode.AB -> {}
             }
+
+            // auto-zawrót: linia zawrotu i trwający zawrót
+            if (s.autoUturn) s.turnLine?.let {
+                drawPath(polygonPath(it), Ss.TextMuted.copy(alpha = 0.6f), style = Stroke(width = 1f * px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f * px, 6f * px))))
+            }
+            s.youTurnPath?.let { poly(it, Ss.Accent, 3f) }
 
             // linia AB i sąsiednie przejazdy
             val l = s.line.takeIf { s.mode == GuidanceMode.AB }

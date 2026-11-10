@@ -172,4 +172,41 @@ class HardwareSessionTest {
         assertEquals(1, h.curvePassIndex)
         assertTrue(abs(h.xteCm - 10.0) < 3.0, "xte ${h.xteCm}")
     }
+
+    @Test
+    fun autoUturnAtFieldEnd() {
+        val h = HardwareSession(VehicleProfile(toolWidth = 6.0, antennaPivot = 0.0))
+        var t = 0.0
+        val reply = steerReply()
+        fun at(p: Vec2, course: Double) {
+            h.onDatagram(reply, reply.size, t)
+            h.onNmea(vtg(course, 7.2), t)
+            h.onNmea(gga(p), t)
+            h.update(t)
+            t += 0.25
+        }
+        at(Vec2(0.0, 0.0), 0.0)
+        h.newField("Test")
+        // pole 200 × 200 m wokół początku, linia AB na północ
+        h.restoreFieldForTest(listOf(Vec2(-100.0, -20.0), Vec2(100.0, -20.0), Vec2(100.0, 180.0), Vec2(-100.0, 180.0)))
+        h.restoreLine(AbLine(Vec2(0.0, 0.0), Vec2(0.0, 50.0)))
+        at(Vec2(0.0, 1.0), 0.0)
+        assertNull(h.setEngaged(true, t))
+        h.autoUturn = true
+        var y = 2.0
+        while (h.youTurnPath == null && y < 175.0) { at(Vec2(0.0, y), 0.0); y += 1.0 }
+        val turn = assertNotNull(h.youTurnPath, "zawrót powinien się zacząć")
+        assertTrue(y < 170.0)
+        // jedziemy po ścieżce zawrotu
+        for (p in turn) {
+            at(p.p, p.heading * 180 / PI)
+            if (h.youTurnPath == null) break
+        }
+        assertNull(h.youTurnPath)
+        assertTrue(h.engaged)
+        assertTrue(!h.uTurnRight, "następny zawrót w lewo")
+        h.update(t)
+        assertEquals(1, h.passIndex)
+        assertTrue(h.reversed)
+    }
 }

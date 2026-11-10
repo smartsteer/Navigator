@@ -18,6 +18,7 @@ import eu.smartsteer.navigator.core.guidance.AbSteering
 import eu.smartsteer.navigator.core.guidance.Contour
 import eu.smartsteer.navigator.core.guidance.Curves
 import eu.smartsteer.navigator.core.guidance.Pose
+import eu.smartsteer.navigator.core.guidance.YouTurn
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import kotlin.math.PI
 import kotlin.math.abs
@@ -287,6 +288,23 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         if (freeDrive && speedKmh > FREE_DRIVE_MAX_KMH) { freeDrive = false; fail("Test silnika wyłączony — ciągnik jedzie") }
         val p = pivot
         val roll = imu.rollDeg?.takeIf { imu.rollAlive(nowS) }
+        // auto-zawrót: zaczynamy przed końcem przejazdu, a gdy trwa — jedziemy po nim
+        if (p != null && youTurnPath == null) maybeStartTurn(p, nowS)
+        val turn = youTurnPath
+        if (turn != null && p != null) {
+            val res = if (engaged) steering.computePath(turn, turnHint, p, headingRad, speedKmh, true, profile, roll) else null
+            if (res == null) {
+                finishTurn("Zawrót przerwany", flip = false)
+            } else if (res.pastEnd) {
+                finishTurn("Zawrót zakończony", flip = true)
+            } else {
+                turnHint = res.index
+                xteCm = res.out.distanceFromLine * 100
+                steerSetDeg = res.out.steerAngleDeg
+                goal = res.out.goal
+                return
+            }
+        }
         val r: AbSteering.Output? = when (mode) {
             GuidanceMode.AB -> line?.let { l ->
                 if (p == null) return@let null
@@ -310,6 +328,84 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         steerSetDeg = r.steerAngleDeg
         goal = r.goal
     }
+
+    // ---------------- auto-zawrót ----------------
+
+    /** Auto-zawrót włączony (przycisk na mapie). Działa na linii AB i krzywej, gdy pole ma granicę. */
+    var autoUturn = false
+    /** Kierunek najbliższego zawrotu względem jazdy; po każdym zawrocie zmienia się sam. */
+    var uTurnRight = true
+    /** Ścieżka trwającego zawrotu (null = jedziemy po linii). */
+    var youTurnPath: List<Pose>? = null; private set
+    /** Podgląd najbliższego zawrotu (rysowany na mapie przed jego rozpoczęciem). */
+    private var turnHint = -1
+    private var lastTurnTryS = Double.NEGATIVE_INFINITY
+    private var turnFailKey: String? = null
+    private var turnLineCache: Pair<Pair<List<Vec2>, Double>, List<Vec2>>? = null
+
+    /** Linia zawrotu: granica odsunięta do środka o ustawiony odstęp (cache). */
+    val turnLine: List<Vec2>?
+        get() {
+            val b = boundary ?: return null
+            val key = b to profile.youTurnFromBoundary
+            turnLineCache?.let { if (it.first == key) return it.second.takeIf { l -> l.size >= 3 } }
+            val l = if (profile.youTurnFromBoundary > 0) Polygon.inset(b, profile.youTurnFromBoundary) else b
+            turnLineCache = key to l
+            return l.takeIf { it.size >= 3 }
+        }
+
+    private fun maybeStartTurn(p: Vec2, nowS: Double) {
+        if (!autoUturn || !engaged || mode == GuidanceMode.CONTOUR) return
+        val tl = turnLine ?: return
+        if (nowS - lastTurnTryS < 0.5) return
+        lastTurnTryS = nowS
+        if (!Polygon.contains(tl, p)) {
+            // ciągnik już za linią zawrotu, a zawrotu nie ma — zatrzymujemy autoster zamiast wyjechać z pola
+            engaged = false
+            fail("Koniec pola — autoster wyłączony (zawrót się nie zmieścił)")
+            return
+        }
+        val guide = currentGuide(p) ?: return
+        val from = Curves.nearestIndex(guide, p)
+        val exit = YouTurn.exitIndex(guide, from, tl)
+        if (exit < 0) return
+        val radius = profile.youTurnRadius
+        val width = profile.youTurnSkip * profile.passSpacing
+        val reach = YouTurn.depth(YouTurn.shape(radius, width, uTurnRight)) + TURN_TRIGGER_M
+        if (guide[exit].p.distanceTo(p) > reach) return
+        val key = "$mode:$passIndex:$curvePassIndex:$reversed:$curveReversed"
+        val path = YouTurn.build(guide, from, tl, radius, width, uTurnRight)
+        if (path == null) {
+            if (turnFailKey != key) { turnFailKey = key; fail("Zawrót się nie mieści — poszerz uwrocie albo zmniejsz promień zawrotu") }
+            return
+        }
+        youTurnPath = path
+        turnHint = -1
+        steering.reset()
+        ok("Zawracam ${if (uTurnRight) "w prawo" else "w lewo"}")
+    }
+
+    /** Linia, po której jedziemy, jako gęsta łamana w kierunku jazdy (do szukania końca przejazdu). */
+    private fun currentGuide(p: Vec2): List<Pose>? = when (mode) {
+        GuidanceMode.AB -> line?.let { l ->
+            val (a, b) = activeSegment(l, p)
+            Curves.headings(Curves.densify(listOf(a, b), 1.0))
+        }
+        GuidanceMode.CURVE -> curvePath.takeIf { it.size >= 2 }
+        GuidanceMode.CONTOUR -> null
+    }
+
+    private fun finishTurn(msg: String, flip: Boolean) {
+        youTurnPath = null
+        turnHint = -1
+        pathHint = -1
+        steering.reset()
+        if (flip) uTurnRight = !uTurnRight
+        ok(msg)
+    }
+
+    /** Ręczne przerwanie zawrotu. */
+    fun cancelTurn() { if (youTurnPath != null) { youTurnPath = null; pathHint = -1; steering.reset(); ok("Zawrót przerwany") } }
 
     private fun followPath(path: List<Pose>, p: Vec2, roll: Double?, endMessage: String?): AbSteering.Output? {
         val res = steering.computePath(path, pathHint, p, headingRad, speedKmh, engaged, profile, roll) ?: return null
@@ -541,7 +637,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         coverage.clear(); sections.reset()
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
-        contour.clear(); engaged = false
+        contour.clear(); engaged = false; youTurnPath = null
         ok("Pole zamknięte")
     }
 
@@ -551,7 +647,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         trail.clear(); contour.clear(); coverage.clear(); sections.reset()
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
-        engaged = false; pathHint = -1; steering.reset()
+        engaged = false; pathHint = -1; steering.reset(); youTurnPath = null
     }
 
     fun startBoundary(): Boolean {
@@ -573,6 +669,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     fun cancelBoundary() { recordingBoundary = null; ok("Nagrywanie granicy przerwane") }
 
+    /** Tylko do testów: granica bez nagrywania. */
+    internal fun restoreFieldForTest(b: List<Vec2>) { boundary = b; setHeadlandWidth(headlandWidth) }
+
     fun clearBoundary() { boundary = null; headland = null; ok("Granica usunięta") }
 
     fun setHeadlandWidth(w: Double) {
@@ -587,6 +686,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     companion object {
         const val MIN_AB_M = 20.0
         const val SEGMENT_M = 200.0
+        /** Zawrót budujemy, gdy do jego najdalszego punktu zostaje tyle metrów. */
+        const val TURN_TRIGGER_M = 25.0
         const val FREE_DRIVE_MAX_KMH = 3.0
         const val CURVE_STEP_M = 0.5
         const val CONTOUR_MIN_KMH = 1.0

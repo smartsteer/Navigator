@@ -61,6 +61,14 @@ data class VehicleProfile(
     /** Przełącznik roboczy aktywny przy stanie niskim (zwarty do masy). */
     val workSwitchActiveLow: Boolean = true,
 
+    // --- Auto-zawrót (CYouTurn; set_youTurnRadius, set_youSkipWidth) ---
+    /** Promień zawrotu, m. */
+    val youTurnRadius: Double = 8.1,
+    /** Na który przejazd zawracać: 1 = sąsiedni. */
+    val youTurnSkip: Int = 1,
+    /** Odstęp zawrotu od granicy pola, m. */
+    val youTurnFromBoundary: Double = 2.0,
+
     // --- Prowadzenie ---
     val algorithm: SteerAlgorithm = SteerAlgorithm.PURE_PURSUIT,
     /** Pure pursuit: wyprzedzenie przy trzymaniu linii, m. */
@@ -169,6 +177,7 @@ data class VehicleProfile(
         "slowSpeedCutoff" to slowSpeedCutoff, "sectionOffWhenOut" to sectionOffWhenOut,
         "sectionOffInHeadland" to sectionOffInHeadland, "useWorkSwitch" to useWorkSwitch,
         "workSwitchActiveLow" to workSwitchActiveLow,
+        "youTurnRadius" to youTurnRadius, "youTurnSkip" to youTurnSkip, "youTurnFromBoundary" to youTurnFromBoundary,
         "algorithm" to algorithm.name, "lookAheadHold" to lookAheadHold, "lookAheadMult" to lookAheadMult,
         "acquireFactor" to acquireFactor, "purePursuitIntegral" to purePursuitIntegral,
         "stanleyDistanceGain" to stanleyDistanceGain, "stanleyHeadingGain" to stanleyHeadingGain,
@@ -212,6 +221,9 @@ data class VehicleProfile(
                 sectionOffInHeadland = bool("sectionOffInHeadland", d.sectionOffInHeadland),
                 useWorkSwitch = bool("useWorkSwitch", d.useWorkSwitch),
                 workSwitchActiveLow = bool("workSwitchActiveLow", d.workSwitchActiveLow),
+                youTurnRadius = num("youTurnRadius", d.youTurnRadius),
+                youTurnSkip = int("youTurnSkip", d.youTurnSkip).coerceIn(1, 20),
+                youTurnFromBoundary = num("youTurnFromBoundary", d.youTurnFromBoundary),
                 algorithm = SteerAlgorithm.entries.firstOrNull { it.name == m["algorithm"] } ?: d.algorithm,
                 lookAheadHold = num("lookAheadHold", d.lookAheadHold),
                 lookAheadMult = num("lookAheadMult", d.lookAheadMult),

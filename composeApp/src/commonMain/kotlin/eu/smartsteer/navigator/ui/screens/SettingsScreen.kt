@@ -156,6 +156,14 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
 
 @Composable
 private fun ColumnScope.GuidanceTab(p: VehicleProfile, set: (VehicleProfile) -> Unit) {
+    SectionTitle("Auto-zawrót")
+    Num("Promień zawrotu", "Najciaśniejszy łuk, jaki ciągnik z maszyną spokojnie przejedzie", p.youTurnRadius, "m", 0.5, 3.0, 30.0, 1) { set(p.copy(youTurnRadius = it)) }
+    Num("Zawracaj na przejazd", "1 = sąsiedni, 2 = co drugi…", p.youTurnSkip.toDouble(), "", 1.0, 1.0, 10.0, 0) { set(p.copy(youTurnSkip = it.toInt())) }
+    Num("Odstęp od granicy", "Zawrót nie podejdzie bliżej granicy pola", p.youTurnFromBoundary, "m", 0.5, 0.0, 20.0, 1) { set(p.copy(youTurnFromBoundary = it)) }
+    Label(
+        if (p.youTurnSkip * p.passSpacing >= 2 * p.youTurnRadius) "Kształt: szeroki zawrót „U”." else "Kształt: „omega” (odstęp mniejszy niż 2 × promień) — potrzebuje więcej miejsca na uwrociu.",
+        Ss.TextMuted, 13.sp,
+    )
     SectionTitle("Algorytm prowadzenia")
     Segmented(SteerAlgorithm.entries.map { it.label }, p.algorithm.ordinal, { set(p.copy(algorithm = SteerAlgorithm.entries[it])) })
     if (p.algorithm == SteerAlgorithm.PURE_PURSUIT) {

@@ -39,6 +39,20 @@ object Curves {
         return out
     }
 
+    /** Gęsta łamana: punkty co najwyżej [step] m (także dla 2 punktów, w przeciwieństwie do makePointMinimumSpacing). */
+    fun densify(pts: List<Vec2>, step: Double): List<Vec2> {
+        if (pts.size < 2) return pts
+        val out = ArrayList<Vec2>()
+        out.add(pts[0])
+        for (i in 1 until pts.size) {
+            val a = pts[i - 1]
+            val b = pts[i]
+            val n = kotlin.math.ceil(a.distanceTo(b) / step).toInt().coerceAtLeast(1)
+            for (k in 1..n) out.add(a + (b - a) * (k.toDouble() / n))
+        }
+        return out
+    }
+
     /** Kursy punktów: środkowe z sąsiadów, skrajne z najbliższego odcinka. */
     fun headings(pts: List<Vec2>): List<Pose> {
         if (pts.size < 2) return pts.map { Pose(it, 0.0) }
