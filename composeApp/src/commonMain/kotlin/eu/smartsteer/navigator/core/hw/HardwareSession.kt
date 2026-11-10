@@ -80,6 +80,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     // --- pole: granica, uwrocie, pokrycie, sekcje ---
     /** Nazwa otwartego pola (null = praca bez pola, nic się nie zapisuje). */
     var fieldName: String? = null; private set
+    /** Id pola w WAR, jeśli pole przyszło z WAR. */
+    var fieldWarId: String? = null; private set
     var boundary: List<Vec2>? = null; private set
     var headlandWidth = 0.0; private set
     /** Wnętrze pola bez uwrocia. */
@@ -610,6 +612,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val g = lastGga?.takeIf { fix != FixQuality.NONE } ?: return fail("Brak pozycji GPS — pole zakłada się w miejscu ciągnika")
         resetForField(LocalPlane(g.latitude, g.longitude))
         fieldName = name
+        fieldWarId = null
         return ok("Nowe pole „$name”. Objedź granicę albo od razu utwórz linię.")
     }
 
@@ -617,6 +620,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun openField(f: FieldData, coverageText: String) {
         resetForField(LocalPlane(f.originLat, f.originLon))
         fieldName = f.name
+        fieldWarId = f.warId
         f.boundary?.let { if (it.size >= 3) boundary = it }
         setHeadlandWidth(f.headlandWidth)
         f.ab?.let { restoreLine(it) }
@@ -629,11 +633,12 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun fieldData(): FieldData? {
         val n = fieldName ?: return null
         val pl = plane ?: return null
-        return FieldData(n, pl.originLat, pl.originLon, boundary, headlandWidth, line, curveRef?.map { it.p })
+        return FieldData(n, pl.originLat, pl.originLon, boundary, headlandWidth, line, curveRef?.map { it.p }, fieldWarId)
     }
 
     fun closeField() {
         fieldName = null
+        fieldWarId = null
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         coverage.clear(); sections.reset()
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null

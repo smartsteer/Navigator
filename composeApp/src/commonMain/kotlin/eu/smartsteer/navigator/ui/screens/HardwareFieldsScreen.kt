@@ -108,6 +108,26 @@ fun HardwareFieldsScreen(hw: HardwareController) {
             hw.fieldError?.let { Label(it, Ss.Warning, 14.sp) }
             Label("Pliki pól: ${hw.fieldsLocation}", Ss.TextMuted, 12.sp)
 
+            SectionTitle("Pola z WAR")
+            val war = hw.war
+            if (!war.configured) {
+                Label("Połącz z WAR: Ustawienia → WAR (kod nawigacji z telefonu).", Ss.TextMuted, 13.sp)
+            } else if (war.fields.isEmpty()) {
+                Label(war.status.takeIf { it.startsWith("Czekam") } ?: "Pola z WAR jeszcze nie przyszły — otwórz WAR na telefonie.", Ss.TextSoft, 13.sp)
+            }
+            war.fields.forEach { wf ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(wf.name, color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Label(
+                            listOfNotNull("${wf.ha.pl(2)} ha", wf.crop.takeIf { it.isNotEmpty() }, if (wf.parts > 1) "pole ma ${wf.parts} części — przyszła największa" else null).joinToString(" · "),
+                            Ss.TextMuted, 12.sp,
+                        )
+                    }
+                    ActionButton(onClick = { msg = hw.openWarField(wf) ?: "Otwarto „${wf.name}” z WAR" }) { ButtonText("Otwórz") }
+                }
+            }
+
             SectionTitle("Import z WAR i innych programów")
             Label("Wrzuć plik KML albo ISOXML (TASKDATA.XML lub cały folder TASKDATA) do folderu importu — pojawi się poniżej.", Ss.TextSoft, 13.sp)
             val files = remember(hw.tick / 30) { hw.importCandidates() }

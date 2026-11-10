@@ -19,6 +19,9 @@ actual fun importFiles(): TextFiles =
 actual fun exportFiles(): TextFiles =
     DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "Raporty"))
 
+actual fun warFiles(): TextFiles =
+    DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "WAR"))
+
 actual fun nowText(): String =
     java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
 

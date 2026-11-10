@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.core.settings.SteerAlgorithm
 import eu.smartsteer.navigator.core.settings.SteerEnable
 import eu.smartsteer.navigator.core.settings.VehicleProfile
+import eu.smartsteer.navigator.core.war.WarProtocol
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
@@ -62,7 +63,7 @@ import kotlin.math.abs
 import kotlin.math.round
 
 private enum class Tab(val label: String) {
-    Vehicle("Ciągnik"), Tool("Maszyna"), Guidance("Prowadzenie"), Imu("IMU"), Module("Moduł skrętu"), Board("Płytka"), Ntrip("NTRIP"), Profiles("Profile"),
+    Vehicle("Ciągnik"), Tool("Maszyna"), Guidance("Prowadzenie"), Imu("IMU"), Module("Moduł skrętu"), Board("Płytka"), Ntrip("NTRIP"), War("WAR"), Profiles("Profile"),
 }
 
 /** Ustawienia sprzętu i prowadzenia, zapisywane w profilu pojazdu (jak w AgOpenGPS). */
@@ -92,6 +93,7 @@ fun SettingsScreen(hw: HardwareController) {
                     Tab.Module -> ModuleTab(hw, p, set)
                     Tab.Board -> BoardTab(hw, p, set)
                     Tab.Ntrip -> NtripTab(hw)
+                    Tab.War -> WarTab(hw)
                     Tab.Profiles -> ProfilesTab(hw)
                 }
             }
@@ -335,6 +337,50 @@ private fun ColumnScope.NtripTab(hw: HardwareController) {
         }
     }
     Label("Hasło zapisuje się w pliku ustawień na tym urządzeniu (tak jak w AgIO).", Ss.TextMuted, 12.sp)
+}
+
+@Composable
+private fun ColumnScope.WarTab(hw: HardwareController) {
+    val w = hw.war
+    val c = w.config
+    var code by remember { mutableStateOf(if (c.code.isEmpty()) "" else WarProtocol.pretty(c.code)) }
+    var tractor by remember { mutableStateOf(c.tractorName) }
+    var tool by remember { mutableStateOf(c.toolName) }
+    var who by remember { mutableStateOf(c.operator) }
+    var server by remember { mutableStateOf(c.server) }
+    var msg by remember { mutableStateOf<String?>(null) }
+    SectionTitle("Połączenie z WAR (Wirtualny Asystent Rolnika)")
+    Label(
+        "Pola i zlecenia przychodzą z telefonu, a praca w polu i pozycja na żywo wracają do WAR. " +
+            "Kod nawigacji: w telefonie WAR → Gospodarstwo → Maszyny → WAR Sync. Wszystko jest szyfrowane kodem.",
+        Ss.TextSoft, 13.sp,
+    )
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        val ok = w.codeActive == true && !w.status.startsWith("Brak") && !w.status.startsWith("Czekam")
+        Pill(w.status, if (ok) Ss.Accent else if (w.configured) Ss.Warning else Ss.TextMuted, if (ok) Ss.AccentSoft else Ss.SurfaceHigh)
+        if (w.queueSize > 0) Label("Czeka na wysłanie: ${w.queueSize}", Ss.Warning, 13.sp)
+        w.lastSentText?.let { Label("Ostatnio wysłano: $it", Ss.TextMuted, 13.sp) }
+    }
+    Field("Kod nawigacji", code, "ABCD-EFGH-JKLM-NPQR") { code = it.uppercase().take(19) }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = {
+            msg = w.setCode(code) ?: "Kod zapisany — sprawdzam w WAR…"
+            if (WarProtocol.isValidCode(WarProtocol.normalizeCode(code))) code = WarProtocol.pretty(WarProtocol.normalizeCode(code))
+        }) { ButtonText("Zapisz i sprawdź kod", color = Ss.OnAccent, weight = FontWeight.Bold) }
+    }
+    msg?.let { Label(it, Ss.TextSoft, 14.sp) }
+    SectionTitle("Jak ta maszyna ma się nazywać w WAR")
+    Field("Nazwa ciągnika", tractor, "np. Renault 133.14") { tractor = it.take(40) }
+    Field("Nazwa narzędzia (stała)", tool, hw.profileName) { tool = it.take(40) }
+    Label("WAR przypisuje rodzaj zabiegu do nazwy narzędzia (np. „Siewnik 3 m” = siew) — nie zmieniaj jej co dzień.", Ss.TextMuted, 12.sp)
+    Field("Kto jedzie", who, "np. Marek") { who = it.take(40) }
+    Toggle("Pokazuj na mapie WAR (pozycja na żywo)", c.live) { w.update(w.config.copy(live = it)) }
+    Field("Serwer", server, "https://www.agro.smartsteer.eu") { server = it.trim() }
+    ActionButton(onClick = {
+        w.update(w.config.copy(tractorName = tractor.trim(), toolName = tool.trim(), operator = who.trim(), server = server.ifEmpty { "https://www.agro.smartsteer.eu" }))
+        msg = "Zapisano"
+    }) { ButtonText("Zapisz nazwy") }
+    Label("Id tej maszyny: ${c.machineId}", Ss.TextMuted, 12.sp)
 }
 
 @Composable

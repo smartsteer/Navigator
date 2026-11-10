@@ -23,11 +23,13 @@ class Coverage {
     private val chunks = HashMap<Long, LongArray>()
     var cellCount = 0L; private set
     val workedM2: Double get() = cellCount * CELL * CELL
+    /** Suma pasów sekcji z zakładkami, m² („ha_przejazdów” dla WAR). */
+    var passesM2 = 0.0; private set
     /** Zmienia się przy każdej zmianie — mapa wie, kiedy przerysować. */
     var version = 0L; private set
 
     fun clear() {
-        strips.clear(); chunks.clear(); cellCount = 0; version++
+        strips.clear(); chunks.clear(); cellCount = 0; passesM2 = 0.0; version++
     }
 
     fun isCovered(p: Vec2): Boolean {
@@ -82,6 +84,7 @@ class Coverage {
             val pr = strip.right.last()
             if (pl.distanceTo(l) < MIN_STEP && pr.distanceTo(r) < MIN_STEP) return
             paintQuad(pl, pr, r, l)
+            passesM2 += Polygon.area(listOf(pl, pr, r, l))
         }
         strip.left.add(l)
         strip.right.add(r)

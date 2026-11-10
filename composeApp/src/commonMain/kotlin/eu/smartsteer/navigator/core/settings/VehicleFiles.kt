@@ -17,3 +17,6 @@ expect fun nowText(): String
 
 /** Otwiera folder w Eksploratorze (Windows). Na Androidzie nic nie robi. */
 expect fun openFolder(path: String): Boolean
+
+/** Folder danych WAR (ustawienia połączenia, pola i zlecenia z WAR, kolejka wysyłki). */
+expect fun warFiles(): TextFiles

@@ -24,6 +24,8 @@ actual fun importFiles(): TextFiles = DirFiles(File(smartSteerDir(), "Import").a
 
 actual fun exportFiles(): TextFiles = DirFiles(File(smartSteerDir(), "Raporty").apply { mkdirs() })
 
+actual fun warFiles(): TextFiles = DirFiles(File(smartSteerDir(), "WAR").apply { mkdirs() })
+
 actual fun nowText(): String =
     java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
 

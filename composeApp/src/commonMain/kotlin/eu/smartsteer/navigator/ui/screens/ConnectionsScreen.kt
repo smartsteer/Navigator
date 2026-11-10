@@ -191,6 +191,13 @@ private fun ModulesStatus(hw: HardwareController) {
         if (hw.ntripReceiving) "${hw.ntripRate.pl(0)} B/s" else if (nc.enabled) "Brak" else "Wyłączone",
         if (hw.ntripReceiving) Ss.Accent else if (nc.enabled) Ss.Warning else Ss.TextMuted,
     )
+    val w = hw.war
+    Module(
+        "WAR (Wirtualny Asystent Rolnika)",
+        if (w.configured) "Pola z WAR: ${w.fields.size} · zlecenia nowe: ${w.newOrders.size} · w kolejce: ${w.queueSize}" else "Ustawienia → WAR (kod nawigacji z telefonu)",
+        if (!w.configured) "Nie połączono" else w.status.take(28),
+        if (!w.configured) Ss.TextMuted else if (w.codeActive == true && w.status == "Połączono z WAR") Ss.Accent else Ss.Warning,
+    )
     if (hw.hardware) {
         Module("Moduł maszyny (sekcje)", "PGN 239 co 100 ms · włączone sekcje: ${s.sections.on.count { it }}", "Wysyłam", Ss.Accent)
     } else {

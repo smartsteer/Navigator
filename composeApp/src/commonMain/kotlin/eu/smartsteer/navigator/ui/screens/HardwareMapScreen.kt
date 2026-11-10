@@ -75,6 +75,7 @@ fun HardwareMapScreen(hw: HardwareController) {
                 HwSquare({ zoom = (zoom / 1.3f).coerceAtLeast(1.5f) }) { NavIcon(IconKind.Minus, Ss.Text, 22.dp) }
                 HwSquare({ headingUp = !headingUp }) { ButtonText(if (headingUp) "KURS" else "N", size = 13.sp, weight = FontWeight.Bold) }
             }
+            OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 16.dp))
             HwSectionsBar(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp))
             HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp))
         }
@@ -131,7 +132,7 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
 @Composable
 private fun HwMessage(hw: HardwareController, modifier: Modifier) {
     hw.tick
-    val m = hw.session.message ?: return
+    val m = hw.mapNote ?: hw.session.message ?: return
     Text(m, modifier.hwOverlay().padding(horizontal = 16.dp, vertical = 12.dp), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
 }
 
@@ -235,6 +236,30 @@ private fun TurnControls(hw: HardwareController) {
         }
     } else if (s.autoUturn && !hasBoundary) {
         Label("Auto-zawrót potrzebuje granicy pola (ekran Pola).", Ss.Warning, 12.sp)
+    }
+}
+
+/** Nowe zlecenie z WAR: Przyjmij (otwiera pole) / Odrzuć. */
+@Composable
+private fun OrderBanner(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val o = hw.war.newOrders.firstOrNull() ?: return
+    val more = hw.war.newOrders.size - 1
+    Column(
+        modifier.width(460.dp).hwOverlay().border(2.dp, Ss.Info, RoundedCornerShape(14.dp)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Label("Nowe zlecenie z WAR${if (more > 0) " (i jeszcze $more)" else ""}${if (o.from.isNotEmpty()) " · od: ${o.from}" else ""}", Ss.Info, 12.sp)
+        BigValue(o.title, size = 18.sp)
+        if (o.details.isNotEmpty()) Text(o.details, color = Ss.TextSoft, fontSize = 14.sp)
+        if (o.notes.isNotEmpty()) Text("Uwagi: ${o.notes}", color = Ss.TextSoft, fontSize = 13.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ActionButton(Modifier.weight(1f), background = Ss.Accent, border = Ss.Accent, onClick = {
+                val m = hw.war.accept(o)
+                hw.mapMessage(m)
+            }) { ButtonText("Przyjmij", color = Ss.OnAccent, weight = FontWeight.Bold) }
+            ActionButton(Modifier.weight(1f), onClick = { hw.war.reject(o); hw.touch() }) { ButtonText("Odrzuć", color = Ss.TextSoft) }
+        }
     }
 }
 

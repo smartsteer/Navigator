@@ -16,6 +16,8 @@ data class FieldData(
     val ab: AbLine? = null,
     /** Nagrana krzywa odniesienia (punkty; kursy liczone przy wczytaniu). */
     val curve: List<Vec2>? = null,
+    /** Id pola w WAR (pole przyszło z WAR) — wraca w raporcie pracy. */
+    val warId: String? = null,
 ) {
     fun toJson(): String = buildString {
         append("{\n")
@@ -27,7 +29,8 @@ data class FieldData(
         append("  \"ab\": ")
         if (ab == null) append("null") else append("[${n(ab.a.x)}, ${n(ab.a.y)}, ${n(ab.b.x)}, ${n(ab.b.y)}]")
         append(",\n")
-        append("  \"curve\": ").append(pts(curve)).append('\n')
+        append("  \"curve\": ").append(pts(curve)).append(",\n")
+        append("  \"warId\": ").append(if (warId == null) "null" else "\"" + esc(warId) + "\"").append('\n')
         append("}\n")
     }
 
@@ -47,6 +50,7 @@ data class FieldData(
                 headlandWidth = (m["headlandWidth"] as? Double) ?: 0.0,
                 ab = ab,
                 curve = readPts(m["curve"]),
+                warId = m["warId"] as? String,
             )
         }
 

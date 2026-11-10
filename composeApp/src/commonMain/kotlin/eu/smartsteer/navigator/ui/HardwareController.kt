@@ -14,7 +14,13 @@ import eu.smartsteer.navigator.core.net.TcpClient
 import eu.smartsteer.navigator.core.net.createTcpClient
 import eu.smartsteer.navigator.core.ntrip.Ntrip
 import eu.smartsteer.navigator.core.ntrip.NtripConfig
+import eu.smartsteer.navigator.core.field.FieldData
 import eu.smartsteer.navigator.core.field.FieldStore
+import eu.smartsteer.navigator.core.geo.LocalPlane
+import eu.smartsteer.navigator.core.settings.warFiles
+import eu.smartsteer.navigator.core.update.platformUpdater
+import eu.smartsteer.navigator.core.war.WarField
+import eu.smartsteer.navigator.core.war.nowIso
 import eu.smartsteer.navigator.core.io.FieldExchange
 import eu.smartsteer.navigator.core.io.FieldImport
 import eu.smartsteer.navigator.core.settings.exportFiles
@@ -216,6 +222,32 @@ class HardwareController {
         return if (added.isEmpty()) "Nic nie zaimportowano" else "Zaimportowano: ${added.joinToString(", ")}"
     }
 
+    /** Początek pracy na polu (ISO 8601) — do paczki pracy dla WAR. */
+    var fieldStartedIso = ""
+        private set
+
+    /** Połączenie z WAR przez API. */
+    val war: WarController by lazy { WarController(this, warFiles(), platformUpdater().currentVersion) }
+
+    /** Otwiera pole z WAR (po `war_id`), a gdy go jeszcze nie ma — zakłada je z granicą z WAR. */
+    fun openWarField(f: WarField): String? {
+        val existing = fieldStore.names().firstOrNull { n -> fieldStore.load(n)?.first?.warId == f.id }
+        if (existing != null) return openField(existing)
+        val pl = LocalPlane(f.centerLat, f.centerLon)
+        val boundary = f.ring.map { pl.toLocal(it.second, it.first) }
+        var n = Profiles.sanitize(f.name).ifEmpty { "Pole WAR" }
+        var k = 2
+        while (fieldStore.exists(n)) n = "${Profiles.sanitize(f.name)} ($k)".also { k++ }
+        val data = FieldData(n, f.centerLat, f.centerLon, boundary.takeIf { it.size >= 3 }, 0.0, null, null, f.id)
+        return try {
+            fieldStore.save(data, "")
+            refreshFields()
+            openField(n)
+        } catch (e: Exception) {
+            "Nie udało się założyć pola: ${e.message}"
+        }
+    }
+
     /** Raport zabiegu (GeoJSON) do folderu raportów — do wczytania w WAR. */
     fun writeReport(): String? {
         val f = session.fieldData() ?: return "Żadne pole nie jest otwarte"
@@ -237,19 +269,23 @@ class HardwareController {
         val name = Profiles.sanitize(raw)
         if (name.isEmpty()) return "Wpisz nazwę pola"
         if (fieldStore.exists(name)) return "Pole „$name” już istnieje"
-        session.fieldName?.let { saveField() }
+        session.fieldName?.let { saveField(); if (session.coverage.workedM2 > 0) writeReport(); war.onFieldClosed() }
         if (!session.newField(name)) return session.message
         fieldStartedText = nowText()
+        fieldStartedIso = nowIso()
+        war.onFieldOpened(null)
         val err = saveField()
         tick++
         return err
     }
 
     fun openField(name: String): String? {
-        session.fieldName?.let { saveField() }
+        session.fieldName?.let { saveField(); if (session.coverage.workedM2 > 0) writeReport(); war.onFieldClosed() }
         val (f, cov) = fieldStore.load(name) ?: return "Pole „$name” jest uszkodzone"
         session.openField(f, cov)
         fieldStartedText = nowText()
+        fieldStartedIso = nowIso()
+        war.onFieldOpened(f.warId)
         tick++
         return null
     }
@@ -258,6 +294,7 @@ class HardwareController {
         val err = saveField()
         if (err != null && session.fieldName != null) return err
         if (session.coverage.workedM2 > 0) writeReport()
+        war.onFieldClosed()
         session.closeField()
         tick++
         return null
@@ -542,6 +579,7 @@ class HardwareController {
 
     /** Pętla: odbiór pakietów i wysyłka PGN 254 co 100 ms (tylko w trybie Sprzęt). */
     suspend fun run() = coroutineScope {
+        launch { war.loop() }
         launch {
             for (p in inbox) {
                 if (!hardware) continue
@@ -554,6 +592,7 @@ class HardwareController {
         }
         while (true) {
             delay(100)
+            if (mapNote != null && now() > mapNoteUntilS) mapNote = null
             val l = link
             if (stopRequested && l != null) {
                 val off = session.steerFrame()
@@ -586,6 +625,13 @@ class HardwareController {
             tick++
         }
     }
+
+    /** Krótki komunikat na mapie (np. po przyjęciu zlecenia), znika po 8 s. */
+    var mapNote by mutableStateOf<String?>(null)
+        private set
+    private var mapNoteUntilS = 0.0
+
+    fun mapMessage(m: String) { mapNote = m; mapNoteUntilS = now() + 8; tick++ }
 
     /** Odświeżenie ekranu po akcji z UI. */
     fun touch() { tick++ }
