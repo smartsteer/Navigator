@@ -4,7 +4,7 @@ Każdy etap kończy się zieloną budową w GitHub Actions (APK + MSI + testy).
 Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótką notatkę.
 
 - [x] 0. Szkielet KMP (Android + Windows), wygląd z projektu, symulator, pure pursuit, NMEA, PGN 254/253
-- [ ] 1. Automatyczne aktualizacje na Windows (priorytet właściciela): workflow publikuje przy każdej zielonej budowie na main GitHub Release z rosnącym numerem wersji (packageVersion/versionCode z numeru przebiegu) i instalatorem MSI; aplikacja przy starcie (i co kilka godzin) sprawdza najnowszy Release, pokazuje „Dostępna aktualizacja X — Zainstaluj”, pobiera MSI i uruchamia msiexec, potem się zamyka. Repozytorium jest publiczne (od 2026-11-09), więc Release pobiera się bez logowania — żadnych tokenów w aplikacji. Android: na razie tylko powiadomienie o nowej wersji z linkiem do APK.
+- [x] 1. Automatyczne aktualizacje na Windows (priorytet właściciela): workflow publikuje przy każdej zielonej budowie na main GitHub Release z rosnącym numerem wersji (packageVersion/versionCode z numeru przebiegu) i instalatorem MSI; aplikacja przy starcie (i co kilka godzin) sprawdza najnowszy Release, pokazuje „Dostępna aktualizacja X — Zainstaluj”, pobiera MSI i uruchamia msiexec, potem się zamyka. Repozytorium jest publiczne (od 2026-11-09), więc Release pobiera się bez logowania — żadnych tokenów w aplikacji. Android: na razie tylko powiadomienie o nowej wersji z linkiem do APK.
 - [ ] 1b. Transport UDP (Android + Windows): nasłuch 9999 (NMEA i PGN z modułów), wysyłka 8888 do 192.168.5.255; PGN 254 co 100 ms; ekran Połączenia pokazuje na żywo, co przychodzi; przełącznik trybu Symulator / Sprzęt
 - [ ] 2. Tryb Sprzęt: pozycja z GPS (LocalPlane), kurs z VTG / dwóch anten, prędkość; tworzenie linii AB przyciskami A i B z bieżącej pozycji; autoster na prawdziwej linii
 - [ ] 3. Algorytmy prowadzenia przeniesione z AgOpenGPS (pure pursuit z członem całkującym, Stanley) + ustawienia; oznaczyć pochodzenie w kodzie
@@ -27,3 +27,5 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 
 ## Notatki z przebiegów
 
+- 2026-11-10 — etap 1: każda zielona budowa na main publikuje GitHub Release v0.1.<nr przebiegu> (MSI + APK); aplikacja sprawdza nowe wydanie 5 s po starcie i co 4 h, na Windows pobiera MSI i instaluje przez msiexec (potem sama się uruchamia), na Androidzie daje link do APK; przy włączonym autosterze instalacja zablokowana.
+  W polu sprawdzić: zainstalować ręcznie MSI z tego wydania, po następnym wydaniu kliknąć „Zainstaluj” — czy Windows pyta o zgodę, czy nowa wersja startuje sama i czy ustawienia zostają. APK z CI jest podpisany kluczem debug z każdej budowy osobno — aktualizacja na tablecie może wymagać odinstalowania starej wersji.

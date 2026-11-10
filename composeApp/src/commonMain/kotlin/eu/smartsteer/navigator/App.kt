@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.ui.DemoController
+import eu.smartsteer.navigator.ui.UpdateBanner
+import eu.smartsteer.navigator.ui.UpdateController
 import eu.smartsteer.navigator.ui.components.IconKind
 import eu.smartsteer.navigator.ui.components.NavIcon
 import eu.smartsteer.navigator.ui.components.Pill
@@ -41,6 +43,7 @@ import eu.smartsteer.navigator.ui.screens.MapScreen
 import eu.smartsteer.navigator.ui.screens.SteerScreen
 import eu.smartsteer.navigator.ui.theme.SmartSteerTheme
 import eu.smartsteer.navigator.ui.theme.Ss
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.ceil
 
@@ -57,6 +60,16 @@ fun App() {
     SmartSteerTheme {
         val ctrl = remember { DemoController() }
         var screen by remember { mutableStateOf(Screen.Map) }
+        val upd = remember { UpdateController() }
+
+        // aktualizacje: pierwsze sprawdzenie chwilę po starcie, potem co kilka godzin
+        LaunchedEffect(upd) {
+            delay(UpdateController.FIRST_CHECK_MS)
+            while (true) {
+                upd.check()
+                delay(UpdateController.INTERVAL_MS)
+            }
+        }
 
         // pętla symulacji: krok co klatkę ekranu
         LaunchedEffect(ctrl) {
@@ -71,6 +84,7 @@ fun App() {
 
         Column(Modifier.fillMaxSize().background(Ss.Ground)) {
             TopBar(ctrl)
+            UpdateBar(upd, ctrl)
             Row(Modifier.fillMaxSize()) {
                 NavRail(screen) { screen = it }
                 Box(Modifier.fillMaxSize()) {
@@ -85,6 +99,12 @@ fun App() {
             }
         }
     }
+}
+
+@Composable
+private fun UpdateBar(upd: UpdateController, ctrl: DemoController) {
+    ctrl.frame // stan autosteru odświeżany co klatkę
+    UpdateBanner(upd, autosteerOn = ctrl.session.engaged)
 }
 
 @Composable

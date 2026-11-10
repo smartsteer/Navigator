@@ -42,3 +42,28 @@ jobs:
         with:
           name: navigator-windows-msi
           path: composeApp/build/compose/binaries/main/msi/*.msi
+
+  release:
+    name: Wydanie (GitHub Release)
+    needs: [android, windows]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Publikacja wydania
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          V="0.1.${{ github.run_number }}"
+          mkdir out
+          cp dist/navigator-windows-msi/*.msi "out/SmartSteer-Navigator-$V.msi"
+          cp dist/navigator-android-debug/*.apk "out/SmartSteer-Navigator-$V.apk"
+          printf 'Automatyczne wydanie z budowy nr %s.\n\n%s\n' "${{ github.run_number }}" "$COMMIT_MSG" > notes.md
+          gh release create "v$V" out/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "SmartSteer Navigator $V" --notes-file notes.md --latest

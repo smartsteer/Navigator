@@ -1,6 +1,10 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+// Numer wersji z numeru przebiegu CI (GitHub Actions); lokalnie 0 = wersja deweloperska bez aktualizacji.
+val buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "0").toInt()
+val appVersion = "0.1.$buildNumber"
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -50,8 +54,11 @@ android {
         applicationId = "eu.smartsteer.navigator"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = buildNumber.coerceAtLeast(1)
+        versionName = appVersion
+    }
+    buildFeatures {
+        buildConfig = true
     }
     packaging {
         resources {
@@ -72,11 +79,12 @@ android {
 compose.desktop {
     application {
         mainClass = "eu.smartsteer.navigator.MainKt"
+        jvmArgs += listOf("-Dnavigator.version=$appVersion")
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "SmartSteer Navigator"
-            packageVersion = "0.1.0"
+            packageVersion = appVersion
             vendor = "SmartSteer"
             description = "Prowadzenie i autosterowanie zgodne z płytkami AgOpenGPS"
             windows {
