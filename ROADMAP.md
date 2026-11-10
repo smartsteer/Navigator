@@ -9,8 +9,8 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 - [x] 2. Tryb Sprzęt: pozycja z GPS (LocalPlane), kurs z VTG / dwóch anten, prędkość; tworzenie linii AB przyciskami A i B z bieżącej pozycji; autoster na prawdziwej linii
 - [x] 3. Algorytmy prowadzenia przeniesione z AgOpenGPS (pure pursuit z członem całkującym, Stanley) + ustawienia; oznaczyć pochodzenie w kodzie
 - [x] 4. Krzywa AB (nagrywana jazdą) i kontur
-- [ ] 5. Granica pola nagrywana objazdem, uwrocie, zapis i wczytywanie pól (pliki JSON w katalogu aplikacji)
-- [ ] 6. Sekcje przez PGN 239, czasy włączania/wyłączania z wyprzedzeniem, zapis mapy pokrycia
+- [x] 5. Granica pola nagrywana objazdem, uwrocie, zapis i wczytywanie pól (pliki JSON w katalogu aplikacji)
+- [x] 6. Sekcje przez PGN 239, czasy włączania/wyłączania z wyprzedzeniem, zapis mapy pokrycia
 - [ ] 7. Klient NTRIP (poprawki RTK przez internet tabletu → do odbiornika przez UDP)
 - [x] 8. IMU: kompensacja przechyłu (wysokość anteny), kurs z IMU
 - [ ] 9. Auto‑zawroty przeniesione z AgOpenGPS (YouTurn) na prawdziwych granicach
@@ -38,3 +38,5 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
   W polu sprawdzić: na płaskim „Wyzeruj przechył”; prawe koła niżej = przechył dodatni (inaczej „Odwróć przechył”); wpisać wysokość anteny i sprawdzić na zboczu, czy przejazdy w obie strony leżą w tym samym miejscu; na postoju kurs ma stać, a nie skakać.
 - 2026-11-10 — etap 4: krzywa nagrywana jazdą (wygładzenie, przedłużenie końców, równoległe przejazdy z pominięciem pętli we wnętrzu łuku, prowadzenie pure pursuit/Stanley po łamanej) i kontur (pasy nagrywane podczas jazdy, prowadzenie wzdłuż poprzedniego przejazdu) — z AgOpenGPS CABCurve.cs i CContour.cs; przełącznik AB / Krzywa / Kontur na Mapie. Ikona aplikacji (Windows, okno, Android) z branding/logo.png przez tools/make_icons.py — na razie tymczasowa, czeka na logo WAR.
   W polu sprawdzić: nagrać krzywą (min. 20 m), czy sąsiednie przejazdy idą równo co szerokość maszyny także w ciasnym łuku; autoster wyłącza się na końcu krzywej; kontur — po zawróceniu łapie poprzedni przejazd i trzyma odstęp.
+- 2026-11-10 — etapy 5 i 6: pola (zakładanie w miejscu ciągnika, otwieranie, autozapis co 30 s; granica nagrywana objazdem z lewej/środka/prawej krawędzi maszyny, uwrocie co szerokość przejazdu, linia AB i krzywa zapisane z polem; pliki JSON + pokrycie w Dokumenty\SmartSteer\Pola) oraz sekcje: zaczep i maszyna ciągniona (z AgOpenGPS Position.designer.cs), do 16 sekcji, włączanie/wyłączanie z wyprzedzeniem, wyłączanie poza granicą, na uwrociu, przy małej prędkości i wg przełącznika roboczego; PGN 239 co 100 ms (sekcje też w PGN 254); mapa pokrycia z uczciwymi hektarami (bez liczenia zakładek).
+  W polu sprawdzić: założyć pole, objechać granicę, ustawić uwrocie; czy moduł maszyny przełącza sekcje; czy przy wjeździe na obrobione sekcje gasną z właściwym wyprzedzeniem (dobrać czasy); po zamknięciu i otwarciu pola wraca granica, linia i pokrycie. Jeszcze nie ma: zapisu konturu z polem, osobnych szerokości sekcji, ustawień modułu maszyny (PGN 238).

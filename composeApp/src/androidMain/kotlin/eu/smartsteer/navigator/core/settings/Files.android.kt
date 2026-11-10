@@ -10,6 +10,9 @@ object AndroidStorage {
 actual fun vehicleFiles(): TextFiles =
     DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "Pojazdy"))
 
+actual fun fieldFiles(): TextFiles =
+    DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "Pola"))
+
 internal class DirFiles(private val dir: File) : TextFiles {
     override val location: String get() = dir.absolutePath
     override fun list(): List<String> = dir.list()?.toList().orEmpty()

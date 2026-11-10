@@ -40,6 +40,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.core.geo.Vec2
+import eu.smartsteer.navigator.core.field.Coverage
+import eu.smartsteer.navigator.core.field.SectionMode
 import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.guidance.Pose
 import eu.smartsteer.navigator.core.hw.GuidanceMode
@@ -73,7 +75,8 @@ fun HardwareMapScreen(hw: HardwareController) {
                 HwSquare({ zoom = (zoom / 1.3f).coerceAtLeast(1.5f) }) { NavIcon(IconKind.Minus, Ss.Text, 22.dp) }
                 HwSquare({ headingUp = !headingUp }) { ButtonText(if (headingUp) "KURS" else "N", size = 13.sp, weight = FontWeight.Bold) }
             }
-            HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp))
+            HwSectionsBar(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp))
+            HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp))
         }
         HwRightPanel(hw)
     }
@@ -114,6 +117,10 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
         }
         BigValue(title, size = 18.sp)
         Text(sub, color = Ss.TextSoft, fontSize = 13.sp)
+        Text(
+            (s.fieldName?.let { "Pole „$it”" } ?: "Bez pola (nie zapisuje się)") + " · obrobiono ${(s.coverage.workedM2 / 10_000).pl(2)} ha",
+            color = if (s.fieldName != null) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
+        )
         Text(
             if (s.gpsAlive(now)) "GPS ${s.fix.label} · kurs $course° (${s.headingSource.label})" else "GPS: brak pozycji",
             color = if (s.gpsAlive(now)) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
@@ -197,6 +204,58 @@ private fun HwRightPanel(hw: HardwareController) {
     }
 }
 
+private fun polygonPath(pts: List<Vec2>): Path = Path().apply {
+    if (pts.isEmpty()) return@apply
+    moveTo(pts[0].x.toFloat(), pts[0].y.toFloat())
+    for (i in 1 until pts.size) lineTo(pts[i].x.toFloat(), pts[i].y.toFloat())
+    close()
+}
+
+/** Pasek sekcji na dole mapy: tryb (AUTO / RĘCZNIE / WYŁ.) i przyciski sekcji. */
+@Composable
+private fun HwSectionsBar(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val s = hw.session
+    val sec = s.sections
+    val n = s.profile.numSections.coerceIn(1, 16)
+    Row(
+        modifier.hwOverlay().padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Segmented(
+            options = SectionMode.entries.map { it.label },
+            selected = sec.mode.ordinal,
+            onSelect = {
+                val m = SectionMode.entries[it]
+                if (m == SectionMode.MANUAL && sec.mode != SectionMode.MANUAL) sec.manual.fill(true)
+                sec.mode = m
+                hw.touch()
+            },
+            selectedColor = { when (SectionMode.entries[it]) { SectionMode.AUTO -> Ss.Accent; SectionMode.MANUAL -> Ss.Warning; SectionMode.OFF -> Ss.TextMuted } },
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (i in 0 until n) {
+                val on = sec.on[i]
+                val armed = sec.mode == SectionMode.MANUAL && sec.manual[i]
+                val bg = when { on -> Ss.Accent; armed -> Ss.AccentSoft; else -> Ss.SurfaceHigh }
+                val fg = if (on) Ss.OnAccent else if (armed) Ss.Accent else Ss.TextSoft
+                Box(
+                    Modifier.size(if (n > 10) 44.dp else 52.dp).clip(RoundedCornerShape(10.dp)).background(bg)
+                        .border(1.dp, if (armed && !on) Ss.Accent else Color.Transparent, RoundedCornerShape(10.dp))
+                        .clickable(role = Role.Button) {
+                            // dotknięcie sekcji przełącza na tryb ręczny (jak w AgOpenGPS)
+                            if (sec.mode != SectionMode.MANUAL) { sec.manual.fill(true); sec.mode = SectionMode.MANUAL }
+                            sec.manual[i] = !sec.manual[i]
+                            hw.touch()
+                        },
+                    contentAlignment = Alignment.Center,
+                ) { Text("${i + 1}", color = fg, fontSize = 17.sp, fontWeight = FontWeight.Bold) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun CurveControls(hw: HardwareController) {
     val s = hw.session
@@ -269,6 +328,8 @@ private fun HwStats(hw: HardwareController) {
 
 @Composable
 private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, modifier: Modifier) {
+    // pasy pokrycia zamieniamy na Path raz (otwarty pas — gdy przybędzie punktów)
+    val stripCache = remember { HashMap<Coverage.Strip, Pair<Int, Path>>() }
     Canvas(modifier.background(Ss.MapGround)) {
         hw.tick
         val s = hw.session
@@ -294,6 +355,38 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
             while (x <= camX + r) { drawLine(gc, Offset(x, camY - r), Offset(x, camY + r), px); x += 10f }
             var y = floor((camY - r) / 10f) * 10f
             while (y <= camY + r) { drawLine(gc, Offset(camX - r, y), Offset(camX + r, y), px); y += 10f }
+
+            // granica i uwrocie
+            s.boundary?.let { b ->
+                drawPath(polygonPath(b), Ss.FieldFill)
+                drawPath(polygonPath(b), Ss.MapLine, style = Stroke(width = 2.5f * px))
+            }
+            s.headland?.let { h ->
+                drawPath(polygonPath(h), Ss.Warning.copy(alpha = 0.8f), style = Stroke(width = 1.5f * px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f * px, 6f * px))))
+            }
+            s.recordingBoundary?.let { r ->
+                if (r.size >= 2) {
+                    val path = Path()
+                    r.forEachIndexed { i, q -> if (i == 0) path.moveTo(q.x.toFloat(), q.y.toFloat()) else path.lineTo(q.x.toFloat(), q.y.toFloat()) }
+                    drawPath(path, Ss.Warning, style = Stroke(width = 3f * px, cap = StrokeCap.Round))
+                }
+            }
+
+            // mapa pokrycia
+            if (s.coverage.strips.isEmpty()) stripCache.clear()
+            val coverColor = Ss.Accent.copy(alpha = 0.35f)
+            for (st in s.coverage.strips) {
+                val n = st.left.size
+                if (n < 2) continue
+                val cached = stripCache[st]
+                val path = if (cached != null && cached.first == n) cached.second else Path().apply {
+                    moveTo(st.left[0].x.toFloat(), st.left[0].y.toFloat())
+                    for (i in 1 until n) lineTo(st.left[i].x.toFloat(), st.left[i].y.toFloat())
+                    for (i in n - 1 downTo 0) lineTo(st.right[i].x.toFloat(), st.right[i].y.toFloat())
+                    close()
+                }.also { stripCache[st] = n to it }
+                drawPath(path, coverColor)
+            }
 
             // ślad jazdy
             if (s.trail.size >= 2) {
@@ -351,6 +444,22 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
             }
             s.pointA?.let { if (l == null && s.mode == GuidanceMode.AB) drawCircle(Ss.Warning, 8f * px, o(it)) }
             s.goal?.let { drawCircle(Ss.Accent, 5f * px, o(it)) }
+
+            // maszyna i sekcje
+            s.sections.hitchPos?.let { hitch ->
+                s.sections.toolPos?.let { tp -> drawLine(Ss.MapLine, o(hitch), o(tp), 2f * px) }
+                s.pivot?.let { pv -> drawLine(Ss.MapLine, o(pv), o(hitch), 2f * px) }
+            }
+            val tf = Vec2.forward(s.sections.toolHeading)
+            for (i in 0 until s.profile.numSections.coerceIn(1, 16)) {
+                val (a, b) = s.sections.edges(i, s.profile) ?: break
+                val quad = Path().apply {
+                    moveTo(o(a + tf * 0.35).x, o(a + tf * 0.35).y); lineTo(o(b + tf * 0.35).x, o(b + tf * 0.35).y)
+                    lineTo(o(b - tf * 0.35).x, o(b - tf * 0.35).y); lineTo(o(a - tf * 0.35).x, o(a - tf * 0.35).y); close()
+                }
+                drawPath(quad, if (s.sections.on[i]) Ss.Accent else Ss.Dim)
+                drawPath(quad, Ss.Ground, style = Stroke(width = 1.5f * px))
+            }
 
             // ciągnik: prosty trójkąt w kolorze z projektu, czubek = przód
             val p = s.pivot

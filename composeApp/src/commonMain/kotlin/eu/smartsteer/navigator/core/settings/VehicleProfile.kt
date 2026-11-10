@@ -38,6 +38,28 @@ data class VehicleProfile(
     val toolWidth: Double = 4.0,
     /** Zakładka między przejazdami, m (+ = zachodzą na siebie). */
     val toolOverlap: Double = 0.0,
+    /** Zaczep: odległość od tylnej osi, m; ujemna = za ciągnikiem (jak w AgOpenGPS). */
+    val hitchLength: Double = -1.0,
+    /** Maszyna ciągniona (na dyszlu), a nie zawieszona sztywno. */
+    val toolTrailing: Boolean = true,
+    /** Maszyna ciągniona: od zaczepu do osi maszyny, m; ujemna = za zaczepem. */
+    val trailingHitchLength: Double = -2.5,
+    /** Liczba sekcji (równe szerokości), 1–16. */
+    val numSections: Int = 3,
+    /** Wyprzedzenie włączania sekcji, s. */
+    val lookAheadOn: Double = 1.0,
+    /** Wyprzedzenie wyłączania sekcji, s. */
+    val lookAheadOff: Double = 0.5,
+    /** Poniżej tej prędkości sekcje się wyłączają, km/h. */
+    val slowSpeedCutoff: Double = 0.5,
+    /** Sekcje wyłączają się poza granicą pola. */
+    val sectionOffWhenOut: Boolean = true,
+    /** Sekcje wyłączają się na uwrociu. */
+    val sectionOffInHeadland: Boolean = true,
+    /** Sekcje działają tylko przy włączonym przełączniku roboczym (PGN 253). */
+    val useWorkSwitch: Boolean = false,
+    /** Przełącznik roboczy aktywny przy stanie niskim (zwarty do masy). */
+    val workSwitchActiveLow: Boolean = true,
 
     // --- Prowadzenie ---
     val algorithm: SteerAlgorithm = SteerAlgorithm.PURE_PURSUIT,
@@ -142,6 +164,11 @@ data class VehicleProfile(
         "antennaPivot" to antennaPivot, "antennaOffset" to antennaOffset, "maxSteerAngle" to maxSteerAngle,
         "maxSteerSpeed" to maxSteerSpeed, "minSteerSpeed" to minSteerSpeed,
         "toolWidth" to toolWidth, "toolOverlap" to toolOverlap,
+        "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
+        "numSections" to numSections, "lookAheadOn" to lookAheadOn, "lookAheadOff" to lookAheadOff,
+        "slowSpeedCutoff" to slowSpeedCutoff, "sectionOffWhenOut" to sectionOffWhenOut,
+        "sectionOffInHeadland" to sectionOffInHeadland, "useWorkSwitch" to useWorkSwitch,
+        "workSwitchActiveLow" to workSwitchActiveLow,
         "algorithm" to algorithm.name, "lookAheadHold" to lookAheadHold, "lookAheadMult" to lookAheadMult,
         "acquireFactor" to acquireFactor, "purePursuitIntegral" to purePursuitIntegral,
         "stanleyDistanceGain" to stanleyDistanceGain, "stanleyHeadingGain" to stanleyHeadingGain,
@@ -174,6 +201,17 @@ data class VehicleProfile(
                 minSteerSpeed = num("minSteerSpeed", d.minSteerSpeed),
                 toolWidth = num("toolWidth", d.toolWidth),
                 toolOverlap = num("toolOverlap", d.toolOverlap),
+                hitchLength = num("hitchLength", d.hitchLength),
+                toolTrailing = bool("toolTrailing", d.toolTrailing),
+                trailingHitchLength = num("trailingHitchLength", d.trailingHitchLength),
+                numSections = int("numSections", d.numSections).coerceIn(1, 16),
+                lookAheadOn = num("lookAheadOn", d.lookAheadOn),
+                lookAheadOff = num("lookAheadOff", d.lookAheadOff),
+                slowSpeedCutoff = num("slowSpeedCutoff", d.slowSpeedCutoff),
+                sectionOffWhenOut = bool("sectionOffWhenOut", d.sectionOffWhenOut),
+                sectionOffInHeadland = bool("sectionOffInHeadland", d.sectionOffInHeadland),
+                useWorkSwitch = bool("useWorkSwitch", d.useWorkSwitch),
+                workSwitchActiveLow = bool("workSwitchActiveLow", d.workSwitchActiveLow),
                 algorithm = SteerAlgorithm.entries.firstOrNull { it.name == m["algorithm"] } ?: d.algorithm,
                 lookAheadHold = num("lookAheadHold", d.lookAheadHold),
                 lookAheadMult = num("lookAheadMult", d.lookAheadMult),

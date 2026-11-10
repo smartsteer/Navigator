@@ -115,6 +115,31 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
     Num("Szerokość robocza", null, p.toolWidth, "m", 0.1, 0.5, 60.0, 2) { set(p.copy(toolWidth = it)) }
     Num("Zakładka", "Ile sąsiednie przejazdy na siebie zachodzą; ujemna = przerwa", p.toolOverlap, "m", 0.05, -2.0, 2.0, 2) { set(p.copy(toolOverlap = it)) }
     Label("Odstęp między przejazdami: ${p.passSpacing.pl(2)} m", Ss.TextSoft, 15.sp)
+    SectionTitle("Zaczep")
+    Choice("Rodzaj maszyny", listOf("Zawieszana", "Ciągniona"), if (p.toolTrailing) 1 else 0) { set(p.copy(toolTrailing = it == 1)) }
+    Num(
+        "Zaczep od tylnej osi", "Ile za osią (albo przed, dla maszyny z przodu)", p.hitchLength, "m", 0.1, -15.0, 10.0, 1,
+        fmt = { v -> if (abs(v) < 0.05) "na osi" else "${abs(v).pl(1)} m ${if (v < 0) "za" else "przed"}" },
+    ) { set(p.copy(hitchLength = it)) }
+    if (p.toolTrailing) {
+        Num(
+            "Od zaczepu do osi maszyny", "Długość dyszla", -p.trailingHitchLength, "m", 0.1, 0.0, 20.0, 1,
+        ) { set(p.copy(trailingHitchLength = -it)) }
+    }
+    SectionTitle("Sekcje")
+    Num("Liczba sekcji", "Równe szerokości: ${(p.toolWidth / p.numSections).pl(2)} m każda", p.numSections.toDouble(), "", 1.0, 1.0, 16.0, 0) {
+        set(p.copy(numSections = it.toInt()))
+    }
+    Num("Włączanie z wyprzedzeniem", "Czas otwarcia zaworu / opadania", p.lookAheadOn, "s", 0.1, 0.0, 5.0, 1) { set(p.copy(lookAheadOn = it)) }
+    Num("Wyłączanie z wyprzedzeniem", "Czas zamknięcia zaworu", p.lookAheadOff, "s", 0.1, 0.0, 5.0, 1) { set(p.copy(lookAheadOff = it)) }
+    Num("Sekcje stoją poniżej", null, p.slowSpeedCutoff, "km/h", 0.1, 0.0, 5.0, 1) { set(p.copy(slowSpeedCutoff = it)) }
+    Toggle("Wyłączaj poza granicą pola", p.sectionOffWhenOut) { set(p.copy(sectionOffWhenOut = it)) }
+    Toggle("Wyłączaj na uwrociu", p.sectionOffInHeadland) { set(p.copy(sectionOffInHeadland = it)) }
+    SectionTitle("Przełącznik roboczy")
+    Toggle("Sekcje tylko przy włączonym przełączniku", p.useWorkSwitch) { set(p.copy(useWorkSwitch = it)) }
+    if (p.useWorkSwitch) {
+        Choice("Włączony, gdy styk", listOf("Zwarty (niski)", "Rozwarty (wysoki)"), if (p.workSwitchActiveLow) 0 else 1) { set(p.copy(workSwitchActiveLow = it == 0)) }
+    }
 }
 
 @Composable

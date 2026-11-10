@@ -39,6 +39,7 @@ import eu.smartsteer.navigator.ui.components.Pill
 import eu.smartsteer.navigator.ui.pl
 import eu.smartsteer.navigator.ui.screens.ConnectionsScreen
 import eu.smartsteer.navigator.ui.screens.FieldsScreen
+import eu.smartsteer.navigator.ui.screens.HardwareFieldsScreen
 import eu.smartsteer.navigator.ui.screens.HardwareMapScreen
 import eu.smartsteer.navigator.ui.screens.ImplementScreen
 import eu.smartsteer.navigator.ui.screens.MapScreen
@@ -98,7 +99,7 @@ fun App() {
                 Box(Modifier.fillMaxSize()) {
                     when (screen) {
                         Screen.Map -> if (hw.hardware) HardwareMapScreen(hw) else MapScreen(ctrl)
-                        Screen.Fields -> FieldsScreen(ctrl)
+                        Screen.Fields -> if (hw.hardware) HardwareFieldsScreen(hw) else FieldsScreen(ctrl)
                         Screen.Steer -> SteerScreen(ctrl)
                         Screen.Implement -> ImplementScreen(ctrl)
                         Screen.Connections -> ConnectionsScreen(ctrl, hw)

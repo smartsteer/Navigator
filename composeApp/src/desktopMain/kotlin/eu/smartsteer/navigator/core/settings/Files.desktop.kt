@@ -8,6 +8,12 @@ actual fun vehicleFiles(): TextFiles {
     return DirFiles(File(docs, "SmartSteer/Pojazdy"))
 }
 
+actual fun fieldFiles(): TextFiles {
+    val home = System.getProperty("user.home") ?: "."
+    val docs = File(home, "Documents").takeIf { it.isDirectory } ?: File(home)
+    return DirFiles(File(docs, "SmartSteer/Pola"))
+}
+
 internal class DirFiles(private val dir: File) : TextFiles {
     override val location: String get() = dir.absolutePath
     override fun list(): List<String> = dir.list()?.toList().orEmpty()

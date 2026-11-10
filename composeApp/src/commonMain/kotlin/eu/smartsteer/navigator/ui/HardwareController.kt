@@ -8,7 +8,9 @@ import eu.smartsteer.navigator.core.aog.AutosteerStatus
 import eu.smartsteer.navigator.core.hw.HardwareSession
 import eu.smartsteer.navigator.core.net.UdpLink
 import eu.smartsteer.navigator.core.net.createUdpLink
+import eu.smartsteer.navigator.core.field.FieldStore
 import eu.smartsteer.navigator.core.settings.Profiles
+import eu.smartsteer.navigator.core.settings.fieldFiles
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import eu.smartsteer.navigator.core.settings.vehicleFiles
 import kotlinx.coroutines.Dispatchers
@@ -141,6 +143,67 @@ class HardwareController {
         return null
     }
 
+    // ---------------- pola ----------------
+    private val fieldStore = FieldStore(fieldFiles())
+    val fieldsLocation: String get() = fieldStore.location
+    var fieldNames by mutableStateOf(runCatching { fieldStore.names() }.getOrDefault(emptyList()))
+        private set
+    var fieldError by mutableStateOf<String?>(null)
+        private set
+    private var lastFieldSaveS = 0.0
+
+    fun refreshFields() {
+        fieldNames = try { fieldStore.names() } catch (e: Exception) { emptyList() }
+    }
+
+    /** Zapis otwartego pola (granica, linie, pokrycie). */
+    fun saveField(): String? {
+        val f = session.fieldData() ?: return "Żadne pole nie jest otwarte"
+        return try {
+            fieldStore.save(f, session.coverage.toText())
+            lastFieldSaveS = now()
+            fieldError = null
+            refreshFields()
+            null
+        } catch (e: Exception) {
+            ("Nie udało się zapisać pola: ${e.message}").also { fieldError = it }
+        }
+    }
+
+    fun newField(raw: String): String? {
+        val name = Profiles.sanitize(raw)
+        if (name.isEmpty()) return "Wpisz nazwę pola"
+        if (fieldStore.exists(name)) return "Pole „$name” już istnieje"
+        session.fieldName?.let { saveField() }
+        if (!session.newField(name)) return session.message
+        val err = saveField()
+        tick++
+        return err
+    }
+
+    fun openField(name: String): String? {
+        session.fieldName?.let { saveField() }
+        val (f, cov) = fieldStore.load(name) ?: return "Pole „$name” jest uszkodzone"
+        session.openField(f, cov)
+        tick++
+        return null
+    }
+
+    fun closeField(): String? {
+        val err = saveField()
+        if (err != null && session.fieldName != null) return err
+        session.closeField()
+        tick++
+        return null
+    }
+
+    fun deleteField(name: String) {
+        if (name == session.fieldName) return
+        fieldStore.delete(name)
+        refreshFields()
+        tick++
+    }
+
     /** Ręczne „Wyślij do płytki”. */
     fun sendBoardConfig() { configDirty = true; configChangedAt = now() - 10; tick++ }
 
@@ -208,9 +271,12 @@ class HardwareController {
             }
             if (!hardware) continue
             session.update(now())
+            // autozapis pola co 30 s
+            if (session.fieldName != null && now() - lastFieldSaveS > 30) saveField()
             val frame = session.steerFrame()
+            val machine = session.machineFrame()
             if (l != null) {
-                sendError = withContext(Dispatchers.Default) { l.send(frame) }
+                sendError = withContext(Dispatchers.Default) { l.send(frame) ?: l.send(machine) }
                 if (sendError == null) txCount++
                 if (configDirty && now() - configChangedAt > 1.5) {
                     val f252 = session.steerSettingsFrame()

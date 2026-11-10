@@ -116,7 +116,11 @@ fun ConnectionsScreen(ctrl: DemoController, hw: HardwareController) {
                     if (asOk) Ss.Accent else Ss.Warning,
                 )
             }
-            Module("Moduł maszyny (sekcje)", "PGN 239", "Nie podłączono", Ss.TextMuted)
+            if (hw.hardware) {
+                Module("Moduł maszyny (sekcje)", "PGN 239 co 100 ms · włączone sekcje: ${s.sections.on.count { it }}", "Wysyłam", Ss.Accent)
+            } else {
+                Module("Moduł maszyny (sekcje)", "PGN 239", "Nie podłączono", Ss.TextMuted)
+            }
         }
         Panel(Modifier.width(420.dp).fillMaxHeight()) {
             SectionTitle("Co przychodzi z sieci")

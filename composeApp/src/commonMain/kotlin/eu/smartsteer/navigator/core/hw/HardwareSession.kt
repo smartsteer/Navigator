@@ -10,6 +10,10 @@ import eu.smartsteer.navigator.core.geo.Vec2
 import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.gps.Gga
 import eu.smartsteer.navigator.core.gps.Nmea
+import eu.smartsteer.navigator.core.field.Coverage
+import eu.smartsteer.navigator.core.field.FieldData
+import eu.smartsteer.navigator.core.field.Polygon
+import eu.smartsteer.navigator.core.field.Sections
 import eu.smartsteer.navigator.core.guidance.AbSteering
 import eu.smartsteer.navigator.core.guidance.Contour
 import eu.smartsteer.navigator.core.guidance.Curves
@@ -71,6 +75,19 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     private var slowCounter = 0
     /** Człon całkujący prowadzenia, m (podgląd na ekranie Ustawienia). */
     val integral: Double get() = steering.integral
+
+    // --- pole: granica, uwrocie, pokrycie, sekcje ---
+    /** Nazwa otwartego pola (null = praca bez pola, nic się nie zapisuje). */
+    var fieldName: String? = null; private set
+    var boundary: List<Vec2>? = null; private set
+    var headlandWidth = 0.0; private set
+    /** Wnętrze pola bez uwrocia. */
+    var headland: List<Vec2>? = null; private set
+    var recordingBoundary: MutableList<Vec2>? = null; private set
+    /** Z której strony ciągnika nagrywamy granicę: −1 = lewa krawędź maszyny, 0 = środek, 1 = prawa. */
+    var boundarySide = 0
+    val coverage = Coverage()
+    val sections = Sections()
 
     // --- krzywa i kontur ---
     var mode = GuidanceMode.AB; private set
@@ -177,6 +194,12 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         recordingCurve?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= CURVE_STEP_M) r.add(pv) }
         // kontur nagrywamy zawsze podczas jazdy (później: gdy pracują sekcje — etap 6)
         contour.record(Pose(pv, headingRad), working = speedKmh >= CONTOUR_MIN_KMH)
+        recordingBoundary?.let { r ->
+            val q = pv + Vec2.right(headingRad) * (boundarySide * profile.toolWidth / 2)
+            if (r.isEmpty() || r.last().distanceTo(q) >= 1.0) r.add(q)
+        }
+        sections.updateTool(pv, headingRad, profile)
+        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS))
     }
 
     /**
@@ -444,7 +467,92 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         autosteerOn = engaged,
         steerAngleDeg = if (engaged) steerSetDeg else 0.0,
         lineDistanceCm = xteCm.roundToInt(),
+        sections = sections.bits(),
     ).toFrame()
+
+    /** Ramka PGN 239 do modułu maszyny (sekcje). */
+    fun machineFrame(): ByteArray = Sections.machineFrame(speedKmh, sections.bits())
+
+    /** Przełącznik roboczy z PGN 253 (bit 0); aktywny stan wg ustawień. Bez modułu = wyłączony. */
+    fun workSwitchOn(nowS: Double): Boolean {
+        val st = autosteer ?: return false
+        if (!autosteerAlive(nowS)) return false
+        return st.workSwitch != profile.workSwitchActiveLow
+    }
+
+    // ---------------- pole ----------------
+
+    /** Nowe pole z początkiem w bieżącej pozycji. Czyści linie, granicę i pokrycie. */
+    fun newField(name: String): Boolean {
+        val g = lastGga?.takeIf { fix != FixQuality.NONE } ?: return fail("Brak pozycji GPS — pole zakłada się w miejscu ciągnika")
+        resetForField(LocalPlane(g.latitude, g.longitude))
+        fieldName = name
+        return ok("Nowe pole „$name”. Objedź granicę albo od razu utwórz linię.")
+    }
+
+    /** Wczytanie zapisanego pola: wspólny początek płaszczyzny, granica, linie i pokrycie. */
+    fun openField(f: FieldData, coverageText: String) {
+        resetForField(LocalPlane(f.originLat, f.originLon))
+        fieldName = f.name
+        f.boundary?.let { if (it.size >= 3) boundary = it }
+        setHeadlandWidth(f.headlandWidth)
+        f.ab?.let { restoreLine(it) }
+        f.curve?.let { if (it.size >= 2) restoreCurve(Curves.headings(it)) }
+        coverage.loadText(coverageText)
+        ok("Pole „${f.name}” wczytane")
+    }
+
+    /** Stan pola do zapisu (null = żadne pole nie jest otwarte). */
+    fun fieldData(): FieldData? {
+        val n = fieldName ?: return null
+        val pl = plane ?: return null
+        return FieldData(n, pl.originLat, pl.originLon, boundary, headlandWidth, line, curveRef?.map { it.p })
+    }
+
+    fun closeField() {
+        fieldName = null
+        boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
+        coverage.clear(); sections.reset()
+        line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
+        contour.clear(); engaged = false
+        ok("Pole zamknięte")
+    }
+
+    private fun resetForField(pl: LocalPlane) {
+        plane = pl
+        antenna = null; pivot = null; motionRef = null
+        trail.clear(); contour.clear(); coverage.clear(); sections.reset()
+        boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
+        line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
+        engaged = false; pathHint = -1; steering.reset()
+    }
+
+    fun startBoundary(): Boolean {
+        if (pivot == null) return fail("Brak pozycji GPS — nie można nagrywać granicy")
+        recordingBoundary = ArrayList()
+        return ok("Nagrywam granicę — objedź pole i naciśnij „Zakończ”")
+    }
+
+    fun finishBoundary(): Boolean {
+        val r = recordingBoundary ?: return fail("Nagrywanie granicy nie trwa")
+        recordingBoundary = null
+        val poly = Polygon.simplify(r)
+        val area = if (poly.size >= 3) Polygon.area(poly) else 0.0
+        if (area < 100.0) return fail("Za mała granica — objedź całe pole")
+        boundary = poly
+        setHeadlandWidth(headlandWidth)
+        return ok("Granica zapisana: ${(area / 10_000).let { kotlin.math.round(it * 100) / 100 }} ha")
+    }
+
+    fun cancelBoundary() { recordingBoundary = null; ok("Nagrywanie granicy przerwane") }
+
+    fun clearBoundary() { boundary = null; headland = null; ok("Granica usunięta") }
+
+    fun setHeadlandWidth(w: Double) {
+        headlandWidth = w.coerceAtLeast(0.0)
+        val b = boundary
+        headland = if (b != null && headlandWidth > 0) Polygon.inset(b, headlandWidth).takeIf { it.size >= 3 } else null
+    }
 
     private fun ok(m: String): Boolean { message = m; return true }
     private fun fail(m: String): Boolean { message = m; return false }
