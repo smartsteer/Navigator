@@ -18,7 +18,7 @@ import kotlin.math.sqrt
  * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), pliki
  * SourceCode/GPS/Classes/CABLine.cs (pure pursuit z całkowaniem, GetCurrentABLine),
  * SourceCode/GPS/Classes/CGuidance.cs (Stanley: StanleyGuidanceABLine, DoSteerAngleCalc),
- * SourceCode/GPS/Classes/CVehicle.cs (UpdateGoalPointDistance).
+ * SourceCode/GPS/Classes/CVehicle.cs (UpdateGoalPointDistance), SourceCode/GPS/Classes/CABCurve.cs (GetCurrentCurveLine).
  *
  * Konwencje jak w AgOpenGPS: kurs 0 = północ, zgodnie z zegarem; odchyłka + = na prawo od linii;
  * kąt skrętu + = w prawo. Wywoływać przy każdej nowej pozycji (ok. 10 Hz).
@@ -77,11 +77,83 @@ class AbSteering {
         SteerAlgorithm.STANLEY -> stanley(a, b, pivot, heading, speedKmh, engaged, p, rollDeg)
     }
 
+    /** Wynik prowadzenia po krzywej: także indeks odcinka (podpowiedź na następny krok) i koniec ścieżki. */
+    data class PathOutput(val out: Output, val index: Int, val pastEnd: Boolean)
+
+    /**
+     * Prowadzenie po łamanej skierowanej zgodnie z jazdą (krzywa AB, kontur).
+     * Pure pursuit: punkt docelowy szukany wzdłuż łamanej (CABCurve.GetCurrentCurveLine).
+     * Stanley: odcinek najbliższy przedniej osi traktowany jak lokalna linia AB.
+     */
+    fun computePath(
+        pts: List<Pose>, hint: Int, pivot: Vec2, heading: Double, speedKmh: Double,
+        engaged: Boolean, p: VehicleProfile, rollDeg: Double? = null,
+    ): PathOutput? {
+        if (pts.size < 2) return null
+        val steerPt = pivot + Vec2(sin(heading), cos(heading)) * p.wheelbase
+        val ref = if (p.algorithm == SteerAlgorithm.STANLEY) steerPt else pivot
+        val i = nearestSegment(pts, ref, hint)
+        val a = pts[i].p
+        val b = pts[i + 1].p
+        if (a.distanceTo(b) < 1e-9) return null
+        var goalAtEnd = false
+        val out = when (p.algorithm) {
+            SteerAlgorithm.STANLEY -> stanley(a, b, pivot, heading, speedKmh, engaged, p, rollDeg)
+            SteerAlgorithm.PURE_PURSUIT -> purePursuit(a, b, pivot, heading, speedKmh, engaged, p, rollDeg) { start, dist ->
+                var from = start
+                var soFar = 0.0
+                var k = i + 1
+                var goal: Vec2? = null
+                while (k < pts.size) {
+                    val d = from.distanceTo(pts[k].p)
+                    if (d + soFar > dist) {
+                        val j = (dist - soFar) / d
+                        goal = from * (1 - j) + pts[k].p * j
+                        break
+                    }
+                    soFar += d
+                    from = pts[k].p
+                    k++
+                }
+                goal ?: pts.last().p.also { goalAtEnd = true }
+            }
+        }
+        val pastEnd = goalAtEnd || out.goal.distanceTo(pts.last().p) < 0.5
+        return PathOutput(out, i, pastEnd)
+    }
+
+    /** Odcinek łamanej najbliższy punktowi; przy znanej podpowiedzi szukamy tylko w jej okolicy. */
+    private fun nearestSegment(pts: List<Pose>, q: Vec2, hint: Int): Int {
+        val from: Int
+        val to: Int
+        if (hint in 0 until pts.size - 1) {
+            from = (hint - 15).coerceAtLeast(0)
+            to = (hint + 15).coerceAtMost(pts.size - 2)
+        } else {
+            val c = Curves.nearestIndex(pts, q)
+            from = (c - 10).coerceAtLeast(0)
+            to = (c + 10).coerceAtMost(pts.size - 2)
+        }
+        var best = from
+        var bestD = Double.MAX_VALUE
+        for (k in from..to) {
+            val a = pts[k].p
+            val ab = pts[k + 1].p - a
+            val len2 = ab dot ab
+            val t = if (len2 < 1e-12) 0.0 else (((q - a) dot ab) / len2).coerceIn(0.0, 1.0)
+            val d = Curves.d2(a + ab * t, q)
+            if (d < bestD) { bestD = d; best = k }
+        }
+        return best
+    }
+
     // ---------------- pure pursuit (CABLine.cs) ----------------
 
     private fun purePursuit(
         a: Vec2, b: Vec2, pivot: Vec2, heading: Double, avgSpeed: Double,
         engaged: Boolean, p: VehicleProfile, rollDeg: Double?,
+        /** Dla krzywej: punkt docelowy z przejścia wzdłuż ścieżki (rzut, odległość) → punkt. */
+        walk: ((Vec2, Double) -> Vec2)? = null,
     ): Output {
         val dx = b.x - a.x
         val dy = b.y - a.y
@@ -119,7 +191,8 @@ class AbSteering {
         val rNorth = a.y + u * dy
 
         val goalPointDistance = goalPointDistance(avgSpeed, p)
-        val goal = Vec2(rEast + sin(abHeading) * goalPointDistance, rNorth + cos(abHeading) * goalPointDistance)
+        val goal = walk?.invoke(Vec2(rEast, rNorth), goalPointDistance)
+            ?: Vec2(rEast + sin(abHeading) * goalPointDistance, rNorth + cos(abHeading) * goalPointDistance)
 
         val dSquared = (goal.x - pivot.x) * (goal.x - pivot.x) + (goal.y - pivot.y) * (goal.y - pivot.y)
         val localHeading = 2 * PI - heading + inty

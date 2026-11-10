@@ -8,7 +8,7 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 - [x] 1b. Transport UDP (Android + Windows): nasłuch 9999 (NMEA i PGN z modułów), wysyłka 8888 do 192.168.5.255; PGN 254 co 100 ms; ekran Połączenia pokazuje na żywo, co przychodzi; przełącznik trybu Symulator / Sprzęt
 - [x] 2. Tryb Sprzęt: pozycja z GPS (LocalPlane), kurs z VTG / dwóch anten, prędkość; tworzenie linii AB przyciskami A i B z bieżącej pozycji; autoster na prawdziwej linii
 - [x] 3. Algorytmy prowadzenia przeniesione z AgOpenGPS (pure pursuit z członem całkującym, Stanley) + ustawienia; oznaczyć pochodzenie w kodzie
-- [ ] 4. Krzywa AB (nagrywana jazdą) i kontur
+- [x] 4. Krzywa AB (nagrywana jazdą) i kontur
 - [ ] 5. Granica pola nagrywana objazdem, uwrocie, zapis i wczytywanie pól (pliki JSON w katalogu aplikacji)
 - [ ] 6. Sekcje przez PGN 239, czasy włączania/wyłączania z wyprzedzeniem, zapis mapy pokrycia
 - [ ] 7. Klient NTRIP (poprawki RTK przez internet tabletu → do odbiornika przez UDP)
@@ -36,3 +36,5 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
   W polu sprawdzić: wpisać wymiary i antenę, „Wyślij do płytki” i czy płytka przyjmuje ustawienia (np. odwrócenie czujnika kąta); wyzerować czujnik kąta przy kołach prosto; porównać pure pursuit i Stanley na tej samej linii; przy człon całkującym > 0 czy znika stała odchyłka na zboczu.
 - 2026-11-10 — etap 8 (IMU) przeniesiony z AgOpenGPS/AgIO: przechył z PGN 253, PANDA/PAOGI i zewnętrznego IMU (PGN 211/212) z zerem, odwróceniem i filtrem; przesunięcie pozycji anteny na zboczu (sin przechyłu × wysokość anteny); fuzja kursu IMU z GPS; kompensacja zbocza w prowadzeniu; zakładka Ustawienia → IMU. Poprawione: PANDA podaje kurs i przechył ×10 (jak czyta AgIO).
   W polu sprawdzić: na płaskim „Wyzeruj przechył”; prawe koła niżej = przechył dodatni (inaczej „Odwróć przechył”); wpisać wysokość anteny i sprawdzić na zboczu, czy przejazdy w obie strony leżą w tym samym miejscu; na postoju kurs ma stać, a nie skakać.
+- 2026-11-10 — etap 4: krzywa nagrywana jazdą (wygładzenie, przedłużenie końców, równoległe przejazdy z pominięciem pętli we wnętrzu łuku, prowadzenie pure pursuit/Stanley po łamanej) i kontur (pasy nagrywane podczas jazdy, prowadzenie wzdłuż poprzedniego przejazdu) — z AgOpenGPS CABCurve.cs i CContour.cs; przełącznik AB / Krzywa / Kontur na Mapie. Ikona aplikacji (Windows, okno, Android) z branding/logo.png przez tools/make_icons.py — na razie tymczasowa, czeka na logo WAR.
+  W polu sprawdzić: nagrać krzywą (min. 20 m), czy sąsiednie przejazdy idą równo co szerokość maszyny także w ciasnym łuku; autoster wyłącza się na końcu krzywej; kontur — po zawróceniu łapie poprzedni przejazd i trzyma odstęp.

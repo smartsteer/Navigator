@@ -11,6 +11,9 @@ import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.gps.Gga
 import eu.smartsteer.navigator.core.gps.Nmea
 import eu.smartsteer.navigator.core.guidance.AbSteering
+import eu.smartsteer.navigator.core.guidance.Contour
+import eu.smartsteer.navigator.core.guidance.Curves
+import eu.smartsteer.navigator.core.guidance.Pose
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import kotlin.math.PI
 import kotlin.math.abs
@@ -21,6 +24,9 @@ import kotlin.math.roundToInt
 data class AbLine(val a: Vec2, val b: Vec2) {
     val heading: Double get() = atan2(b.x - a.x, b.y - a.y)
 }
+
+/** Rodzaj linii prowadzenia. */
+enum class GuidanceMode(val label: String) { AB("AB"), CURVE("Krzywa"), CONTOUR("Kontur") }
 
 /** Źródło kursu ciągnika — pokazywane na ekranie słowem. */
 enum class HeadingSource(val label: String) { NONE("brak"), MOTION("z ruchu"), VTG("VTG"), DUAL("2 anteny"), IMU("IMU + GPS") }
@@ -65,6 +71,22 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     private var slowCounter = 0
     /** Człon całkujący prowadzenia, m (podgląd na ekranie Ustawienia). */
     val integral: Double get() = steering.integral
+
+    // --- krzywa i kontur ---
+    var mode = GuidanceMode.AB; private set
+    /** Punkty nagrywanej właśnie krzywej (null = nie nagrywamy). */
+    var recordingCurve: MutableList<Vec2>? = null; private set
+    /** Krzywa odniesienia (przejazd 0). */
+    var curveRef: List<Pose>? = null; private set
+    /** Aktywny przejazd krzywej, skierowany zgodnie z jazdą. */
+    var curvePath: List<Pose> = emptyList(); private set
+    var curvePassIndex = 0; private set
+    var curveReversed = false; private set
+    private var curveShiftCm = 0
+    private var curveSpacing = 0.0
+    private var pathHint = -1
+    val contour = Contour()
+    private var contourBuiltS = Double.NEGATIVE_INFINITY
 
     /** Ślad jazdy (co ok. 0,5 m) do rysowania na mapie. */
     val trail = ArrayDeque<Vec2>()
@@ -152,6 +174,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             trail.addLast(pv)
             while (trail.size > 4000) trail.removeFirst()
         }
+        recordingCurve?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= CURVE_STEP_M) r.add(pv) }
+        // kontur nagrywamy zawsze podczas jazdy (później: gdy pracują sekcje — etap 6)
+        contour.record(Pose(pv, headingRad), working = speedKmh >= CONTOUR_MIN_KMH)
     }
 
     /**
@@ -218,7 +243,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun setEngaged(on: Boolean, nowS: Double): String? {
         if (!on) { engaged = false; return null }
         val why = when {
-            line == null -> "Najpierw utwórz linię AB"
+            mode == GuidanceMode.AB && line == null -> "Najpierw utwórz linię AB"
+            mode == GuidanceMode.CURVE && curveRef == null -> "Najpierw nagraj krzywą"
+            mode == GuidanceMode.CONTOUR && contour.guide.isEmpty() -> "Brak wcześniejszego przejazdu obok — kontur nie ma czego się trzymać"
             !gpsAlive(nowS) -> "Brak pozycji GPS"
             !autosteerAlive(nowS) -> "Brak odpowiedzi modułu autosterowania (PGN 253)"
             else -> null
@@ -233,15 +260,124 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         if (engaged && !gpsAlive(nowS)) { engaged = false; fail("Utracono GPS — autoster wyłączony") }
         if (engaged && !autosteerAlive(nowS)) { engaged = false; fail("Moduł autosterowania nie odpowiada — autoster wyłączony") }
         checkSpeedLimits()
-        val l = line
         val p = pivot
-        if (l == null || p == null) { xteCm = 0.0; steerSetDeg = 0.0; goal = null; return }
-        val (a, b) = activeSegment(l, p)
-        val r = steering.compute(a, b, p, headingRad, speedKmh, engaged, profile, imu.rollDeg?.takeIf { imu.rollAlive(nowS) })
+        val roll = imu.rollDeg?.takeIf { imu.rollAlive(nowS) }
+        val r: AbSteering.Output? = when (mode) {
+            GuidanceMode.AB -> line?.let { l ->
+                if (p == null) return@let null
+                val (a, b) = activeSegment(l, p)
+                steering.compute(a, b, p, headingRad, speedKmh, engaged, profile, roll)
+            }
+            GuidanceMode.CURVE -> if (p != null && curveRef != null) followPath(activeCurve(p), p, roll, endMessage = "Koniec krzywej — autoster wyłączony") else null
+            GuidanceMode.CONTOUR -> if (p != null) {
+                if (nowS - contourBuiltS >= (if (contour.guide.isEmpty()) 0.3 else 1.0)) {
+                    val before = contour.guide
+                    contour.build(p, headingRad, profile.toolWidth, profile.toolOverlap, hold = engaged)
+                    contourBuiltS = nowS
+                    if (contour.guide !== before) pathHint = -1
+                }
+                if (engaged && contour.guide.isEmpty()) { engaged = false; fail("Kontur zgubiony — autoster wyłączony") }
+                followPath(contour.guide, p, roll, endMessage = null)
+            } else null
+        }
+        if (r == null) { xteCm = 0.0; steerSetDeg = 0.0; goal = null; return }
         xteCm = r.distanceFromLine * 100
         steerSetDeg = r.steerAngleDeg
         goal = r.goal
     }
+
+    private fun followPath(path: List<Pose>, p: Vec2, roll: Double?, endMessage: String?): AbSteering.Output? {
+        val res = steering.computePath(path, pathHint, p, headingRad, speedKmh, engaged, profile, roll) ?: return null
+        pathHint = res.index
+        if (engaged && res.pastEnd && endMessage != null) { engaged = false; fail(endMessage) }
+        return res.out
+    }
+
+    // ---------------- krzywa ----------------
+
+    fun setMode(m: GuidanceMode) {
+        if (m == mode) return
+        mode = m
+        engaged = false
+        pathHint = -1
+        steering.reset()
+        ok(
+            when (m) {
+                GuidanceMode.AB -> "Linia AB"
+                GuidanceMode.CURVE -> if (curveRef == null) "Naciśnij „Nagraj krzywą” i przejedź pierwszy przejazd" else "Krzywa"
+                GuidanceMode.CONTOUR -> "Kontur: prowadzenie wzdłuż poprzedniego przejazdu"
+            },
+        )
+    }
+
+    fun startCurve(): Boolean {
+        if (pivot == null) return fail("Brak pozycji GPS — nie można nagrywać")
+        recordingCurve = arrayListOf(pivot!!)
+        engaged = false
+        return ok("Nagrywam krzywą — jedź pierwszy przejazd, na końcu naciśnij „Zakończ”")
+    }
+
+    fun finishCurve(): Boolean {
+        val rec = recordingCurve ?: return fail("Nagrywanie nie trwa")
+        recordingCurve = null
+        val len = Curves.length(rec)
+        if (len < MIN_AB_M || rec.size < 10) return fail("Za krótka krzywa (${len.roundToInt()} m). Potrzeba co najmniej ${MIN_AB_M.roundToInt()} m")
+        restoreCurve(Curves.buildReference(rec))
+        return ok("Krzywa gotowa (${len.roundToInt()} m)")
+    }
+
+    fun cancelCurve() { recordingCurve = null; ok("Nagrywanie przerwane") }
+
+    fun clearCurve() {
+        recordingCurve = null; curveRef = null; curvePath = emptyList(); engaged = false
+        ok("Krzywa usunięta")
+    }
+
+    fun restoreCurve(ref: List<Pose>) {
+        curveRef = ref
+        curvePath = emptyList()
+        curvePassIndex = 0
+        pathHint = -1
+    }
+
+    fun clearContour() { contour.clear(); if (mode == GuidanceMode.CONTOUR) engaged = false; ok("Ślady konturu wyczyszczone") }
+
+    /** Długość nagrywanej krzywej, m (do wyświetlenia). */
+    val recordingLength: Double get() = recordingCurve?.let { Curves.length(it) } ?: 0.0
+
+    /**
+     * Najbliższy równoległy przejazd krzywej i kierunek jazdy po nim (histereza jak przy AB);
+     * nowa ścieżka liczona tylko przy zmianie przejazdu, kierunku lub przesunięcia linii.
+     * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Classes/CABCurve.cs (BuildCurveCurrentList).
+     */
+    private fun activeCurve(p: Vec2): List<Pose> {
+        val ref = curveRef ?: return emptyList()
+        val w = profile.passSpacing
+        val i = Curves.nearestIndex(ref, p)
+        val r = ref[i]
+        val right = Vec2.right(r.heading)
+        val exact = ((p - r.p) dot right) / w
+        var changed = curvePath.isEmpty()
+        if (abs(exact - curvePassIndex) > 0.6) { curvePassIndex = kotlin.math.round(exact).toInt(); changed = true }
+        var diff = headingRad - r.heading
+        while (diff > PI) diff -= 2 * PI
+        while (diff < -PI) diff += 2 * PI
+        val rev = if (!curveReversed && abs(diff) > 0.6 * PI) true else if (curveReversed && abs(diff) < 0.4 * PI) false else curveReversed
+        if (rev != curveReversed) { curveReversed = rev; changed = true }
+        if (lineShiftCm != curveShiftCm || w != curveSpacing) changed = true
+        if (changed) {
+            curveShiftCm = lineShiftCm
+            curveSpacing = w
+            // przesunięcie linii jest „w prawo względem jazdy”, więc przy jeździe pod prąd krzywej zmienia znak
+            val shift = (lineShiftCm / 100.0) * (if (curveReversed) -1 else 1)
+            val off = Curves.offset(ref, curvePassIndex * w + shift, w)
+            curvePath = if (curveReversed) Curves.reversed(off) else off
+            pathHint = -1
+            steering.reset()
+        }
+        return curvePath
+    }
+
 
     /**
      * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs:
@@ -316,6 +452,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     companion object {
         const val MIN_AB_M = 20.0
         const val SEGMENT_M = 200.0
+        const val CURVE_STEP_M = 0.5
+        const val CONTOUR_MIN_KMH = 1.0
         const val PGN_EXTERNAL_IMU = 0xD3
         const val PGN_IMU_DISCONNECT = 0xD4
         const val GPS_TIMEOUT_S = 1.0

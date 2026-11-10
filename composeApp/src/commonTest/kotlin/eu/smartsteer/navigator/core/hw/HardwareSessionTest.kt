@@ -146,4 +146,30 @@ class HardwareSessionTest {
         assertEquals(HeadingSource.DUAL, h.headingSource)
         assertTrue(abs(h.headingRad - 271.5 * PI / 180) < 1e-9)
     }
+
+    @Test
+    fun recordedCurveAndNeighbourPass() {
+        val h = HardwareSession(VehicleProfile(toolWidth = 3.0, antennaPivot = 0.0))
+        var t = 0.0
+        // pierwsza pozycja wyznacza początek pola; jedziemy łukiem R = 60 m w prawo
+        fun at(p: Vec2, courseDeg: Double) { h.onNmea(vtg(courseDeg, 7.2), t); h.onNmea(gga(p), t); t += 0.25 }
+        val r = 60.0
+        fun arcPt(s: Double, off: Double): Pair<Vec2, Double> {
+            val a = s / r
+            val rr = r - off // przesunięcie w prawo = do środka
+            return Vec2(r - rr * kotlin.math.cos(a), rr * kotlin.math.sin(a)) to a * 180 / PI
+        }
+        at(Vec2(0.0, 0.0), 0.0)
+        assertTrue(h.startCurve())
+        var s = 0.0
+        while (s <= 50.0) { val (p, c) = arcPt(s, 0.0); at(p, c); s += 0.5 }
+        assertTrue(h.finishCurve(), h.message)
+        h.setMode(GuidanceMode.CURVE)
+        // drugi przejazd: 3,1 m w prawo od krzywej, ta sama strona jazdy
+        s = 10.0
+        while (s <= 30.0) { val (p, c) = arcPt(s, 3.1); at(p, c); s += 0.5 }
+        h.update(t)
+        assertEquals(1, h.curvePassIndex)
+        assertTrue(abs(h.xteCm - 10.0) < 3.0, "xte ${h.xteCm}")
+    }
 }

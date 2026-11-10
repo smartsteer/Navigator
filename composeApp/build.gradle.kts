@@ -105,6 +105,8 @@ compose.desktop {
                 shortcut = true
                 dirChooser = true
                 upgradeUuid = "8f0c6a9e-2b1d-4c7e-9a3f-5d2e7b1c4a60"
+                // ikona z branding/logo.png (tools/make_icons.py)
+                iconFile.set(project.file("icons/app.ico"))
             }
         }
     }

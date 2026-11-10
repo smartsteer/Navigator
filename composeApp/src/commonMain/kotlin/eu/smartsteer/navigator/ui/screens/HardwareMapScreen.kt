@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.core.geo.Vec2
 import eu.smartsteer.navigator.core.gps.FixQuality
+import eu.smartsteer.navigator.core.guidance.Pose
+import eu.smartsteer.navigator.core.hw.GuidanceMode
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.BigValue
@@ -46,6 +50,7 @@ import eu.smartsteer.navigator.ui.components.ButtonText
 import eu.smartsteer.navigator.ui.components.IconKind
 import eu.smartsteer.navigator.ui.components.Label
 import eu.smartsteer.navigator.ui.components.NavIcon
+import eu.smartsteer.navigator.ui.components.Segmented
 import eu.smartsteer.navigator.ui.components.Stat
 import eu.smartsteer.navigator.ui.pl
 import eu.smartsteer.navigator.ui.theme.Ss
@@ -91,18 +96,24 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
     Column(modifier.hwOverlay().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Label("Linia prowadzenia")
         val l = s.line
-        BigValue(
-            when {
-                l != null -> "AB · kurs ${(((l.heading * 180 / PI) + 360) % 360).roundToInt() % 360}°"
-                s.pointA != null -> "Punkt A zapisany"
-                else -> "Brak linii"
-            },
-            size = 18.sp,
-        )
-        Text(
-            if (l != null) "Przejazd ${if (s.passIndex == 0) "AB" else s.passIndex.toString()}${if (s.reversed) " · powrót" else ""}" else "Naciśnij A na początku przejazdu",
-            color = Ss.TextSoft, fontSize = 13.sp,
-        )
+        val (title, sub) = when (s.mode) {
+            GuidanceMode.AB -> when {
+                l != null -> "AB · kurs ${(((l.heading * 180 / PI) + 360) % 360).roundToInt() % 360}°" to
+                    "Przejazd ${if (s.passIndex == 0) "AB" else s.passIndex.toString()}${if (s.reversed) " · powrót" else ""}"
+                s.pointA != null -> "Punkt A zapisany" to "Przejedź min. 20 m i naciśnij B"
+                else -> "Brak linii" to "Naciśnij A na początku przejazdu"
+            }
+            GuidanceMode.CURVE -> when {
+                s.recordingCurve != null -> "Nagrywam krzywą" to "${s.recordingLength.roundToInt()} m · na końcu „Zakończ”"
+                s.curveRef != null -> "Krzywa" to
+                    "Przejazd ${if (s.curvePassIndex == 0) "główny" else s.curvePassIndex.toString()}${if (s.curveReversed) " · powrót" else ""}"
+                else -> "Brak krzywej" to "Naciśnij „Nagraj krzywą” i jedź"
+            }
+            GuidanceMode.CONTOUR -> "Kontur" to
+                if (s.contour.guide.isNotEmpty()) "Trzymam się poprzedniego przejazdu" else "Brak przejazdu obok (do 3 szerokości)"
+        }
+        BigValue(title, size = 18.sp)
+        Text(sub, color = Ss.TextSoft, fontSize = 13.sp)
         Text(
             if (s.gpsAlive(now)) "GPS ${s.fix.label} · kurs $course° (${s.headingSource.label})" else "GPS: brak pozycji",
             color = if (s.gpsAlive(now)) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
@@ -123,14 +134,19 @@ private fun HwRightPanel(hw: HardwareController) {
     val s = hw.session
     val now = hw.now()
     Column(
-        Modifier.width(248.dp).fillMaxHeight().background(Ss.Surface).padding(16.dp),
+        Modifier.width(248.dp).fillMaxHeight().background(Ss.Surface).verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        val ready = s.line != null && s.gpsAlive(now) && s.autosteerAlive(now)
+        val hasLine = when (s.mode) {
+            GuidanceMode.AB -> s.line != null
+            GuidanceMode.CURVE -> s.curveRef != null
+            GuidanceMode.CONTOUR -> s.contour.guide.isNotEmpty()
+        }
+        val ready = hasLine && s.gpsAlive(now) && s.autosteerAlive(now)
         val shape = RoundedCornerShape(20.dp)
         val border = if (ready || s.engaged) Ss.Accent else Ss.Dim
         Column(
-            Modifier.fillMaxWidth().height(140.dp).clip(shape)
+            Modifier.fillMaxWidth().height(120.dp).clip(shape)
                 .background(if (s.engaged) Ss.Accent else Color.Transparent)
                 .border(3.dp, border, shape)
                 .clickable(role = Role.Button) { s.setEngaged(!s.engaged, now) },
@@ -144,7 +160,11 @@ private fun HwRightPanel(hw: HardwareController) {
                 when {
                     s.engaged -> "Włączony · dotknij, aby wyłączyć"
                     ready -> "Dotknij, aby włączyć"
-                    s.line == null -> "Najpierw linia AB"
+                    !hasLine -> when (s.mode) {
+                        GuidanceMode.AB -> "Najpierw linia AB"
+                        GuidanceMode.CURVE -> "Najpierw nagraj krzywą"
+                        GuidanceMode.CONTOUR -> "Brak przejazdu obok"
+                    }
                     !s.gpsAlive(now) -> "Czekam na GPS"
                     else -> "Czekam na moduł skrętu"
                 },
@@ -152,7 +172,54 @@ private fun HwRightPanel(hw: HardwareController) {
             )
         }
 
-        Label("Linia AB z jazdy")
+        Segmented(
+            GuidanceMode.entries.map { it.label }, s.mode.ordinal,
+            { s.setMode(GuidanceMode.entries[it]); hw.touch() },
+            Modifier.fillMaxWidth(),
+        )
+        when (s.mode) {
+            GuidanceMode.AB -> AbControls(hw)
+            GuidanceMode.CURVE -> CurveControls(hw)
+            GuidanceMode.CONTOUR -> {
+                Label("Prowadzi wzdłuż poprzedniego przejazdu, o szerokość maszyny obok. Przejazdy nagrywają się same podczas jazdy.", Ss.TextSoft, 13.sp)
+                ActionButton(Modifier.fillMaxWidth(), onClick = { s.clearContour(); hw.touch() }) { ButtonText("Wyczyść ślady", color = Ss.TextSoft) }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Label("Przesuń linię · ${if (s.lineShiftCm == 0) "0" else s.lineShiftCm.toDouble().pl(0, plusSign = true)} cm")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm -= 2; hw.touch() }) { NavIcon(IconKind.ChevronLeft, Ss.Text, 22.dp, 2.4f) }
+                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm += 2; hw.touch() }) { NavIcon(IconKind.ChevronRight, Ss.Text, 22.dp, 2.4f) }
+            }
+        }
+        HwStats(hw)
+    }
+}
+
+@Composable
+private fun CurveControls(hw: HardwareController) {
+    val s = hw.session
+    if (s.recordingCurve != null) {
+        ActionButton(
+            Modifier.fillMaxWidth(), minHeight = 64.dp, background = Ss.Warning, border = Ss.Warning,
+            onClick = { s.finishCurve(); hw.touch() },
+        ) { ButtonText("Zakończ · ${s.recordingLength.roundToInt()} m", color = Ss.OnWarning, size = 18.sp, weight = FontWeight.Bold) }
+        ActionButton(Modifier.fillMaxWidth(), onClick = { s.cancelCurve(); hw.touch() }) { ButtonText("Przerwij", color = Ss.TextSoft) }
+    } else {
+        ActionButton(
+            Modifier.fillMaxWidth(), minHeight = 64.dp, background = Ss.AccentSoft, border = Ss.Accent,
+            onClick = { s.startCurve(); hw.touch() },
+        ) { ButtonText(if (s.curveRef == null) "Nagraj krzywą" else "Nagraj nową krzywą", color = Ss.Accent, size = 17.sp, weight = FontWeight.Bold) }
+        if (s.curveRef != null) {
+            ActionButton(Modifier.fillMaxWidth(), onClick = { s.clearCurve(); hw.touch() }) { ButtonText("Usuń krzywą", color = Ss.TextSoft) }
+        }
+    }
+}
+
+@Composable
+private fun AbControls(hw: HardwareController) {
+    val s = hw.session
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val aSet = s.pointA != null
             ActionButton(
@@ -172,15 +239,12 @@ private fun HwRightPanel(hw: HardwareController) {
         if (s.line != null || s.pointA != null) {
             ActionButton(Modifier.fillMaxWidth(), onClick = { s.clearLine(); hw.touch() }) { ButtonText("Usuń linię", color = Ss.TextSoft) }
         }
+}
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Label("Przesuń linię · ${if (s.lineShiftCm == 0) "0" else s.lineShiftCm.toDouble().pl(0, plusSign = true)} cm")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm -= 2; hw.touch() }) { NavIcon(IconKind.ChevronLeft, Ss.Text, 22.dp, 2.4f) }
-                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm += 2; hw.touch() }) { NavIcon(IconKind.ChevronRight, Ss.Text, 22.dp, 2.4f) }
-            }
-        }
-
+@Composable
+private fun HwStats(hw: HardwareController) {
+    val s = hw.session
+    val now = hw.now()
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Ss.Panel2).padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -201,7 +265,6 @@ private fun HwRightPanel(hw: HardwareController) {
                 }
             }
         }
-    }
 }
 
 @Composable
@@ -239,8 +302,33 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
                 drawPath(path, Ss.Info.copy(alpha = 0.45f), style = Stroke(width = 2f * px, cap = StrokeCap.Round))
             }
 
+            fun poly(pts: List<Pose>, color: Color, width: Float, dashed: Boolean = false) {
+                if (pts.size < 2) return
+                val path = Path()
+                pts.forEachIndexed { i, q -> if (i == 0) path.moveTo(q.p.x.toFloat(), q.p.y.toFloat()) else path.lineTo(q.p.x.toFloat(), q.p.y.toFloat()) }
+                drawPath(
+                    path, color,
+                    style = Stroke(
+                        width = width * px, cap = StrokeCap.Round,
+                        pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(8f * px, 8f * px)) else null,
+                    ),
+                )
+            }
+            when (s.mode) {
+                GuidanceMode.CURVE -> {
+                    s.curveRef?.let { poly(it, Ss.MapLine.copy(alpha = 0.6f), 1.5f) }
+                    poly(s.curvePath, Ss.Accent, 3f)
+                    s.recordingCurve?.let { rec -> poly(rec.map { Pose(it, 0.0) }, Ss.Warning, 3f) }
+                }
+                GuidanceMode.CONTOUR -> {
+                    s.contour.strips.forEach { poly(it, Ss.Dim, 1.5f, dashed = true) }
+                    poly(s.contour.guide, Ss.Accent, 3f)
+                }
+                GuidanceMode.AB -> {}
+            }
+
             // linia AB i sąsiednie przejazdy
-            val l = s.line
+            val l = s.line.takeIf { s.mode == GuidanceMode.AB }
             if (l != null) {
                 val dir = Vec2.forward(l.heading)
                 val right = Vec2.right(l.heading)
@@ -261,7 +349,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
                 drawCircle(Ss.MapLine, 6f * px, o(l.a))
                 drawCircle(Ss.MapLine, 6f * px, o(l.b))
             }
-            s.pointA?.let { if (l == null) drawCircle(Ss.Warning, 8f * px, o(it)) }
+            s.pointA?.let { if (l == null && s.mode == GuidanceMode.AB) drawCircle(Ss.Warning, 8f * px, o(it)) }
             s.goal?.let { drawCircle(Ss.Accent, 5f * px, o(it)) }
 
             // ciągnik: prosty trójkąt w kolorze z projektu, czubek = przód
