@@ -1,6 +1,16 @@
 package eu.smartsteer.navigator.ui.screens
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.DisposableEffect
@@ -129,7 +139,15 @@ private fun ColumnScope.VehicleTab(p: VehicleProfile, set: (VehicleProfile) -> U
 @Composable
 private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit) {
     SectionTitle("Maszyna")
-    Num("Szerokość robocza", null, p.toolWidth, "m", 0.1, 0.5, 60.0, 2) { set(p.copy(toolWidth = it)) }
+    Num("Szerokość robocza", "Dotknij liczby, żeby wpisać dokładnie (np. 2,95)", p.toolWidth, "m", 0.05, 0.3, 60.0, 2) {
+        // przy własnych szerokościach sekcji zmiana szerokości wraca do równych sekcji
+        set(p.copy(toolWidth = it, sectionWidths = emptyList()))
+    }
+    Num(
+        "Przesunięcie maszyny w bok", "Względem środka ciągnika", p.toolOffset, "m", 0.01, -10.0, 10.0, 2,
+        fmt = { v -> if (abs(v) < 0.005) "na środku" else "${abs(v).pl(2)} m ${if (v > 0) "w prawo" else "w lewo"}" },
+        minusLabel = "◀", plusLabel = "▶",
+    ) { set(p.copy(toolOffset = it)) }
     Num("Zakładka", "Ile sąsiednie przejazdy na siebie zachodzą; ujemna = przerwa", p.toolOverlap, "m", 0.05, -2.0, 2.0, 2) { set(p.copy(toolOverlap = it)) }
     Label("Odstęp między przejazdami: ${p.passSpacing.pl(2)} m", Ss.TextSoft, 15.sp)
     SectionTitle("Zaczep")
@@ -144,8 +162,23 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
         ) { set(p.copy(trailingHitchLength = -it)) }
     }
     SectionTitle("Sekcje")
-    Num("Liczba sekcji", "Równe szerokości: ${(p.toolWidth / p.numSections).pl(2)} m każda", p.numSections.toDouble(), "", 1.0, 1.0, 16.0, 0) {
-        set(p.copy(numSections = it.toInt()))
+    Num("Liczba sekcji", null, p.numSections.toDouble(), "", 1.0, 1.0, 16.0, 0) {
+        set(p.copy(numSections = it.toInt(), sectionWidths = emptyList()))
+    }
+    val custom = p.sectionWidths.size == p.numSections
+    Choice("Szerokości sekcji", listOf("Równe", "Różne"), if (custom) 1 else 0) {
+        set(if (it == 1) p.copy(sectionWidths = List(p.numSections) { p.toolWidth / p.numSections }) else p.copy(sectionWidths = emptyList()))
+    }
+    if (!custom) {
+        Label("Każda sekcja: ${(p.toolWidth / p.numSections).pl(2)} m", Ss.TextSoft, 14.sp)
+    } else {
+        p.sectionWidths.forEachIndexed { i, w ->
+            Num("Sekcja ${i + 1}", if (i == 0) "Od lewej" else null, w, "m", 0.05, 0.05, 30.0, 2) { v ->
+                val nw = p.sectionWidths.toMutableList().also { it[i] = v }
+                set(p.copy(sectionWidths = nw, toolWidth = nw.sum()))
+            }
+        }
+        Label("Razem: ${p.sectionWidths.sum().pl(2)} m (= szerokość robocza)", Ss.TextSoft, 14.sp)
     }
     Num("Włączanie z wyprzedzeniem", "Czas otwarcia zaworu / opadania", p.lookAheadOn, "s", 0.1, 0.0, 5.0, 1) { set(p.copy(lookAheadOn = it)) }
     Num("Wyłączanie z wyprzedzeniem", "Czas zamknięcia zaworu", p.lookAheadOff, "s", 0.1, 0.0, 5.0, 1) { set(p.copy(lookAheadOff = it)) }
@@ -216,6 +249,7 @@ private fun ColumnScope.ImuTab(hw: HardwareController, p: VehicleProfile, set: (
     Label("Wysokość anteny (zakładka Ciągnik): ${p.antennaHeight.pl(2)} m — od niej zależy poprawka pozycji na zboczu.", Ss.TextSoft, 13.sp)
     SectionTitle("Kurs")
     Num("Korekta kursu IMU przez GPS", "Fuzja; 0 = kurs tylko z GPS", p.fusionWeight, "", 0.01, 0.0, 0.5, 2) { set(p.copy(fusionWeight = it)) }
+    Num("Poprawka kursu z dwóch anten", "Gdy anteny nie stoją dokładnie w poprzek ciągnika", p.dualHeadingOffset, "°", 0.1, -180.0, 180.0, 1) { set(p.copy(dualHeadingOffset = it)) }
     Num("Kompensacja zbocza", "Stopnie skrętu na stopień przechyłu", p.sideHillComp, "", 0.01, 0.0, 1.0, 2) { set(p.copy(sideHillComp = it)) }
 }
 
@@ -250,6 +284,9 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
         zeroMsg?.let { Label(it, Ss.TextSoft, 14.sp) }
     }
     Num("Ackermann", "Korekta różnicy skrętu w lewo i w prawo", p.ackerman.toDouble(), "%", 1.0, 1.0, 200.0, 0) { set(p.copy(ackerman = it.toInt())) }
+    SectionTitle("Martwa strefa")
+    Num("Martwa strefa kąta", "Poniżej tej różnicy kąta silnik nie poprawia", p.deadZoneDeg, "°", 0.05, 0.0, 2.0, 2) { set(p.copy(deadZoneDeg = it)) }
+    Num("Opóźnienie martwej strefy", "Ile kroków po 0,1 s", p.deadZoneDelay.toDouble(), "", 1.0, 0.0, 50.0, 0) { set(p.copy(deadZoneDelay = it.toInt())) }
     SectionTitle("Silnik / zawór")
     Num("Wzmocnienie P", "Jak mocno silnik reaguje na różnicę kąta", p.gainP.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(gainP = it.toInt())) }
     Num("Maksymalny PWM", null, p.highPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(highPwm = it.toInt())) }
@@ -259,10 +296,15 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
 
 @Composable
 private fun ColumnScope.BoardTab(hw: HardwareController, p: VehicleProfile, set: (VehicleProfile) -> Unit) {
-    SectionTitle("Kierunki")
-    Toggle("Odwróć czujnik kąta kół", p.invertWas) { set(p.copy(invertWas = it)) }
-    Toggle("Odwróć kierunek silnika", p.invertMotor) { set(p.copy(invertMotor = it)) }
-    Toggle("Odwróć przekaźniki", p.invertRelays) { set(p.copy(invertRelays = it)) }
+    SectionTitle("Kierunki i odwrócenia (jak w AgOpenGPS)")
+    Toggle("Odwróć czujnik kąta kół (WAS)", p.invertWas) { set(p.copy(invertWas = it)) }
+    Toggle("Odwróć kierunek silnika / zaworu", p.invertMotor) { set(p.copy(invertMotor = it)) }
+    Toggle("Odwróć przekaźniki modułu skrętu", p.invertRelays) { set(p.copy(invertRelays = it)) }
+    Toggle("Odwróć przekaźniki modułu maszyny (sekcje)", p.machineInvertRelays) { set(p.copy(machineInvertRelays = it)) }
+    Toggle("Odwróć przechył IMU", p.invertRoll) { set(p.copy(invertRoll = it)) }
+    Choice("Przełącznik roboczy włączony, gdy styk", listOf("Zwarty (niski)", "Rozwarty (wysoki)"), if (p.workSwitchActiveLow) 0 else 1) {
+        set(p.copy(workSwitchActiveLow = it == 0))
+    }
     SectionTitle("Elektronika")
     Choice("Czujnik kąta kół", listOf("Pojedynczy", "Różnicowy"), if (p.singleInput) 0 else 1) { set(p.copy(singleInput = it == 0)) }
     Choice("Sterownik silnika", listOf("Cytron", "IBT2"), if (p.cytron) 0 else 1) { set(p.copy(cytron = it == 0)) }
@@ -280,6 +322,16 @@ private fun ColumnScope.BoardTab(hw: HardwareController, p: VehicleProfile, set:
             p.maxPulseCounts.toDouble(), "", 1.0, 0.0, 255.0, 0,
         ) { set(p.copy(maxPulseCounts = it.toInt())) }
     }
+    SectionTitle("Moduł maszyny (PGN 238)")
+    Toggle("Podnośnik hydrauliczny", p.hydEnabled) { set(p.copy(hydEnabled = it)) }
+    if (p.hydEnabled) {
+        Num("Czas podnoszenia", null, p.hydRaiseTime.toDouble(), "s", 1.0, 0.0, 255.0, 0) { set(p.copy(hydRaiseTime = it.toInt())) }
+        Num("Czas opuszczania", null, p.hydLowerTime.toDouble(), "s", 1.0, 0.0, 255.0, 0) { set(p.copy(hydLowerTime = it.toInt())) }
+    }
+    Num("Użytkownik 1", "Wartości dla własnego programu modułu", p.machineUser1.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(machineUser1 = it.toInt())) }
+    Num("Użytkownik 2", null, p.machineUser2.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(machineUser2 = it.toInt())) }
+    Num("Użytkownik 3", null, p.machineUser3.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(machineUser3 = it.toInt())) }
+    Num("Użytkownik 4", null, p.machineUser4.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(machineUser4 = it.toInt())) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = { hw.sendBoardConfig() }) {
             ButtonText("Wyślij do płytki", color = Ss.OnAccent, weight = FontWeight.Bold)
@@ -568,7 +620,7 @@ private fun Chart(a: ArrayDeque<Float>, b: ArrayDeque<Float>?, minRange: Float, 
 
 // ---------------- elementy ----------------
 
-/** Wiersz z liczbą i dużymi przyciskami − / + (bez klawiatury — wygodne w rękawicy). */
+/** Wiersz z liczbą: duże przyciski − / + (w rękawicy) albo dotknięcie liczby i wpisanie dokładnej wartości. */
 @Composable
 private fun Num(
     label: String,
@@ -603,14 +655,56 @@ private fun Num(
         ActionButton(Modifier.width(56.dp), onClick = { change(-1) }) {
             if (minusLabel != null) ButtonText(minusLabel, size = 18.sp) else NavIcon(IconKind.Minus, Ss.Text, 20.dp)
         }
-        Text(
-            fmt?.invoke(value) ?: (value.pl(decimals) + if (unit.isNotEmpty()) " $unit" else ""),
-            Modifier.width(130.dp),
-            color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+        NumberField(
+            value, decimals, fmt?.invoke(value) ?: (value.pl(decimals) + if (unit.isNotEmpty()) " $unit" else ""),
+            min, max, onChange, Modifier.width(150.dp),
         )
         ActionButton(Modifier.width(56.dp), onClick = { change(1) }) {
             if (plusLabel != null) ButtonText(plusLabel, size = 18.sp) else NavIcon(IconKind.Plus, Ss.Text, 20.dp)
         }
+    }
+}
+
+/** Liczba, którą można wpisać z klawiatury: dotknięcie → pole edycji, „Gotowe” albo odejście → zapis. */
+@Composable
+private fun NumberField(
+    value: Double, decimals: Int, display: String, min: Double, max: Double,
+    onCommit: (Double) -> Unit, modifier: Modifier,
+) {
+    var editing by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf("") }
+    var hadFocus by remember { mutableStateOf(false) }
+    val focus = remember { FocusRequester() }
+    fun commit() {
+        val v = text.replace('−', '-').replace(',', '.').replace(" ", "").toDoubleOrNull()
+        if (v != null) onCommit(v.coerceIn(min, max))
+        editing = false
+        hadFocus = false
+    }
+    val shape = RoundedCornerShape(10.dp)
+    if (!editing) {
+        Box(
+            modifier.clip(shape).background(Ss.Ground).border(1.dp, Ss.Border, shape)
+                .clickable { text = value.pl(decimals).replace('−', '-'); editing = true }
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) { Text(display, color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
+    } else {
+        BasicTextField(
+            value = text,
+            onValueChange = { v -> text = v.filter { it.isDigit() || it in ".,-−" }.take(10) },
+            singleLine = true,
+            textStyle = TextStyle(color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+            cursorBrush = SolidColor(Ss.Accent),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { commit() }),
+            modifier = modifier.clip(shape).background(Ss.Ground).border(2.dp, Ss.Accent, shape)
+                .focusRequester(focus)
+                .onFocusChanged { if (it.isFocused) hadFocus = true else if (hadFocus && editing) commit() }
+                .onPreviewKeyEvent { e -> if (e.key == Key.Enter || e.key == Key.NumPadEnter) { commit(); true } else false }
+                .padding(vertical = 12.dp),
+        )
+        LaunchedEffect(Unit) { focus.requestFocus() }
     }
 }
 

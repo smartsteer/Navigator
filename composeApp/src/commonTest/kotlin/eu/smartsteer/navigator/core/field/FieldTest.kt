@@ -132,4 +132,19 @@ class FieldTest {
         assertEquals(f, back)
         assertTrue(cov.startsWith("0 0 3 0"))
     }
+
+    @Test
+    fun customSectionWidthsAndToolOffset() {
+        val p = VehicleProfile(numSections = 3, sectionWidths = listOf(1.0, 2.0, 3.0), toolOffset = 0.5, hitchLength = 0.0, toolTrailing = false)
+        val s = Sections()
+        s.updateTool(Vec2(0.0, 0.0), 0.0, p)
+        val (a0, b0) = s.edges(0, p)!!
+        val (a2, b2) = s.edges(2, p)!!
+        assertEquals(-2.5, a0.x, 1e-9); assertEquals(-1.5, b0.x, 1e-9)
+        assertEquals(0.5, a2.x, 1e-9); assertEquals(3.5, b2.x, 1e-9)
+        // zła liczba szerokości — równe
+        assertEquals(listOf(2.0, 2.0), VehicleProfile(toolWidth = 4.0, numSections = 2, sectionWidths = listOf(1.0)).sectionWidthsEffective)
+        val f = Sections.machineConfigFrame(VehicleProfile(hydEnabled = true, machineInvertRelays = true, hydRaiseTime = 5))
+        assertEquals(listOf(0x80, 0x81, 0x7F, 0xEE, 8, 5, 4, 1, 3, 1, 2, 3, 4), f.take(13).map { it.toInt() and 0xFF })
+    }
 }

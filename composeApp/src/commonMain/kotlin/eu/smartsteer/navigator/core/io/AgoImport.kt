@@ -49,6 +49,17 @@ object AgoImport {
         d("setVehicle_toolWidth")?.let { p = p.copy(toolWidth = it) }
         d("setVehicle_toolOverlap")?.let { p = p.copy(toolOverlap = it) }
         d("setVehicle_hitchLength")?.let { p = p.copy(hitchLength = it) }
+        d("setVehicle_toolOffset")?.let { p = p.copy(toolOffset = it) }
+        i("setAS_deadZoneHeading")?.let { p = p.copy(deadZoneDeg = it / 100.0) }
+        i("setAS_deadZoneDelay")?.let { p = p.copy(deadZoneDelay = it) }
+        d("setGPS_dualHeadingOffset")?.let { p = p.copy(dualHeadingOffset = it) }
+        i("setArdMac_setting0")?.let { v -> p = p.copy(machineInvertRelays = v and 1 != 0, hydEnabled = v and 2 != 0) }
+        i("setArdMac_hydRaiseTime")?.let { p = p.copy(hydRaiseTime = it) }
+        i("setArdMac_hydLowerTime")?.let { p = p.copy(hydLowerTime = it) }
+        i("setArdMac_user1")?.let { p = p.copy(machineUser1 = it) }
+        i("setArdMac_user2")?.let { p = p.copy(machineUser2 = it) }
+        i("setArdMac_user3")?.let { p = p.copy(machineUser3 = it) }
+        i("setArdMac_user4")?.let { p = p.copy(machineUser4 = it) }
         b("setTool_isToolTrailing")?.let { p = p.copy(toolTrailing = it) }
         d("setVehicle_toolTrailingHitchLength")?.let { p = p.copy(trailingHitchLength = it) }
         i("setVehicle_numSections")?.let { p = p.copy(numSections = it.coerceIn(1, 16)) }
@@ -97,6 +108,17 @@ object AgoImport {
             p = p.copy(danfoss = v and 1 != 0, pressureSensor = v and 2 != 0, currentSensor = v and 4 != 0, axisY = v and 8 != 0)
         }
         i("setArdSteer_maxPulseCounts")?.let { p = p.copy(maxPulseCounts = it) }
+        // szerokości sekcji z pozycji krawędzi (setSection_position1…17, od lewej)
+        val pos = (1..17).mapNotNull { k -> s["setSection_position$k"]?.replace(',', '.')?.toDoubleOrNull() }
+        val ns = p.numSections.coerceIn(1, 16)
+        if (pos.size > ns) {
+            val widths = (0 until ns).map { pos[it + 1] - pos[it] }
+            if (widths.all { it > 0.01 }) {
+                n++
+                val equal = widths.all { kotlin.math.abs(it - widths[0]) < 0.005 }
+                p = p.copy(sectionWidths = if (equal) emptyList() else widths)
+            }
+        }
         return p to n
     }
 

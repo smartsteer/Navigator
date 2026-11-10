@@ -38,6 +38,10 @@ data class VehicleProfile(
     val toolWidth: Double = 4.0,
     /** Zakładka między przejazdami, m (+ = zachodzą na siebie). */
     val toolOverlap: Double = 0.0,
+    /** Przesunięcie maszyny w bok względem ciągnika, m: + w prawo (setVehicle_toolOffset). */
+    val toolOffset: Double = 0.0,
+    /** Szerokości sekcji od lewej, m; pusta = równe (szerokość / liczba sekcji). */
+    val sectionWidths: List<Double> = emptyList(),
     /** Zaczep: odległość od tylnej osi, m; ujemna = za ciągnikiem (jak w AgOpenGPS). */
     val hitchLength: Double = -1.0,
     /** Maszyna ciągniona (na dyszlu), a nie zawieszona sztywno. */
@@ -88,6 +92,11 @@ data class VehicleProfile(
     /** Kompensacja zbocza: ° skrętu na ° przechyłu (wymaga IMU). */
     val sideHillComp: Double = 0.0,
 
+    /** Martwa strefa: kąt zadany bliżej kąta kół niż tyle stopni nie jest poprawiany (setAS_deadZoneHeading / 100). */
+    val deadZoneDeg: Double = 0.1,
+    /** Martwa strefa: po ilu krokach (×100 ms) zaczyna działać (setAS_deadZoneDelay). */
+    val deadZoneDelay: Int = 5,
+
     // --- IMU (żyroskop) ---
     /** Przechył odczytany na płaskim terenie, ° (odejmowany od odczytu). */
     val rollZero: Double = 0.0,
@@ -97,6 +106,20 @@ data class VehicleProfile(
     val invertRoll: Boolean = false,
     /** Waga korekty kursu IMU przez GPS (fuzja); 0 = kurs tylko z GPS. */
     val fusionWeight: Double = 0.06,
+    /** Poprawka kursu z dwóch anten, ° (setGPS_dualHeadingOffset) — gdy anteny nie stoją dokładnie w poprzek. */
+    val dualHeadingOffset: Double = 0.0,
+
+    // --- Moduł maszyny (PGN 238) ---
+    val machineInvertRelays: Boolean = false,
+    /** Podnośnik hydrauliczny sterowany przez moduł maszyny. */
+    val hydEnabled: Boolean = false,
+    /** Czas podnoszenia / opuszczania, s. */
+    val hydRaiseTime: Int = 3,
+    val hydLowerTime: Int = 4,
+    val machineUser1: Int = 1,
+    val machineUser2: Int = 2,
+    val machineUser3: Int = 3,
+    val machineUser4: Int = 4,
 
     // --- Moduł skrętu (PGN 252) ---
     val gainP: Int = 50,
@@ -125,6 +148,16 @@ data class VehicleProfile(
     /** Próg wyłączenia: impulsy enkodera albo % czujnika ciśnienia / prądu. */
     val maxPulseCounts: Int = 3,
 ) {
+    /** Szerokości sekcji (równe, gdy nie wpisano własnych albo liczba się nie zgadza). */
+    val sectionWidthsEffective: List<Double>
+        get() {
+            val n = numSections.coerceIn(1, 16)
+            return if (sectionWidths.size == n && sectionWidths.all { it > 0 }) sectionWidths else List(n) { toolWidth / n }
+        }
+
+    /** Bajt ustawień modułu maszyny (PGN 238): bit 0 odwrócone przekaźniki, bit 1 podnośnik. */
+    val machineSetting0: Int get() = (if (machineInvertRelays) 1 else 0) or (if (hydEnabled) 2 else 0)
+
     /** Odstęp między sąsiednimi przejazdami, m. */
     val passSpacing: Double get() = (toolWidth - toolOverlap).coerceAtLeast(0.1)
 
@@ -171,7 +204,12 @@ data class VehicleProfile(
         "wheelbase" to wheelbase, "trackWidth" to trackWidth, "antennaHeight" to antennaHeight,
         "antennaPivot" to antennaPivot, "antennaOffset" to antennaOffset, "maxSteerAngle" to maxSteerAngle,
         "maxSteerSpeed" to maxSteerSpeed, "minSteerSpeed" to minSteerSpeed,
-        "toolWidth" to toolWidth, "toolOverlap" to toolOverlap,
+        "toolWidth" to toolWidth, "toolOverlap" to toolOverlap, "toolOffset" to toolOffset,
+        "sectionWidths" to sectionWidths.joinToString(";"),
+        "deadZoneDeg" to deadZoneDeg, "deadZoneDelay" to deadZoneDelay, "dualHeadingOffset" to dualHeadingOffset,
+        "machineInvertRelays" to machineInvertRelays, "hydEnabled" to hydEnabled, "hydRaiseTime" to hydRaiseTime,
+        "hydLowerTime" to hydLowerTime, "machineUser1" to machineUser1, "machineUser2" to machineUser2,
+        "machineUser3" to machineUser3, "machineUser4" to machineUser4,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
         "numSections" to numSections, "lookAheadOn" to lookAheadOn, "lookAheadOff" to lookAheadOff,
         "slowSpeedCutoff" to slowSpeedCutoff, "sectionOffWhenOut" to sectionOffWhenOut,
@@ -210,6 +248,19 @@ data class VehicleProfile(
                 minSteerSpeed = num("minSteerSpeed", d.minSteerSpeed),
                 toolWidth = num("toolWidth", d.toolWidth),
                 toolOverlap = num("toolOverlap", d.toolOverlap),
+                toolOffset = num("toolOffset", d.toolOffset),
+                sectionWidths = (m["sectionWidths"] as? String).orEmpty().split(';').mapNotNull { it.trim().toDoubleOrNull() },
+                deadZoneDeg = num("deadZoneDeg", d.deadZoneDeg),
+                deadZoneDelay = int("deadZoneDelay", d.deadZoneDelay),
+                dualHeadingOffset = num("dualHeadingOffset", d.dualHeadingOffset),
+                machineInvertRelays = bool("machineInvertRelays", d.machineInvertRelays),
+                hydEnabled = bool("hydEnabled", d.hydEnabled),
+                hydRaiseTime = int("hydRaiseTime", d.hydRaiseTime),
+                hydLowerTime = int("hydLowerTime", d.hydLowerTime),
+                machineUser1 = int("machineUser1", d.machineUser1),
+                machineUser2 = int("machineUser2", d.machineUser2),
+                machineUser3 = int("machineUser3", d.machineUser3),
+                machineUser4 = int("machineUser4", d.machineUser4),
                 hitchLength = num("hitchLength", d.hitchLength),
                 toolTrailing = bool("toolTrailing", d.toolTrailing),
                 trailingHitchLength = num("trailingHitchLength", d.trailingHitchLength),

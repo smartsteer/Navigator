@@ -104,6 +104,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     var curveReversed = false; private set
     private var curveShiftCm = 0
     private var curveSpacing = 0.0
+    private var curveToolOffset = 0.0
     private var pathHint = -1
     val contour = Contour()
     private var contourBuiltS = Double.NEGATIVE_INFINITY
@@ -161,7 +162,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         when {
             sentence.startsWith("\$PANDA") || sentence.startsWith("\$PAOGI") -> Nmea.parsePanda(sentence)?.let { p ->
                 speedKmh = p.speedKmh
-                if (p.dualAntenna && p.headingDeg != null) { dualHeading = p.headingDeg * PI / 180; dualTimeS = nowS }
+                if (p.dualAntenna && p.headingDeg != null) { dualHeading = (p.headingDeg + profile.dualHeadingOffset) * PI / 180; dualTimeS = nowS }
                 if (!p.dualAntenna) p.headingDeg?.let { imu.onHeading(it, nowS) }
                 p.rollDeg?.let { imu.onRoll(it, filtered = !p.dualAntenna, profile, nowS) }
                 onPosition(p.gga, nowS)
@@ -172,7 +173,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
                 vtgCourse = v.courseDeg?.let { it * PI / 180 }
                 vtgTimeS = nowS
             }
-            type == "HDT" -> Nmea.parseHdt(sentence)?.let { dualHeading = it.headingDeg * PI / 180; dualTimeS = nowS }
+            type == "HDT" -> Nmea.parseHdt(sentence)?.let { dualHeading = (it.headingDeg + profile.dualHeadingOffset) * PI / 180; dualTimeS = nowS }
         }
     }
 
@@ -491,12 +492,13 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         while (diff < -PI) diff += 2 * PI
         val rev = if (!curveReversed && abs(diff) > 0.6 * PI) true else if (curveReversed && abs(diff) < 0.4 * PI) false else curveReversed
         if (rev != curveReversed) { curveReversed = rev; changed = true }
-        if (lineShiftCm != curveShiftCm || w != curveSpacing) changed = true
+        if (lineShiftCm != curveShiftCm || w != curveSpacing || profile.toolOffset != curveToolOffset) changed = true
         if (changed) {
             curveShiftCm = lineShiftCm
             curveSpacing = w
+            curveToolOffset = profile.toolOffset
             // przesunięcie linii jest „w prawo względem jazdy”, więc przy jeździe pod prąd krzywej zmienia znak
-            val shift = (lineShiftCm / 100.0) * (if (curveReversed) -1 else 1)
+            val shift = (lineShiftCm / 100.0 - profile.toolOffset) * (if (curveReversed) -1 else 1)
             val off = Curves.offset(ref, curvePassIndex * w + shift, w)
             curvePath = if (curveReversed) Curves.reversed(off) else off
             pathHint = -1
@@ -549,7 +551,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         if (oldPass != passIndex || oldRev != reversed) steering.reset()
         val dir = Vec2.forward(l.heading) * (if (reversed) -1.0 else 1.0)
         // przesunięcie linii w prawo względem kierunku jazdy
-        val base = l.a + right * (passIndex * w) + Vec2.right(atan2(dir.x, dir.y)) * (lineShiftCm / 100.0)
+        // przesunięcie linii i maszyny w bok (w prawo względem kierunku jazdy): ciągnik jedzie obok przejazdu o −offset
+        val base = l.a + right * (passIndex * w) + Vec2.right(atan2(dir.x, dir.y)) * (lineShiftCm / 100.0 - profile.toolOffset)
         val along = (p - base) dot dir
         // krótki odcinek wokół ciągnika: liczby zostają małe, a linia i tak jest prosta
         return Pair(base + dir * (along - SEGMENT_M), base + dir * (along + SEGMENT_M))
@@ -574,11 +577,34 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         SteerData(
             speedKmh = speedKmh,
             autosteerOn = engaged,
-            steerAngleDeg = if (engaged) steerSetDeg else 0.0,
+            steerAngleDeg = if (engaged) deadZoned(steerSetDeg) else 0.0,
             lineDistanceCm = xteCm.roundToInt(),
             sections = sections.bits(),
         ).toFrame()
     }
+
+    // ---------------- martwa strefa ----------------
+    private var deadZoneCounter = 0
+    private var lastSentAngle = 0.0
+
+    /**
+     * Martwa strefa: gdy kąt zadany jest blisko kąta kół przez [VehicleProfile.deadZoneDelay] kroków,
+     * wysyłamy dalej poprzedni kąt (silnik nie „drga”).
+     * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs (dead zone).
+     */
+    private fun deadZoned(set: Double): Double {
+        val actual = autosteer?.actualAngleDeg
+        if (actual != null && kotlin.math.abs(set - actual) < profile.deadZoneDeg) {
+            if (++deadZoneCounter > profile.deadZoneDelay) return lastSentAngle
+        } else {
+            deadZoneCounter = 0
+        }
+        lastSentAngle = set
+        return set
+    }
+
+    /** Ramka PGN 238 (konfiguracja modułu maszyny) z profilu. */
+    fun machineConfigFrame(): ByteArray = Sections.machineConfigFrame(profile)
 
     // ---------------- test silnika (Free drive) ----------------
     /** Ręczne kręcenie kołami z ekranu — do sprawdzenia silnika i czujnika kąta bez jazdy. */

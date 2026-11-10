@@ -616,6 +616,7 @@ class HardwareController {
     private fun VehicleProfile.boardBytes() = listOf(
         gainP, highPwm, lowPwm, minPwm, countsPerDegree, wasOffset, ackerman,
         setting0, setting1, maxPulseCounts, (minSteerSpeed * 10).toInt(),
+        machineSetting0, hydRaiseTime, hydLowerTime, machineUser1, machineUser2, machineUser3, machineUser4,
     )
 
     private class Packet(val bytes: ByteArray, val from: String)
@@ -689,7 +690,8 @@ class HardwareController {
                 if (configDirty && now() - configChangedAt > 1.5) {
                     val f252 = session.steerSettingsFrame()
                     val f251 = session.steerConfigFrame()
-                    val err = withContext(Dispatchers.Default) { l.send(f252) ?: l.send(f251) }
+                    val f238 = session.machineConfigFrame()
+                    val err = withContext(Dispatchers.Default) { l.send(f252) ?: l.send(f251) ?: l.send(f238) }
                     if (err == null) { configDirty = false; configSentAt = now() }
                 }
             }

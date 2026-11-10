@@ -55,14 +55,16 @@ class Sections {
         toolPos = hitch + Vec2.forward(toolHeading) * p.trailingHitchLength
     }
 
-    /** Lewa i prawa krawędź sekcji [i] (równe szerokości, od lewej). */
+    /** Lewa i prawa krawędź sekcji [i] (od lewej; własne szerokości i przesunięcie maszyny w bok). */
     fun edges(i: Int, p: VehicleProfile): Pair<Vec2, Vec2>? {
         val c = toolPos ?: return null
-        val n = p.numSections.coerceIn(1, MAX)
-        val w = p.toolWidth / n
+        val w = p.sectionWidthsEffective
+        if (i !in w.indices) return null
+        val total = w.sum()
         val right = Vec2.right(toolHeading)
-        val l = -p.toolWidth / 2 + w * i
-        return Pair(c + right * l, c + right * (l + w))
+        var l = -total / 2 + p.toolOffset
+        for (k in 0 until i) l += w[k]
+        return Pair(c + right * l, c + right * (l + w[i]))
     }
 
     /**
@@ -74,7 +76,7 @@ class Sections {
         p: VehicleProfile, speedKmh: Double, coverage: Coverage,
         boundary: List<Vec2>?, inner: List<Vec2>?, workOn: Boolean,
     ) {
-        val n = p.numSections.coerceIn(1, MAX)
+        val n = p.sectionWidthsEffective.size
         val fwd = Vec2.forward(toolHeading)
         val v = speedKmh / 3.6
         val lookOn = (v * p.lookAheadOn).coerceAtLeast(MIN_LOOK)
@@ -134,6 +136,19 @@ class Sections {
         /** Najkrótsze wyprzedzenie — żeby sekcja nie „widziała” pasa, który sama właśnie maluje. */
         private const val MIN_LOOK = 0.4
         private const val MAX_JUMP = 5.0
+
+        /** PGN 238 — konfiguracja modułu maszyny (CPGN_EE): czasy podnośnika, włączenie, ustawienia, 4 wartości użytkownika. */
+        fun machineConfigFrame(p: VehicleProfile): ByteArray {
+            val d = byteArrayOf(
+                p.hydRaiseTime.coerceIn(0, 255).toByte(), p.hydLowerTime.coerceIn(0, 255).toByte(),
+                (if (p.hydEnabled) 1 else 0).toByte(), p.machineSetting0.toByte(),
+                p.machineUser1.coerceIn(0, 255).toByte(), p.machineUser2.coerceIn(0, 255).toByte(),
+                p.machineUser3.coerceIn(0, 255).toByte(), p.machineUser4.coerceIn(0, 255).toByte(),
+            )
+            return AogFrame.build(PGN_MACHINE_CONFIG, d)
+        }
+
+        const val PGN_MACHINE_CONFIG = 0xEE
 
         /** PGN 239 — dane dla modułu maszyny: prędkość × 10 i sekcje. */
         fun machineFrame(speedKmh: Double, bits: Int): ByteArray {

@@ -62,4 +62,20 @@ class AgoImportTest {
         assertTrue(abs(f.ab!!.a.y + 40.0) < 0.05 && abs(f.ab!!.a.x) < 0.05)
         assertEquals(3, f.curve!!.size)
     }
+
+    @Test
+    fun sectionPositionsAndMachine() {
+        val xml = """<setting name="setVehicle_numSections" serializeAs="String"><value>3</value></setting>
+<setting name="setSection_position1" serializeAs="String"><value>-3</value></setting>
+<setting name="setSection_position2" serializeAs="String"><value>-1</value></setting>
+<setting name="setSection_position3" serializeAs="String"><value>1</value></setting>
+<setting name="setSection_position4" serializeAs="String"><value>3.5</value></setting>
+<setting name="setVehicle_toolOffset" serializeAs="String"><value>0.25</value></setting>
+<setting name="setAS_deadZoneHeading" serializeAs="String"><value>20</value></setting>
+<setting name="setArdMac_setting0" serializeAs="String"><value>2</value></setting>"""
+        val (p, _) = AgoImport.applySettings(VehicleProfile(), AgoImport.parseSettings(xml))
+        assertEquals(listOf(2.0, 2.0, 2.5), p.sectionWidths)
+        assertEquals(0.25, p.toolOffset); assertEquals(0.2, p.deadZoneDeg)
+        assertEquals(true, p.hydEnabled); assertEquals(false, p.machineInvertRelays)
+    }
 }
