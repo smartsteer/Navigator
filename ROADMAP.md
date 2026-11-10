@@ -29,3 +29,4 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 
 - 2026-11-10 — etap 1: każda zielona budowa na main publikuje GitHub Release v0.1.<nr przebiegu> (MSI + APK); aplikacja sprawdza nowe wydanie 5 s po starcie i co 4 h, na Windows pobiera MSI i instaluje przez msiexec (potem sama się uruchamia), na Androidzie daje link do APK; przy włączonym autosterze instalacja zablokowana.
   W polu sprawdzić: zainstalować ręcznie MSI z tego wydania, po następnym wydaniu kliknąć „Zainstaluj” — czy Windows pyta o zgodę, czy nowa wersja startuje sama i czy ustawienia zostają. APK z CI jest podpisany kluczem debug z każdej budowy osobno — aktualizacja na tablecie może wymagać odinstalowania starej wersji.
+- 2026-11-10 — stały klucz podpisu APK (composeApp/debug.keystore, tylko wersje testowe). Jednorazowo trzeba odinstalować wersję 0.1.11 z tabletu; kolejne APK instalują się już na starsze bez utraty danych.
