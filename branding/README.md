@@ -18,3 +18,6 @@ Te same pliki co w WAR (Wirtualny Asystent Rolnika):
 - `var-logo.svg`, `var-naglowek.svg` — wersja zagraniczna (VAR)
 - `ikona.svg` — ikona aplikacji: znak WAR z grubszymi liniami (czytelny w 48 px) na ciemnym, zaokrąglonym tle.
   Z niej powstał `logo.png` (1024×1024) i ikony z `tools/make_icons.py`.
+- `war-navigator-naglowek.svg`, `war-navigator-logo.svg` — napis „WAR Navigator” (poziomo / pionowo) w stylu WAR:
+  znak, „WAR” zielony Poppins Bold, „Navigator” biały Poppins Medium; tekst jako krzywe. Wersje `var-navigator-*` — VAR.
+  Źródło: skrypt `tools/logo/navigator.py` w repozytorium WAR.
