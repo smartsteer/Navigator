@@ -15,7 +15,12 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 - [x] 8. IMU: kompensacja przechyłu (wysokość anteny), kurs z IMU
 - [x] 9. Auto‑zawroty przeniesione z AgOpenGPS (YouTurn) na prawdziwych granicach
 - [x] 10. Import KML / ISOXML (granice, linie)
-- [ ] 11. Integracja z WAR — **wymaga decyzji właściciela, nie robić w nocy**
+- [ ] 11. Integracja z WAR przez API — opis interfejsu w **docs/WAR.md** (decyzja właściciela 2026-11-10: robić; kolejność jak niżej, jeden podpunkt na przebieg). Protokół implementujemy sami według opisu — **nie kopiować kodu WAR ani WAR Sync** (WAR jest zamknięty, Navigator GPLv3).
+  - [ ] 11a. Połączenie: Ustawienia → WAR (serwer, kod nawigacji z walidacją, „Sprawdź kod” = test kodu, id maszyny losowane raz, nazwa ciągnika), szyfrowanie (PBKDF2 + AES‑GCM, adresy skrzynek) z testami zgodności, kolejka wysyłki na dysku z ponawianiem, paczka `urzadzenie` po połączeniu i co 7 dni.
+  - [ ] 11b. Pola z WAR: odbiór `pola_war` ze skrzynki Navigatora (składanie części po `skrot`), lista „Pola z WAR” na ekranie Pola (otwórz = pole z granicą, `war_id` zapamiętany), potwierdzanie odbioru; „Czekam na WAR”, dopóki skrzynka nieaktywna.
+  - [ ] 11c. Zlecenia: odbiór `zlecenie`, kafelek „Nowe zlecenie” na Mapie z Przyjmij/Odrzuć, otwarcie pola zlecenia, `zlecenie_status` (przyjete / odrzucone / zrobione po zamknięciu pola z pracą).
+  - [ ] 11d. Praca do karty pola: przy zamknięciu pola paczka pracy (ha bez zakładek, `war_id`, `zlecenie`, `pokrycie` w układzie LocalPlane) obok raportu GeoJSON; pozycja na żywo co 5 s / 30 s z wyłącznikiem.
+  - [ ] 11e. Później (po testach w polu): wiadomości głosowe, mapy aplikacyjne (zmienna dawka z WAR) — osobna decyzja właściciela.
 
 ## Zasady interfejsu (obowiązują przy każdym etapie)
 
