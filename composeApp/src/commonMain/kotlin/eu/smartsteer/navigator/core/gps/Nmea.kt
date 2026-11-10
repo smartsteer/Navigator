@@ -24,6 +24,21 @@ data class Gga(
 
 data class Vtg(val courseDeg: Double?, val speedKmh: Double)
 
+/** HDT — kurs rzeczywisty (np. z dwóch anten). */
+data class Hdt(val headingDeg: Double)
+
+/**
+ * PANDA / PAOGI — zdania płytek AgOpenGPS: pozycja + prędkość + kurs + przechył w jednym.
+ * PAOGI: kurs z dwóch anten; PANDA: kurs z IMU (na razie nieużywany do prowadzenia).
+ */
+data class Panda(
+    val gga: Gga,
+    val speedKmh: Double,
+    val headingDeg: Double?,
+    val rollDeg: Double?,
+    val dualAntenna: Boolean,
+)
+
 /**
  * Parser zdań NMEA 0183 (GGA i VTG od dowolnego talkera: GP, GN, GL…).
  * Zdania z błędną sumą kontrolną są odrzucane.
@@ -51,6 +66,38 @@ object Nmea {
         if (f.size < 8) return null
         val speed = f[7].toDoubleOrNull() ?: return null
         return Vtg(courseDeg = f[1].toDoubleOrNull(), speedKmh = speed)
+    }
+
+    fun parseHdt(sentence: String): Hdt? {
+        val f = fields(sentence, "HDT") ?: return null
+        if (f.size < 2) return null
+        return Hdt(f[1].toDoubleOrNull() ?: return null)
+    }
+
+    /** Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Classes/CNMEA.cs (układ pól PANDA/PAOGI). */
+    fun parsePanda(sentence: String): Panda? {
+        val dual = sentence.trim().startsWith("\$PAOGI")
+        val f = fields(sentence, if (dual) "PAOGI" else "PANDA") ?: return null
+        if (f.size < 14) return null
+        val lat = coord(f[2], f[3], 2) ?: return null
+        val lon = coord(f[4], f[5], 3) ?: return null
+        val gga = Gga(
+            latitude = lat,
+            longitude = lon,
+            fix = FixQuality.of(f[6].toIntOrNull() ?: 0),
+            satellites = f[7].toIntOrNull() ?: 0,
+            hdop = f[8].toDoubleOrNull() ?: 99.0,
+            altitude = f[9].toDoubleOrNull() ?: 0.0,
+            correctionAge = f[10].toDoubleOrNull(),
+        )
+        val heading = f[12].toDoubleOrNull()?.takeIf { it in 0.0..360.0 }
+        return Panda(
+            gga = gga,
+            speedKmh = (f[11].toDoubleOrNull() ?: 0.0) * 1.852,
+            headingDeg = heading,
+            rollDeg = f[13].toDoubleOrNull()?.takeIf { it != 8888.0 },
+            dualAntenna = dual,
+        )
     }
 
     /** Sprawdza sumę kontrolną i typ zdania; zwraca pola (pole 0 = adres, np. "GNGGA"). */

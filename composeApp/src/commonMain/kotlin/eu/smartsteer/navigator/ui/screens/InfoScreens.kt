@@ -22,7 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.core.aog.AogFrame
+import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.ui.DemoController
+import eu.smartsteer.navigator.ui.HardwareController
+import eu.smartsteer.navigator.ui.components.Segmented
 import eu.smartsteer.navigator.ui.components.Label
 import eu.smartsteer.navigator.ui.components.Panel
 import eu.smartsteer.navigator.ui.components.Pill
@@ -66,34 +69,66 @@ fun FieldsScreen(ctrl: DemoController) {
 }
 
 @Composable
-fun ConnectionsScreen(ctrl: DemoController) {
+fun ConnectionsScreen(ctrl: DemoController, hw: HardwareController) {
+    hw.tick
+    val s = hw.session
+    val now = hw.now()
     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Panel(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text("Tryb symulatora", color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(if (hw.hardware) "Tryb Sprzęt" else "Tryb Symulator", color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Label(
                             "Sieć modułów 192.168.5.x · nasłuch UDP ${AogFrame.PORT_FROM_MODULES}, wysyłka ${AogFrame.PORT_TO_MODULES}",
                             Ss.TextMuted, 13.sp,
                         )
                     }
-                    Pill("DEMO", Ss.Warning)
+                    Segmented(
+                        options = listOf("SYMULATOR", "SPRZĘT"),
+                        selected = if (hw.hardware) 1 else 0,
+                        onSelect = { hw.setHardwareMode(it == 1) },
+                        selectedColor = { if (it == 1) Ss.Accent else Ss.Warning },
+                    )
                 }
+                hw.linkError?.let { Label(it, Ss.Warning, 14.sp) }
+                if (hw.hardware) hw.sendError?.let { Label("Wysyłka: $it", Ss.Warning, 13.sp) }
             }
             SectionTitle("Moduły")
-            Module("Odbiornik GPS RTK", "NMEA GGA + VTG", "Symulowany", Ss.Warning)
-            Module("Moduł autosterowania", "PGN 254 → / ← PGN 253", "Nie podłączono", Ss.TextMuted)
+            if (!hw.hardware) {
+                Module("Odbiornik GPS RTK", "NMEA GGA + VTG", "Symulowany", Ss.Warning)
+                Module("Moduł autosterowania", "PGN 254 → / ← PGN 253", "Nie podłączono", Ss.TextMuted)
+            } else {
+                val g = s.lastGga
+                val gpsOk = s.gpsAlive(now)
+                Module(
+                    "Odbiornik GPS RTK",
+                    if (g != null) "${g.satellites} sat. · HDOP ${g.hdop.pl(1)} · kurs ${s.headingSource.label} · ${s.speedKmh.pl(1)} km/h" else "Czekam na NMEA (GGA, VTG, PANDA/PAOGI)",
+                    if (gpsOk) s.fix.label else "Brak danych",
+                    when { !gpsOk -> Ss.Warning; s.fix == FixQuality.RTK_FIX -> Ss.Accent; else -> Ss.Warning },
+                )
+                val st = s.autosteer
+                val asOk = s.autosteerAlive(now)
+                Module(
+                    "Moduł autosterowania",
+                    if (st != null) "Kąt kół ${st.actualAngleDeg.pl(1, plusSign = true)}° · przełącznik ${if (st.steerSwitch) "WŁ." else "WYŁ."} · PWM ${st.pwm}" else "Czekam na PGN 253",
+                    if (asOk) "Połączony" else "Brak odpowiedzi",
+                    if (asOk) Ss.Accent else Ss.Warning,
+                )
+            }
             Module("Moduł maszyny (sekcje)", "PGN 239", "Nie podłączono", Ss.TextMuted)
         }
-        Panel(Modifier.width(400.dp).fillMaxHeight()) {
-            SectionTitle("Co dalej")
-            Label(
-                "Następny krok: prawdziwe połączenie UDP z płytką AIO. Aplikacja zacznie wysyłać kąt zadany (PGN 254) i odczytywać kąt kół oraz przełączniki (PGN 253) — symulator zostanie jako tryb ćwiczeń.",
-                Ss.TextSoft, 14.sp,
-            )
+        Panel(Modifier.width(420.dp).fillMaxHeight()) {
+            SectionTitle("Co przychodzi z sieci")
+            if (!hw.hardware) {
+                Label("Włącz tryb SPRZĘT, aby zobaczyć na żywo dane z płytki AIO.", Ss.TextSoft, 14.sp)
+            } else {
+                Label("Odebrano ${hw.rxCount} · wysłano PGN 254: ${hw.txCount}", Ss.TextMuted, 13.sp)
+                if (hw.log.isEmpty()) Label("Nic jeszcze nie przyszło. Sprawdź kabel i adres 192.168.5.x komputera.", Ss.Warning, 14.sp)
+                hw.log.forEach { Text(it, color = Ss.TextSoft, fontSize = 12.sp, maxLines = 1) }
+            }
             Box(Modifier.weight(1f))
-            Label("Na Androidzie: przejściówka USB‑C → Ethernet albo Wi‑Fi przez router w kabinie.", Ss.TextMuted, 13.sp)
+            Label("Na Androidzie: przejściówka USB‑C → Ethernet albo Wi‑Fi przez router w kabinie. Komputer musi mieć adres 192.168.5.x (np. 192.168.5.10).", Ss.TextMuted, 13.sp)
         }
     }
 }

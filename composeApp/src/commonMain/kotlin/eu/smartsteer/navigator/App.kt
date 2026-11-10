@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.ui.DemoController
+import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.UpdateBanner
 import eu.smartsteer.navigator.ui.UpdateController
 import eu.smartsteer.navigator.ui.components.IconKind
@@ -38,6 +39,7 @@ import eu.smartsteer.navigator.ui.components.Pill
 import eu.smartsteer.navigator.ui.pl
 import eu.smartsteer.navigator.ui.screens.ConnectionsScreen
 import eu.smartsteer.navigator.ui.screens.FieldsScreen
+import eu.smartsteer.navigator.ui.screens.HardwareMapScreen
 import eu.smartsteer.navigator.ui.screens.ImplementScreen
 import eu.smartsteer.navigator.ui.screens.MapScreen
 import eu.smartsteer.navigator.ui.screens.SteerScreen
@@ -61,6 +63,10 @@ fun App() {
         val ctrl = remember { DemoController() }
         var screen by remember { mutableStateOf(Screen.Map) }
         val upd = remember { UpdateController() }
+        val hw = remember { HardwareController() }
+
+        // sieć modułów (tryb Sprzęt): odbiór i wysyłka PGN 254 co 100 ms
+        LaunchedEffect(hw) { hw.run() }
 
         // aktualizacje: pierwsze sprawdzenie chwilę po starcie, potem co kilka godzin
         LaunchedEffect(upd) {
@@ -83,17 +89,17 @@ fun App() {
         }
 
         Column(Modifier.fillMaxSize().background(Ss.Ground)) {
-            TopBar(ctrl)
-            UpdateBar(upd, ctrl)
+            TopBar(ctrl, hw)
+            UpdateBar(upd, ctrl, hw)
             Row(Modifier.fillMaxSize()) {
                 NavRail(screen) { screen = it }
                 Box(Modifier.fillMaxSize()) {
                     when (screen) {
-                        Screen.Map -> MapScreen(ctrl)
+                        Screen.Map -> if (hw.hardware) HardwareMapScreen(hw) else MapScreen(ctrl)
                         Screen.Fields -> FieldsScreen(ctrl)
                         Screen.Steer -> SteerScreen(ctrl)
                         Screen.Implement -> ImplementScreen(ctrl)
-                        Screen.Connections -> ConnectionsScreen(ctrl)
+                        Screen.Connections -> ConnectionsScreen(ctrl, hw)
                     }
                 }
             }
@@ -102,15 +108,20 @@ fun App() {
 }
 
 @Composable
-private fun UpdateBar(upd: UpdateController, ctrl: DemoController) {
+private fun UpdateBar(upd: UpdateController, ctrl: DemoController, hw: HardwareController) {
     ctrl.frame // stan autosteru odświeżany co klatkę
-    UpdateBanner(upd, autosteerOn = ctrl.session.engaged)
+    hw.tick
+    UpdateBanner(upd, autosteerOn = ctrl.session.engaged || hw.session.engaged)
 }
 
 @Composable
-private fun TopBar(ctrl: DemoController) {
+private fun TopBar(ctrl: DemoController, hw: HardwareController) {
     ctrl.frame
+    hw.tick
     val s = ctrl.session
+    val h = hw.session
+    val hwOn = hw.hardware
+    val gpsOk = hwOn && h.gpsAlive(hw.now())
     Row(
         Modifier.fillMaxWidth().height(64.dp).background(Ss.Surface).padding(start = 20.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -120,15 +131,21 @@ private fun TopBar(ctrl: DemoController) {
             NavIcon(IconKind.Logo, Ss.Accent, 30.dp)
             Column {
                 Text("SmartSteer", color = Ss.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text("Pole demo · symulator", color = Ss.TextMuted, fontSize = 12.sp)
+                Text(if (hwOn) "Sprzęt · płytka AIO" else "Pole demo · symulator", color = Ss.TextMuted, fontSize = 12.sp)
             }
         }
-        LightBar(s.xteCm, Modifier.weight(1f))
+        LightBar(if (hwOn) (if (h.line != null && gpsOk) h.xteCm else 0.0) else s.xteCm, Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill("RTK FIX", Ss.Accent, Ss.AccentSoft)
-            Pill("SYMULATOR", Ss.Warning)
+            if (hwOn) {
+                val fix = if (gpsOk) h.fix.label else "BRAK GPS"
+                if (gpsOk && h.fix == eu.smartsteer.navigator.core.gps.FixQuality.RTK_FIX) Pill(fix, Ss.Accent, Ss.AccentSoft) else Pill(fix, Ss.Warning)
+                Pill("SPRZĘT", Ss.Info)
+            } else {
+                Pill("RTK FIX", Ss.Accent, Ss.AccentSoft)
+                Pill("SYMULATOR", Ss.Warning)
+            }
             Row(Modifier.padding(start = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(s.speedKmh.pl(1), color = Ss.Text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                Text((if (hwOn) h.speedKmh else s.speedKmh).pl(1), color = Ss.Text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
                 Text("km/h", color = Ss.TextMuted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp))
             }
         }
