@@ -26,6 +26,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -65,8 +68,9 @@ import kotlin.math.roundToInt
 /** Ekran Mapa w trybie Sprzęt: prawdziwa pozycja, linia AB z przycisków A/B, autoster. */
 @Composable
 fun HardwareMapScreen(hw: HardwareController) {
-    var zoom by remember { mutableStateOf(12f) }
+    var zoom by remember { mutableStateOf(20f) }
     var headingUp by remember { mutableStateOf(true) }
+    var panel by remember { mutableStateOf(true) }
     Row(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
             HwCanvas(hw, zoom, headingUp, Modifier.fillMaxSize())
@@ -75,12 +79,14 @@ fun HardwareMapScreen(hw: HardwareController) {
                 HwSquare({ zoom = (zoom * 1.3f).coerceAtMost(60f) }) { NavIcon(IconKind.Plus, Ss.Text, 22.dp) }
                 HwSquare({ zoom = (zoom / 1.3f).coerceAtLeast(1.5f) }) { NavIcon(IconKind.Minus, Ss.Text, 22.dp) }
                 HwSquare({ headingUp = !headingUp }) { ButtonText(if (headingUp) "KURS" else "N", size = 13.sp, weight = FontWeight.Bold) }
+                // chowanie prawego panelu — więcej miejsca na mapę
+                HwSquare({ panel = !panel }) { ButtonText(if (panel) "▶" else "◀", size = 16.sp, weight = FontWeight.Bold) }
             }
             OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 16.dp))
             HwSectionsBar(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp))
             HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp))
         }
-        HwRightPanel(hw)
+        if (panel) HwRightPanel(hw) else CompactSteer(hw)
     }
 }
 
@@ -204,6 +210,34 @@ private fun HwRightPanel(hw: HardwareController) {
         }
         if (s.mode != GuidanceMode.CONTOUR) TurnControls(hw)
         HwStats(hw)
+    }
+}
+
+/** Zwinięty panel: tylko duży przycisk autosteru i odchyłka — reszta ekranu dla mapy. */
+@Composable
+private fun CompactSteer(hw: HardwareController) {
+    hw.tick
+    val s = hw.session
+    val now = hw.now()
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        Modifier.width(132.dp).fillMaxHeight().background(Ss.Surface).padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().height(130.dp).clip(shape)
+                .background(if (s.engaged) Ss.Accent else Color.Transparent)
+                .border(3.dp, if (s.engaged) Ss.Accent else Ss.Dim, shape)
+                .clickable(role = Role.Button) { s.setEngaged(!s.engaged, now) },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+        ) {
+            val fg = if (s.engaged) Ss.OnAccent else Ss.Text
+            NavIcon(IconKind.Steer, fg, 34.dp)
+            Text(if (s.engaged) "AUTO" else "RĘCZNIE", color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+        Stat("Prędkość", "${s.speedKmh.pl(1)} km/h", valueSize = 18.sp)
+        Stat("Kąt", "${s.steerSetDeg.pl(1, plusSign = true)}°", valueSize = 18.sp)
     }
 }
 
@@ -390,21 +424,33 @@ private fun HwStats(hw: HardwareController) {
 private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, modifier: Modifier) {
     // pasy pokrycia zamieniamy na Path raz (otwarty pas — gdy przybędzie punktów)
     val stripCache = remember { HashMap<Coverage.Strip, Pair<Int, Path>>() }
-    Canvas(modifier.clipToBounds().background(Ss.MapGround)) {
+    val density = LocalDensity.current.density
+    Canvas(
+        modifier.clipToBounds().background(Ss.MapGround).pointerInput(headingUp) {
+            // dotknięcie ciągnika zamienia przód z tyłem (jak w AgOpenGPS)
+            detectTapGestures { tap ->
+                val tx = size.width / 2f
+                val ty = size.height / 2f + if (headingUp) size.height * 0.18f else 0f
+                val r = maxOf(48f * density, 3.5f * zoom * density)
+                if (kotlin.math.hypot(tap.x - tx, tap.y - ty) <= r) { hw.session.flipHeading(); hw.touch() }
+            }
+        },
+    ) {
         hw.tick
         val s = hw.session
         val pos = s.pivot ?: Vec2.ZERO
         val sc = zoom * density
         val px = 1f / sc
         val fwd = Vec2.forward(s.headingRad)
+        val viewFwd = Vec2.forward(hw.viewHeading)
         val lead = size.height * 0.18f / sc
-        val cam = if (headingUp) pos + fwd * lead.toDouble() else pos
+        val cam = if (headingUp) pos + viewFwd * lead.toDouble() else pos
         val camX = cam.x.toFloat()
         val camY = cam.y.toFloat()
         fun o(p: Vec2) = Offset(p.x.toFloat(), p.y.toFloat())
         withTransform({
             translate(size.width / 2f, size.height / 2f)
-            if (headingUp) rotate(-(s.headingRad * 180 / PI).toFloat(), Offset.Zero)
+            if (headingUp) rotate(-(hw.viewHeading * 180 / PI).toFloat(), Offset.Zero)
             scale(sc, -sc, Offset.Zero)
             translate(-camX, -camY)
         }) {

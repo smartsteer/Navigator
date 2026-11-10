@@ -209,4 +209,19 @@ class HardwareSessionTest {
         assertEquals(1, h.passIndex)
         assertTrue(h.reversed)
     }
+
+    @Test
+    fun tapOnTractorFlipsFrontAndBack() {
+        val h = HardwareSession(VehicleProfile(antennaPivot = 0.0))
+        h.onNmea(vtg(10.0, 7.2), 0.0)
+        h.onNmea(gga(Vec2(0.0, 0.0)), 0.0)
+        assertTrue(abs(h.headingRad - 10 * PI / 180) < 1e-9)
+        h.flipHeading()
+        assertTrue(abs(h.headingRad - 190 * PI / 180) < 1e-9)
+        h.onNmea(vtg(12.0, 7.2), 0.5)
+        h.onNmea(gga(Vec2(0.0, 1.0)), 0.5)
+        assertTrue(abs(h.headingRad - 192 * PI / 180) < 1e-9, "odwrócenie zostaje przy nowych pozycjach")
+        h.flipHeading()
+        assertTrue(abs(h.headingRad - 12 * PI / 180) < 1e-9)
+    }
 }

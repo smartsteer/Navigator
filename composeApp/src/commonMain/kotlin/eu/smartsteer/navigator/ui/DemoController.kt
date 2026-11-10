@@ -16,8 +16,8 @@ class DemoController {
     var frame by mutableStateOf(0L)
         private set
     var paused by mutableStateOf(false)
-    var headingUp by mutableStateOf(false)
-    var zoom by mutableStateOf(14f) // piksele na metr (przed skalą ekranu)
+    var headingUp by mutableStateOf(true) // jak w AgOpenGPS: obraca się pole, ciągnik patrzy w górę
+    var zoom by mutableStateOf(20f) // piksele na metr (przed skalą ekranu)
 
     fun advance(dtSeconds: Double) {
         if (!paused) session.step(dtSeconds.coerceAtMost(0.25))

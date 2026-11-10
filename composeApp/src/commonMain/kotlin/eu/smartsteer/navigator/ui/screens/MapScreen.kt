@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,15 +45,39 @@ import kotlin.math.roundToInt
 
 @Composable
 fun MapScreen(ctrl: DemoController) {
+    var panel by remember { mutableStateOf(true) }
     Row(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
             MapCanvas(ctrl, Modifier.fillMaxSize())
             InfoCards(ctrl, Modifier.align(Alignment.TopStart).padding(16.dp))
-            MapButtons(ctrl, Modifier.align(Alignment.TopEnd).padding(16.dp))
+            MapButtons(ctrl, Modifier.align(Alignment.TopEnd).padding(16.dp), panel) { panel = !panel }
             SectionsBar(ctrl, Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp))
             FinishedBanner(ctrl, Modifier.align(Alignment.Center))
         }
-        RightPanel(ctrl)
+        if (panel) RightPanel(ctrl) else CompactPanel(ctrl)
+    }
+}
+
+/** Zwinięty panel symulatora: tylko autoster. */
+@Composable
+private fun CompactPanel(ctrl: DemoController) {
+    ctrl.frame
+    val s = ctrl.session
+    val shape = RoundedCornerShape(18.dp)
+    Column(Modifier.width(132.dp).fillMaxHeight().background(Ss.Surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            Modifier.fillMaxWidth().height(130.dp).clip(shape)
+                .background(if (s.engaged) Ss.Accent else Color.Transparent)
+                .border(3.dp, Ss.Accent, shape)
+                .clickable(role = Role.Button, enabled = !s.finished) { s.engaged = !s.engaged; ctrl.touch() },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+        ) {
+            val fg = if (s.engaged) Ss.OnAccent else Ss.Text
+            NavIcon(IconKind.Steer, fg, 34.dp)
+            Text(if (s.engaged) "AUTO" else "RĘCZNIE", color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+        Stat("Prędkość", "${s.speedKmh.pl(1)} km/h", valueSize = 18.sp)
     }
 }
 
@@ -86,7 +114,7 @@ private fun SquareButton(onClick: () -> Unit, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun MapButtons(ctrl: DemoController, modifier: Modifier) {
+private fun MapButtons(ctrl: DemoController, modifier: Modifier, panel: Boolean, onPanel: () -> Unit) {
     val s = ctrl.session
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SquareButton({ ctrl.zoom = (ctrl.zoom * 1.3f).coerceAtMost(60f) }) { NavIcon(IconKind.Plus, Ss.Text, 22.dp) }
@@ -94,6 +122,7 @@ private fun MapButtons(ctrl: DemoController, modifier: Modifier) {
         SquareButton({ ctrl.headingUp = !ctrl.headingUp }) {
             ButtonText(if (ctrl.headingUp) "KURS" else "N", size = 13.sp, weight = FontWeight.Bold)
         }
+        SquareButton(onPanel) { ButtonText(if (panel) "▶" else "◀", size = 16.sp, weight = FontWeight.Bold) }
         SquareButton({
             s.timeScale = when (s.timeScale) { 1.0 -> 4.0; 4.0 -> 10.0; else -> 1.0 }
             ctrl.touch()

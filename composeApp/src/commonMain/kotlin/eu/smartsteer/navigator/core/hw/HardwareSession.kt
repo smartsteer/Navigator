@@ -120,6 +120,23 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     /** Żyroskop: przechył i kurs z PGN 253, PANDA/PAOGI albo zewnętrznego IMU (PGN 211). */
     val imu = Imu()
+    /** Kurs ze źródeł (przed odwróceniem przodu/tyłu). */
+    private var rawHeadingRad = 0.0
+    /** Przód/tył odwrócony dotknięciem ciągnika na mapie (jak w AgOpenGPS) — gdy kurs wyszedł odwrotny. */
+    var headingFlipped = false; private set
+
+    /** Dotknięcie ciągnika: zamiana przodu z tyłem (kurs + 180°). */
+    fun flipHeading() {
+        headingFlipped = !headingFlipped
+        headingRad = norm(rawHeadingRad + if (headingFlipped) PI else 0.0)
+        engaged = false
+        pathHint = -1
+        steering.reset()
+        ok(if (headingFlipped) "Przód i tył zamienione" else "Przód i tył jak z GPS")
+    }
+
+    private fun norm(h: Double): Double { var r = h % (2 * PI); if (r < 0) r += 2 * PI; return r }
+
     /** Ostatnie przesunięcie anteny przez przechył, m (+ = w prawo) — do podglądu. */
     var rollCorrectionM = 0.0; private set
 
@@ -211,8 +228,13 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
      * Z IMU kurs jest stabilny także na postoju i przy wolnej jeździe.
      */
     private fun updateHeading(p: Vec2, nowS: Double) {
+        rawHeading(p, nowS)
+        headingRad = norm(rawHeadingRad + if (headingFlipped) PI else 0.0)
+    }
+
+    private fun rawHeading(p: Vec2, nowS: Double) {
         val dual = dualHeading
-        if (dual != null && nowS - dualTimeS < 1.0) { headingRad = dual; headingSource = HeadingSource.DUAL; return }
+        if (dual != null && nowS - dualTimeS < 1.0) { rawHeadingRad = dual; headingSource = HeadingSource.DUAL; return }
         val moving = speedKmh >= MIN_HEADING_KMH
         val vtg = vtgCourse
         val ref = motionRef
@@ -228,10 +250,10 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             }
         }
         if (imu.headingAlive(nowS) && profile.fusionWeight > 0) {
-            headingRad = if (gps != null) imu.fuse(gps, profile.fusionWeight) else imu.corrected()
+            rawHeadingRad = if (gps != null) imu.fuse(gps, profile.fusionWeight) else imu.corrected()
             headingSource = HeadingSource.IMU
         } else if (gps != null) {
-            headingRad = gps
+            rawHeadingRad = gps
             headingSource = src
         }
     }

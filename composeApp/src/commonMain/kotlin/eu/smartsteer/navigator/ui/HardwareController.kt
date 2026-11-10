@@ -665,6 +665,11 @@ class HardwareController {
         while (true) {
             delay(100)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
+            // obrót mapy za ciągnikiem: wygładzony kurs, żeby pole obracało się płynnie
+            var dh = session.headingRad - viewHeading
+            while (dh > kotlin.math.PI) dh -= 2 * kotlin.math.PI
+            while (dh < -kotlin.math.PI) dh += 2 * kotlin.math.PI
+            viewHeading += dh * 0.35
             val l = link
             if (stopRequested && l != null) {
                 val off = session.steerFrame()
@@ -698,6 +703,9 @@ class HardwareController {
             tick++
         }
     }
+
+    /** Kurs, za którym obraca się mapa (wygładzony). */
+    var viewHeading = 0.0; private set
 
     /** Krótki komunikat na mapie (np. po przyjęciu zlecenia), znika po 8 s. */
     var mapNote by mutableStateOf<String?>(null)
