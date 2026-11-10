@@ -64,6 +64,15 @@ jobs:
           cp dist/navigator-windows-msi/*.msi "out/SmartSteer-Navigator-$V.msi"
           cp dist/navigator-android-debug/*.apk "out/SmartSteer-Navigator-$V.apk"
           printf 'Automatyczne wydanie z budowy nr %s.\n\n%s\n' "${{ github.run_number }}" "$COMMIT_MSG" > notes.md
-          gh release create "v$V" out/* \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "SmartSteer Navigator $V" --notes-file notes.md --latest
+          # GitHub API czasem odpowiada 500 — ponawiamy do 4 razy
+          for i in 1 2 3 4; do
+            if gh release view "v$V" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release upload "v$V" out/* --clobber --repo "$GITHUB_REPOSITORY" && exit 0
+            elif gh release create "v$V" out/* \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "SmartSteer Navigator $V" --notes-file notes.md --latest; then
+              exit 0
+            fi
+            echo "Próba $i nieudana, czekam…"; sleep $((i * 15))
+          done
+          exit 1
