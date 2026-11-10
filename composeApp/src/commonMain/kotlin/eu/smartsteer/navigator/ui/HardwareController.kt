@@ -8,6 +8,9 @@ import eu.smartsteer.navigator.core.aog.AutosteerStatus
 import eu.smartsteer.navigator.core.hw.HardwareSession
 import eu.smartsteer.navigator.core.net.UdpLink
 import eu.smartsteer.navigator.core.net.createUdpLink
+import eu.smartsteer.navigator.core.settings.Profiles
+import eu.smartsteer.navigator.core.settings.VehicleProfile
+import eu.smartsteer.navigator.core.settings.vehicleFiles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -37,6 +40,113 @@ class HardwareController {
     /** Ostatnie odebrane wiadomości (najnowsza na górze) do podglądu na ekranie Połączenia. */
     val log = ArrayDeque<String>()
 
+    // ---------------- profile pojazdów ----------------
+    private val files = vehicleFiles()
+    private val profiles = Profiles(files)
+    val profilesLocation: String get() = files.location
+    var profileName by mutableStateOf("")
+        private set
+    var profile by mutableStateOf(VehicleProfile())
+        private set
+    var profileNames by mutableStateOf(listOf<String>())
+        private set
+    var profileError by mutableStateOf<String?>(null)
+        private set
+    /** Ustawienia płytki (PGN 252/251) czekają na wysłanie — wysyłamy 1,5 s po ostatniej zmianie (oszczędza EEPROM). */
+    private var configDirty = true
+    private var configChangedAt = 0.0
+    var configSentAt by mutableStateOf<Double?>(null)
+        private set
+
+    init {
+        try {
+            val (n, p) = profiles.openStartup()
+            profileName = n
+            profile = p
+            profileNames = profiles.names()
+        } catch (e: Exception) {
+            profileName = Profiles.DEFAULT_NAME
+            profileError = "Nie można odczytać profili: ${e.message}"
+        }
+        session.profile = profile
+    }
+
+    /** Zmiana ustawień: od razu działa na prowadzenie i zapisuje się w bieżącym profilu. */
+    fun updateProfile(p: VehicleProfile) {
+        if (p == profile) return
+        val boardChanged = p.boardBytes() != profile.boardBytes()
+        profile = p
+        session.profile = p
+        persist()
+        if (boardChanged) { configDirty = true; configChangedAt = now() }
+        tick++
+    }
+
+    fun loadProfile(name: String) {
+        val p = profiles.load(name) ?: run { profileError = "Profil „$name” jest uszkodzony"; return }
+        profileName = name
+        profile = p
+        session.profile = p
+        profiles.setLastUsed(name)
+        profileError = null
+        configDirty = true
+        configChangedAt = now()
+        tick++
+    }
+
+    /** Zapis bieżących ustawień pod nową nazwą i przełączenie na ten profil. Zwraca błąd albo null. */
+    fun saveProfileAs(raw: String): String? {
+        val name = Profiles.sanitize(raw)
+        if (name.isEmpty()) return "Wpisz nazwę"
+        if (profiles.exists(name) && name != profileName) return "Profil „$name” już istnieje"
+        return try {
+            profiles.save(name, profile)
+            profiles.setLastUsed(name)
+            profileName = name
+            profileNames = profiles.names()
+            tick++
+            null
+        } catch (e: Exception) {
+            "Nie udało się zapisać: ${e.message}"
+        }
+    }
+
+    fun deleteProfile(name: String) {
+        if (name == profileName) return
+        profiles.delete(name)
+        profileNames = profiles.names()
+        tick++
+    }
+
+    /**
+     * Zerowanie czujnika kąta kół: koła ustawione prosto, bieżący odczyt staje się zerem.
+     * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Settings/FormSteer.cs (btnZeroWAS_Click).
+     */
+    fun zeroWas(): String? {
+        val st = session.autosteer?.takeIf { session.autosteerAlive(now()) } ?: return "Brak danych z modułu skrętu"
+        val offset = (profile.countsPerDegree * -st.actualAngleDeg + profile.wasOffset).toInt()
+        if (kotlin.math.abs(offset) > 3900) return "Za duży kąt kół — nie można wyzerować"
+        updateProfile(profile.copy(wasOffset = offset))
+        return null
+    }
+
+    /** Ręczne „Wyślij do płytki”. */
+    fun sendBoardConfig() { configDirty = true; configChangedAt = now() - 10; tick++ }
+
+    private fun persist() {
+        try {
+            profiles.save(profileName, profile)
+            profileError = null
+        } catch (e: Exception) {
+            profileError = "Nie udało się zapisać profilu: ${e.message}"
+        }
+    }
+
+    private fun VehicleProfile.boardBytes() = listOf(
+        gainP, highPwm, lowPwm, minPwm, countsPerDegree, wasOffset, ackerman,
+        setting0, setting1, maxPulseCounts, (minSteerSpeed * 10).toInt(),
+    )
+
     private class Packet(val bytes: ByteArray, val from: String)
     private val inbox = Channel<Packet>(512, BufferOverflow.DROP_OLDEST)
     private var link: UdpLink? = null
@@ -55,6 +165,8 @@ class HardwareController {
                 link = if (linkError == null) l else null
             }
             stopRequested = false
+            configDirty = true
+            configChangedAt = now() - 10
         } else {
             session.setEngaged(false, now())
             stopRequested = true // pętla wyśle ostatnią ramkę „autoster wyłączony” i zamknie gniazdo
@@ -89,6 +201,12 @@ class HardwareController {
             if (l != null) {
                 sendError = withContext(Dispatchers.Default) { l.send(frame) }
                 if (sendError == null) txCount++
+                if (configDirty && now() - configChangedAt > 1.5) {
+                    val f252 = session.steerSettingsFrame()
+                    val f251 = session.steerConfigFrame()
+                    val err = withContext(Dispatchers.Default) { l.send(f252) ?: l.send(f251) }
+                    if (err == null) { configDirty = false; configSentAt = now() }
+                }
             }
             tick++
         }

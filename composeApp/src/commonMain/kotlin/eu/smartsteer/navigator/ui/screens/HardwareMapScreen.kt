@@ -244,7 +244,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
             if (l != null) {
                 val dir = Vec2.forward(l.heading)
                 val right = Vec2.right(l.heading)
-                val w = s.config.implementWidth
+                val w = s.profile.passSpacing
                 val along = ((pos - l.a) dot dir)
                 for (k in s.passIndex - 6..s.passIndex + 6) {
                     val base = l.a + right * (k * w) + dir * along

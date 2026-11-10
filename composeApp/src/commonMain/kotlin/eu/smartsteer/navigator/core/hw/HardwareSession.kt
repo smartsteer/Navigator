@@ -2,31 +2,20 @@ package eu.smartsteer.navigator.core.hw
 
 import eu.smartsteer.navigator.core.aog.AogFrame
 import eu.smartsteer.navigator.core.aog.AutosteerStatus
+import eu.smartsteer.navigator.core.aog.SteerConfig
 import eu.smartsteer.navigator.core.aog.SteerData
+import eu.smartsteer.navigator.core.aog.SteerSettings
 import eu.smartsteer.navigator.core.geo.LocalPlane
 import eu.smartsteer.navigator.core.geo.Vec2
 import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.gps.Gga
 import eu.smartsteer.navigator.core.gps.Nmea
-import eu.smartsteer.navigator.core.guidance.GuidancePath
-import eu.smartsteer.navigator.core.guidance.PurePursuit
+import eu.smartsteer.navigator.core.guidance.AbSteering
+import eu.smartsteer.navigator.core.settings.VehicleProfile
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.roundToInt
-
-data class HardwareConfig(
-    val wheelbase: Double = 2.65,
-    val maxSteerDeg: Double = 35.0,
-    /** Szerokość robocza = odstęp między sąsiednimi przejazdami, m. */
-    val implementWidth: Double = 3.0,
-    /** Odległość anteny przed tylną osią, m (ujemna = za osią). */
-    val antennaAheadOfAxle: Double = 0.0,
-    /** Po tylu sekundach bez pozycji uznajemy, że GPS zniknął, i wyłączamy autoster. */
-    val gpsTimeoutS: Double = 1.0,
-    /** Poniżej tej prędkości nie liczymy kursu z ruchu (szum RTK), km/h. */
-    val minHeadingSpeedKmh: Double = 1.0,
-)
 
 /** Linia AB w płaszczyźnie lokalnej pola. Kurs AB w radianach (0 = północ). */
 data class AbLine(val a: Vec2, val b: Vec2) {
@@ -40,7 +29,11 @@ enum class HeadingSource(val label: String) { NONE("brak"), MOTION("z ruchu"), V
  * Tryb Sprzęt: pozycja z prawdziwego odbiornika, linia AB z przycisków, autoster na tej linii.
  * Czysta logika (bez sieci i UI) — sieć podaje tu odebrane datagramy, a co 100 ms pobiera ramkę PGN 254.
  */
-class HardwareSession(var config: HardwareConfig = HardwareConfig()) {
+class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
+
+    /** Ustawienia z profilu pojazdu; zmiana zeruje człony całkujące. */
+    var profile: VehicleProfile = profile
+        set(v) { if (v != field) { field = v; steering.reset() } }
 
     var plane: LocalPlane? = null; private set
     var lastGga: Gga? = null; private set
@@ -68,7 +61,10 @@ class HardwareSession(var config: HardwareConfig = HardwareConfig()) {
     var goal: Vec2? = null; private set
     var message: String? = null; private set
 
-    val pilot = PurePursuit(wheelbase = config.wheelbase, maxSteerDeg = config.maxSteerDeg, lookaheadSeconds = 1.6)
+    private val steering = AbSteering()
+    private var slowCounter = 0
+    /** Człon całkujący prowadzenia, m (podgląd na ekranie Ustawienia). */
+    val integral: Double get() = steering.integral
 
     /** Ślad jazdy (co ok. 0,5 m) do rysowania na mapie. */
     val trail = ArrayDeque<Vec2>()
@@ -79,7 +75,7 @@ class HardwareSession(var config: HardwareConfig = HardwareConfig()) {
     private var dualHeading: Double? = null
     private var dualTimeS = Double.NEGATIVE_INFINITY
 
-    fun gpsAlive(nowS: Double) = nowS - lastFixTimeS <= config.gpsTimeoutS && fix != FixQuality.NONE
+    fun gpsAlive(nowS: Double) = nowS - lastFixTimeS <= GPS_TIMEOUT_S && fix != FixQuality.NONE
     fun autosteerAlive(nowS: Double) = nowS - lastAutosteerTimeS <= 1.0
 
     // ---------------- wejście ----------------
@@ -123,7 +119,9 @@ class HardwareSession(var config: HardwareConfig = HardwareConfig()) {
         antenna = p
         lastFixTimeS = nowS
         updateHeading(p, nowS)
-        val pv = p - Vec2.forward(headingRad) * config.antennaAheadOfAxle
+        // antena → środek ciągnika (przesunięcie w bok, + = antena po lewej) → tylna oś
+        val center = p + Vec2.right(headingRad) * profile.antennaOffset
+        val pv = center - Vec2.forward(headingRad) * profile.antennaPivot
         pivot = pv
         if (trail.isEmpty() || trail.last().distanceTo(pv) >= 0.5) {
             trail.addLast(pv)
@@ -133,7 +131,7 @@ class HardwareSession(var config: HardwareConfig = HardwareConfig()) {
 
     /** Kurs: dwie anteny > VTG (przy ruchu) > z kolejnych pozycji. Na postoju zostaje ostatni. */
     private fun updateHeading(p: Vec2, nowS: Double) {
-        val moving = speedKmh >= config.minHeadingSpeedKmh
+        val moving = speedKmh >= MIN_HEADING_KMH
         val dual = dualHeading
         val vtg = vtgCourse
         val ref = motionRef
@@ -197,25 +195,50 @@ class HardwareSession(var config: HardwareConfig = HardwareConfig()) {
     fun update(nowS: Double) {
         if (engaged && !gpsAlive(nowS)) { engaged = false; fail("Utracono GPS — autoster wyłączony") }
         if (engaged && !autosteerAlive(nowS)) { engaged = false; fail("Moduł autosterowania nie odpowiada — autoster wyłączony") }
+        checkSpeedLimits()
         val l = line
         val p = pivot
         if (l == null || p == null) { xteCm = 0.0; steerSetDeg = 0.0; goal = null; return }
-        val path = activePath(l, p)
-        val r = pilot.compute(path, p, headingRad, speedKmh / 3.6, null, lineShiftCm / 100.0)
-        xteCm = r.projection.lateral * 100
-        steerSetDeg = r.steerDeg
+        val (a, b) = activeSegment(l, p)
+        val r = steering.compute(a, b, p, headingRad, speedKmh, engaged, profile)
+        xteCm = r.distanceFromLine * 100
+        steerSetDeg = r.steerAngleDeg
         goal = r.goal
     }
 
     /**
-     * Najbliższy równoległy przejazd i kierunek jazdy po nim.
-     * Przejazd zmienia się dopiero, gdy jesteśmy wyraźnie bliżej sąsiedniego (histereza 10% szerokości).
+     * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs:
+     * wyłączenie powyżej prędkości maksymalnej i po 80 krokach poniżej minimalnej.
      */
-    internal fun activePath(l: AbLine, p: Vec2): GuidancePath {
-        val w = config.implementWidth
+    private fun checkSpeedLimits() {
+        if (!engaged) { slowCounter = 0; return }
+        if (speedKmh > profile.maxSteerSpeed) {
+            engaged = false
+            fail("Za szybko (ponad ${profile.maxSteerSpeed.roundToInt()} km/h) — autoster wyłączony")
+            return
+        }
+        if (profile.minSteerSpeed >= 0.1 && speedKmh < profile.minSteerSpeed) {
+            if (++slowCounter > 80) {
+                engaged = false
+                slowCounter = 0
+                fail("Za wolno (poniżej ${profile.minSteerSpeed} km/h) — autoster wyłączony")
+            }
+        } else {
+            slowCounter = 0
+        }
+    }
+
+    /**
+     * Najbliższy równoległy przejazd jako odcinek skierowany zgodnie z jazdą (z przesunięciem linii).
+     * Przejazd zmienia się dopiero, gdy jesteśmy wyraźnie bliżej sąsiedniego (histereza 10% odstępu).
+     */
+    internal fun activeSegment(l: AbLine, p: Vec2): Pair<Vec2, Vec2> {
+        val w = profile.passSpacing
         val right = Vec2.right(l.heading)
         val offset = (p - l.a) dot right
         val exact = offset / w
+        val oldPass = passIndex
+        val oldRev = reversed
         if (abs(exact - passIndex) > 0.6) passIndex = kotlin.math.round(exact).toInt()
         var diff = headingRad - l.heading
         while (diff > PI) diff -= 2 * PI
@@ -223,11 +246,23 @@ class HardwareSession(var config: HardwareConfig = HardwareConfig()) {
         // histereza kierunku: zmiana dopiero przy wyraźnie przeciwnym kursie
         if (!reversed && abs(diff) > 0.6 * PI) reversed = true
         else if (reversed && abs(diff) < 0.4 * PI) reversed = false
-        val shift = right * (passIndex * w)
-        val dir = Vec2.forward(l.heading)
-        val s = l.a + shift - dir * EXTEND_M
-        val e = l.a + shift + dir * EXTEND_M
-        return GuidancePath(if (reversed) listOf(e, s) else listOf(s, e))
+        if (oldPass != passIndex || oldRev != reversed) steering.reset()
+        val dir = Vec2.forward(l.heading) * (if (reversed) -1.0 else 1.0)
+        // przesunięcie linii w prawo względem kierunku jazdy
+        val base = l.a + right * (passIndex * w) + Vec2.right(atan2(dir.x, dir.y)) * (lineShiftCm / 100.0)
+        val along = (p - base) dot dir
+        // krótki odcinek wokół ciągnika: liczby zostają małe, a linia i tak jest prosta
+        return Pair(base + dir * (along - SEGMENT_M), base + dir * (along + SEGMENT_M))
+    }
+
+    /** Ramka PGN 252 (ustawienia modułu skrętu) z profilu. */
+    fun steerSettingsFrame(): ByteArray = with(profile) {
+        SteerSettings(gainP, highPwm, lowPwm, minPwm, countsPerDegree, wasOffset, ackerman).toFrame()
+    }
+
+    /** Ramka PGN 251 (konfiguracja płytki) z profilu. */
+    fun steerConfigFrame(): ByteArray = with(profile) {
+        SteerConfig(setting0, maxPulseCounts, minSteerSpeed, setting1).toFrame()
     }
 
     /** Ramka PGN 254 do modułu skrętu. */
@@ -243,6 +278,9 @@ class HardwareSession(var config: HardwareConfig = HardwareConfig()) {
 
     companion object {
         const val MIN_AB_M = 20.0
-        const val EXTEND_M = 3000.0
+        const val SEGMENT_M = 200.0
+        const val GPS_TIMEOUT_S = 1.0
+        /** Poniżej tej prędkości nie liczymy kursu z ruchu (szum RTK), km/h. */
+        const val MIN_HEADING_KMH = 1.0
     }
 }

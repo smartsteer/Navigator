@@ -19,6 +19,7 @@ class MainActivity : ComponentActivity() {
         multicastLock = (applicationContext.getSystemService(WIFI_SERVICE) as? WifiManager)
             ?.createMulticastLock("navigator-udp")
             ?.apply { setReferenceCounted(false); acquire() }
+        eu.smartsteer.navigator.core.settings.AndroidStorage.filesDir = filesDir
         setContent { App() }
     }
 

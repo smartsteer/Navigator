@@ -1,0 +1,197 @@
+package eu.smartsteer.navigator.core.settings
+
+import eu.smartsteer.navigator.core.update.MiniJson
+
+enum class SteerAlgorithm(val label: String) { PURE_PURSUIT("Pure pursuit"), STANLEY("Stanley") }
+
+/** Sposób włączania autosteru na płytce (PGN 251, bity 5–6). */
+enum class SteerEnable(val label: String) { NONE("Brak"), SWITCH("Przełącznik"), BUTTON("Przycisk") }
+
+/**
+ * Profil pojazdu — wszystkie ustawienia ciągnika, maszyny, prowadzenia i płytki AIO w jednym pliku,
+ * jak profile pojazdów w AgOpenGPS. Wartości domyślne takie jak w AgOpenGPS.
+ *
+ * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), pliki
+ * SourceCode/GPS/Properties/VehicleSettings.cs i ToolSettings.cs (nazwy i wartości domyślne ustawień).
+ */
+data class VehicleProfile(
+    // --- Pojazd ---
+    /** Rozstaw osi, m. */
+    val wheelbase: Double = 3.3,
+    /** Rozstaw kół, m (rysunek, później kompensacja). */
+    val trackWidth: Double = 1.9,
+    /** Wysokość anteny nad ziemią, m (kompensacja przechyłu — etap IMU). */
+    val antennaHeight: Double = 3.0,
+    /** Odległość anteny przed tylną osią, m (ujemna = za osią). */
+    val antennaPivot: Double = 0.1,
+    /** Przesunięcie anteny w bok, m: + w lewo, − w prawo (jak w AgOpenGPS). */
+    val antennaOffset: Double = 0.0,
+    /** Maksymalny kąt skrętu kół, °. */
+    val maxSteerAngle: Double = 30.0,
+    /** Autoster wyłącza się powyżej tej prędkości, km/h. */
+    val maxSteerSpeed: Double = 15.0,
+    /** Autoster wyłącza się poniżej tej prędkości (po 8 s), km/h; 0 = wyłączone. */
+    val minSteerSpeed: Double = 0.0,
+
+    // --- Maszyna ---
+    /** Szerokość robocza, m. */
+    val toolWidth: Double = 4.0,
+    /** Zakładka między przejazdami, m (+ = zachodzą na siebie). */
+    val toolOverlap: Double = 0.0,
+
+    // --- Prowadzenie ---
+    val algorithm: SteerAlgorithm = SteerAlgorithm.PURE_PURSUIT,
+    /** Pure pursuit: wyprzedzenie przy trzymaniu linii, m. */
+    val lookAheadHold: Double = 3.0,
+    /** Pure pursuit: mnożnik wyprzedzenia zależny od prędkości. */
+    val lookAheadMult: Double = 1.5,
+    /** Pure pursuit: współczynnik wyprzedzenia przy dojeżdżaniu do linii (× wyprzedzenie trzymania). */
+    val acquireFactor: Double = 0.9,
+    /** Pure pursuit: człon całkujący (0 = wyłączony). */
+    val purePursuitIntegral: Double = 0.0,
+    /** Stanley: wzmocnienie odchyłki. */
+    val stanleyDistanceGain: Double = 1.0,
+    /** Stanley: wzmocnienie błędu kursu. */
+    val stanleyHeadingGain: Double = 1.0,
+    /** Stanley: człon całkujący (0 = wyłączony). */
+    val stanleyIntegral: Double = 0.0,
+    /** Kompensacja zbocza: ° skrętu na ° przechyłu (wymaga IMU). */
+    val sideHillComp: Double = 0.0,
+
+    // --- Moduł skrętu (PGN 252) ---
+    val gainP: Int = 50,
+    val highPwm: Int = 180,
+    val lowPwm: Int = 30,
+    val minPwm: Int = 25,
+    val countsPerDegree: Int = 110,
+    val wasOffset: Int = 3,
+    val ackerman: Int = 100,
+
+    // --- Płytka (PGN 251) ---
+    val invertWas: Boolean = false,
+    val invertRelays: Boolean = false,
+    val invertMotor: Boolean = false,
+    /** Przetwornik czujnika kąta: true = pojedynczy (Single), false = różnicowy. */
+    val singleInput: Boolean = true,
+    /** Sterownik silnika: true = Cytron, false = IBT2. */
+    val cytron: Boolean = true,
+    val steerEnable: SteerEnable = SteerEnable.SWITCH,
+    val encoder: Boolean = false,
+    val pressureSensor: Boolean = false,
+    val currentSensor: Boolean = false,
+    val danfoss: Boolean = false,
+    /** Oś czujnika: false = X, true = Y. */
+    val axisY: Boolean = false,
+    /** Próg wyłączenia: impulsy enkodera albo % czujnika ciśnienia / prądu. */
+    val maxPulseCounts: Int = 3,
+) {
+    /** Odstęp między sąsiednimi przejazdami, m. */
+    val passSpacing: Double get() = (toolWidth - toolOverlap).coerceAtLeast(0.1)
+
+    /** Bajt ustawień 0 dla PGN 251 (kolejność bitów jak w AgOpenGPS FormSteer.cs). */
+    val setting0: Int get() {
+        var s = 0
+        if (invertWas) s = s or 1
+        if (invertRelays) s = s or 2
+        if (invertMotor) s = s or 4
+        if (singleInput) s = s or 8
+        if (cytron) s = s or 16
+        if (steerEnable == SteerEnable.SWITCH) s = s or 32
+        if (steerEnable == SteerEnable.BUTTON) s = s or 64
+        if (encoder) s = s or 128
+        return s
+    }
+
+    /** Bajt ustawień 1 dla PGN 251. */
+    val setting1: Int get() {
+        var s = 0
+        if (danfoss) s = s or 1
+        if (pressureSensor) s = s or 2
+        if (currentSensor) s = s or 4
+        if (axisY) s = s or 8
+        return s
+    }
+
+    fun toJson(): String = buildString {
+        append("{\n")
+        val e = entries()
+        e.forEachIndexed { i, (k, v) ->
+            append("  \"").append(k).append("\": ")
+            when (v) {
+                is String -> append('"').append(v).append('"')
+                else -> append(v.toString())
+            }
+            if (i < e.lastIndex) append(',')
+            append('\n')
+        }
+        append("}\n")
+    }
+
+    private fun entries(): List<Pair<String, Any>> = listOf(
+        "wheelbase" to wheelbase, "trackWidth" to trackWidth, "antennaHeight" to antennaHeight,
+        "antennaPivot" to antennaPivot, "antennaOffset" to antennaOffset, "maxSteerAngle" to maxSteerAngle,
+        "maxSteerSpeed" to maxSteerSpeed, "minSteerSpeed" to minSteerSpeed,
+        "toolWidth" to toolWidth, "toolOverlap" to toolOverlap,
+        "algorithm" to algorithm.name, "lookAheadHold" to lookAheadHold, "lookAheadMult" to lookAheadMult,
+        "acquireFactor" to acquireFactor, "purePursuitIntegral" to purePursuitIntegral,
+        "stanleyDistanceGain" to stanleyDistanceGain, "stanleyHeadingGain" to stanleyHeadingGain,
+        "stanleyIntegral" to stanleyIntegral, "sideHillComp" to sideHillComp,
+        "gainP" to gainP, "highPwm" to highPwm, "lowPwm" to lowPwm, "minPwm" to minPwm,
+        "countsPerDegree" to countsPerDegree, "wasOffset" to wasOffset, "ackerman" to ackerman,
+        "invertWas" to invertWas, "invertRelays" to invertRelays, "invertMotor" to invertMotor,
+        "singleInput" to singleInput, "cytron" to cytron, "steerEnable" to steerEnable.name,
+        "encoder" to encoder, "pressureSensor" to pressureSensor, "currentSensor" to currentSensor,
+        "danfoss" to danfoss, "axisY" to axisY, "maxPulseCounts" to maxPulseCounts,
+    )
+
+    companion object {
+        /** Odczyt profilu; brakujące pola dostają wartości domyślne (zgodność ze starszymi plikami). Null = uszkodzony plik. */
+        fun fromJson(text: String): VehicleProfile? {
+            val m = MiniJson.parse(text) as? Map<*, *> ?: return null
+            val d = VehicleProfile()
+            fun num(k: String, def: Double) = (m[k] as? Double) ?: def
+            fun int(k: String, def: Int) = (m[k] as? Double)?.toInt() ?: def
+            fun bool(k: String, def: Boolean) = (m[k] as? Boolean) ?: def
+            return VehicleProfile(
+                wheelbase = num("wheelbase", d.wheelbase),
+                trackWidth = num("trackWidth", d.trackWidth),
+                antennaHeight = num("antennaHeight", d.antennaHeight),
+                antennaPivot = num("antennaPivot", d.antennaPivot),
+                antennaOffset = num("antennaOffset", d.antennaOffset),
+                maxSteerAngle = num("maxSteerAngle", d.maxSteerAngle),
+                maxSteerSpeed = num("maxSteerSpeed", d.maxSteerSpeed),
+                minSteerSpeed = num("minSteerSpeed", d.minSteerSpeed),
+                toolWidth = num("toolWidth", d.toolWidth),
+                toolOverlap = num("toolOverlap", d.toolOverlap),
+                algorithm = SteerAlgorithm.entries.firstOrNull { it.name == m["algorithm"] } ?: d.algorithm,
+                lookAheadHold = num("lookAheadHold", d.lookAheadHold),
+                lookAheadMult = num("lookAheadMult", d.lookAheadMult),
+                acquireFactor = num("acquireFactor", d.acquireFactor),
+                purePursuitIntegral = num("purePursuitIntegral", d.purePursuitIntegral),
+                stanleyDistanceGain = num("stanleyDistanceGain", d.stanleyDistanceGain),
+                stanleyHeadingGain = num("stanleyHeadingGain", d.stanleyHeadingGain),
+                stanleyIntegral = num("stanleyIntegral", d.stanleyIntegral),
+                sideHillComp = num("sideHillComp", d.sideHillComp),
+                gainP = int("gainP", d.gainP),
+                highPwm = int("highPwm", d.highPwm),
+                lowPwm = int("lowPwm", d.lowPwm),
+                minPwm = int("minPwm", d.minPwm),
+                countsPerDegree = int("countsPerDegree", d.countsPerDegree),
+                wasOffset = int("wasOffset", d.wasOffset),
+                ackerman = int("ackerman", d.ackerman),
+                invertWas = bool("invertWas", d.invertWas),
+                invertRelays = bool("invertRelays", d.invertRelays),
+                invertMotor = bool("invertMotor", d.invertMotor),
+                singleInput = bool("singleInput", d.singleInput),
+                cytron = bool("cytron", d.cytron),
+                steerEnable = SteerEnable.entries.firstOrNull { it.name == m["steerEnable"] } ?: d.steerEnable,
+                encoder = bool("encoder", d.encoder),
+                pressureSensor = bool("pressureSensor", d.pressureSensor),
+                currentSensor = bool("currentSensor", d.currentSensor),
+                danfoss = bool("danfoss", d.danfoss),
+                axisY = bool("axisY", d.axisY),
+                maxPulseCounts = int("maxPulseCounts", d.maxPulseCounts),
+            )
+        }
+    }
+}

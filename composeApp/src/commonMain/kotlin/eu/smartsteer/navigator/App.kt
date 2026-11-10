@@ -42,6 +42,7 @@ import eu.smartsteer.navigator.ui.screens.FieldsScreen
 import eu.smartsteer.navigator.ui.screens.HardwareMapScreen
 import eu.smartsteer.navigator.ui.screens.ImplementScreen
 import eu.smartsteer.navigator.ui.screens.MapScreen
+import eu.smartsteer.navigator.ui.screens.SettingsScreen
 import eu.smartsteer.navigator.ui.screens.SteerScreen
 import eu.smartsteer.navigator.ui.theme.SmartSteerTheme
 import eu.smartsteer.navigator.ui.theme.Ss
@@ -55,6 +56,7 @@ enum class Screen(val label: String, val icon: IconKind) {
     Steer("Sterowanie", IconKind.Steer),
     Implement("Maszyna", IconKind.Implement),
     Connections("Połączenia", IconKind.Network),
+    Settings("Ustawienia", IconKind.Settings),
 }
 
 @Composable
@@ -100,6 +102,7 @@ fun App() {
                         Screen.Steer -> SteerScreen(ctrl)
                         Screen.Implement -> ImplementScreen(ctrl)
                         Screen.Connections -> ConnectionsScreen(ctrl, hw)
+                        Screen.Settings -> SettingsScreen(hw)
                     }
                 }
             }

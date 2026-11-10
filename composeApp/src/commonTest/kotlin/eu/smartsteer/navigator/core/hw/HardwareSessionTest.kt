@@ -5,6 +5,7 @@ import eu.smartsteer.navigator.core.aog.Pgn
 import eu.smartsteer.navigator.core.geo.LocalPlane
 import eu.smartsteer.navigator.core.geo.Vec2
 import eu.smartsteer.navigator.core.gps.Nmea
+import eu.smartsteer.navigator.core.settings.VehicleProfile
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.floor
@@ -59,7 +60,7 @@ class HardwareSessionTest {
 
     @Test
     fun abLineFromButtonsAndParallelPass() {
-        val h = HardwareSession(HardwareConfig(implementWidth = 3.0))
+        val h = HardwareSession(VehicleProfile(toolWidth = 3.0, antennaPivot = 0.0))
         var t = driveNorth(h, 0.0, 0.0, 2.0, 0.0)
         assertEquals(HeadingSource.VTG, h.headingSource)
         assertTrue(h.markA())

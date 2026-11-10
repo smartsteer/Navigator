@@ -151,7 +151,7 @@ fun Segmented(
     }
 }
 
-enum class IconKind { Map, Field, Steer, Implement, Network, ChevronLeft, ChevronRight, Plus, Minus, Target, Restart, Logo }
+enum class IconKind { Map, Field, Steer, Implement, Network, ChevronLeft, ChevronRight, Plus, Minus, Target, Restart, Logo, Settings }
 
 /** Ikony rysowane kreską w siatce 24×24 (jak w projekcie), bez zewnętrznych bibliotek. */
 @Composable
@@ -191,6 +191,12 @@ fun DrawScope.drawIcon(kind: IconKind, color: Color, strokeWidth: Float = 2f) {
         IconKind.Minus -> line(5f, 12f, 19f, 12f)
         IconKind.Target -> { drawCircle(color, 4f * u, o(12f, 12f), style = st); line(12f, 2f, 12f, 6f); line(12f, 18f, 12f, 22f); line(2f, 12f, 6f, 12f); line(18f, 12f, 22f, 12f) }
         IconKind.Restart -> { poly(4f, 4f, 4f, 9f, 9f, 9f); drawArc(color, 200f, 270f, false, o(4f, 4f), Size(16f * u, 16f * u), style = st) }
+        IconKind.Settings -> {
+            line(3f, 6f, 21f, 6f); line(3f, 12f, 21f, 12f); line(3f, 18f, 21f, 18f)
+            drawCircle(Ss.Surface, 2.6f * u, o(15f, 6f)); drawCircle(color, 2.6f * u, o(15f, 6f), style = st)
+            drawCircle(Ss.Surface, 2.6f * u, o(8f, 12f)); drawCircle(color, 2.6f * u, o(8f, 12f), style = st)
+            drawCircle(Ss.Surface, 2.6f * u, o(13f, 18f)); drawCircle(color, 2.6f * u, o(13f, 18f), style = st)
+        }
         IconKind.Logo -> { drawCircle(color, 9f * u, o(12f, 12f), style = st); line(12f, 3f, 12f, 21f); poly(7f, 21f, 12f, 12f, 17f, 21f) }
     }
 }

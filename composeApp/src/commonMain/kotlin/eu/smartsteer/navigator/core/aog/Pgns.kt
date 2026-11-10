@@ -14,7 +14,10 @@ object Pgn {
 /**
  * PGN 254 — dane sterowania wysyłane ok. 10 razy na sekundę.
  * Skalowanie: prędkość w km/h × 10, kąt zadany w stopniach × 100.
- * Odległość od linii: cm, przycięta do zakresu bajtu (do potwierdzenia na płytce).
+ * Odległość od linii (lightbar): jednostki 2 cm z przesunięciem +127, 255 = autoster wyłączony.
+ *
+ * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs
+ * (wypełnianie p_254: distanceX2).
  */
 data class SteerData(
     val speedKmh: Double,
@@ -32,10 +35,57 @@ data class SteerData(
         data[2] = if (autosteerOn) 1 else 0
         data[3] = (angle and 0xFF).toByte()
         data[4] = (angle shr 8).toByte()
-        data[5] = lineDistanceCm.coerceIn(-127, 127).toByte()
+        data[5] = lineDistanceByte(autosteerOn, lineDistanceCm).toByte()
         data[6] = (sections and 0xFF).toByte()
         data[7] = ((sections shr 8) and 0xFF).toByte()
         return AogFrame.build(Pgn.STEER_DATA, data)
+    }
+
+    companion object {
+        fun lineDistanceByte(on: Boolean, cm: Int): Int =
+            if (!on) 255 else ((cm * 10) * 0.05).toInt().coerceIn(-127, 127) + 127
+    }
+}
+
+/**
+ * PGN 252 — ustawienia modułu skrętu (wzmocnienie, PWM, czujnik kąta kół).
+ * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/PGN.Designer.cs (CPGN_FC).
+ */
+data class SteerSettings(
+    val gainP: Int, val highPwm: Int, val lowPwm: Int, val minPwm: Int,
+    val countsPerDegree: Int, val wasOffset: Int, val ackerman: Int,
+) {
+    fun toFrame(): ByteArray {
+        val d = ByteArray(8)
+        d[0] = gainP.coerceIn(0, 255).toByte()
+        d[1] = highPwm.coerceIn(0, 255).toByte()
+        d[2] = lowPwm.coerceIn(0, 255).toByte()
+        d[3] = minPwm.coerceIn(0, 255).toByte()
+        d[4] = countsPerDegree.coerceIn(0, 255).toByte()
+        val off = wasOffset.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+        d[5] = (off and 0xFF).toByte()
+        d[6] = ((off shr 8) and 0xFF).toByte()
+        d[7] = ackerman.coerceIn(0, 255).toByte()
+        return AogFrame.build(Pgn.STEER_SETTINGS, d)
+    }
+}
+
+/**
+ * PGN 251 — konfiguracja płytki (bity ustawień, próg czujnika, minimalna prędkość).
+ * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), pliki SourceCode/GPS/Forms/PGN.Designer.cs (CPGN_FB)
+ * i SourceCode/GPS/Forms/Settings/FormSteer.cs.
+ */
+data class SteerConfig(
+    val setting0: Int, val maxPulseCounts: Int, val minSteerSpeedKmh: Double, val setting1: Int,
+) {
+    fun toFrame(): ByteArray {
+        val d = ByteArray(8)
+        d[0] = setting0.toByte()
+        d[1] = maxPulseCounts.coerceIn(0, 255).toByte()
+        d[2] = (minSteerSpeedKmh * 10).toInt().coerceIn(0, 255).toByte()
+        d[3] = setting1.toByte()
+        d[4] = 0 // prędkość kątowa (stały kontur) — wyłączone
+        return AogFrame.build(Pgn.STEER_CONFIG, d)
     }
 }
 
