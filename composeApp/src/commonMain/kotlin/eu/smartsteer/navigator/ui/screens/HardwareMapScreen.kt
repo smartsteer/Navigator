@@ -298,7 +298,7 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
             color = if (s.fieldName != null) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
         )
         Text(
-            if (s.gpsAlive(now)) "GPS ${s.fix.label} · kurs $course° (${s.headingSource.label})" else "GPS: brak pozycji",
+            if (s.gpsAlive(now)) "${if (s.fix.label.startsWith("GPS")) s.fix.label else "GPS " + s.fix.label} · kurs $course° (${s.headingSource.label})" else "GPS: brak pozycji",
             color = if (s.gpsAlive(now)) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
         )
     }
