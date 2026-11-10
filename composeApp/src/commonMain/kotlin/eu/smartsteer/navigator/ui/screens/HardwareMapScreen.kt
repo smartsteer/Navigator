@@ -146,7 +146,7 @@ private fun RightTools(hw: HardwareController, sheetOpen: Boolean, locked: Boole
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        RoundTool(IconKind.LineAB, sheetOpen, !locked, s.mode.label, onSheet)
+        RoundTool(IconKind.LineAB, sheetOpen, !locked, s.mode.label, onClick = onSheet)
         RoundTool(IconKind.UTurn, s.autoUturn, !locked && s.mode != GuidanceMode.CONTOUR, if (s.autoUturn) (if (s.uTurnRight) "▶" else "◀") else "zawrót") {
             s.autoUturn = !s.autoUturn; if (!s.autoUturn) s.cancelTurn(); hw.touch()
         }
