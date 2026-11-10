@@ -1,5 +1,16 @@
 package eu.smartsteer.navigator.ui.screens
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -51,7 +62,7 @@ import kotlin.math.abs
 import kotlin.math.round
 
 private enum class Tab(val label: String) {
-    Vehicle("Ciągnik"), Tool("Maszyna"), Guidance("Prowadzenie"), Imu("IMU"), Module("Moduł skrętu"), Board("Płytka"), Profiles("Profile"),
+    Vehicle("Ciągnik"), Tool("Maszyna"), Guidance("Prowadzenie"), Imu("IMU"), Module("Moduł skrętu"), Board("Płytka"), Ntrip("NTRIP"), Profiles("Profile"),
 }
 
 /** Ustawienia sprzętu i prowadzenia, zapisywane w profilu pojazdu (jak w AgOpenGPS). */
@@ -80,6 +91,7 @@ fun SettingsScreen(hw: HardwareController) {
                     Tab.Imu -> ImuTab(hw, p, set)
                     Tab.Module -> ModuleTab(hw, p, set)
                     Tab.Board -> BoardTab(hw, p, set)
+                    Tab.Ntrip -> NtripTab(hw)
                     Tab.Profiles -> ProfilesTab(hw)
                 }
             }
@@ -197,6 +209,24 @@ private fun ColumnScope.ImuTab(hw: HardwareController, p: VehicleProfile, set: (
 @Composable
 private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set: (VehicleProfile) -> Unit) {
     var zeroMsg by remember { mutableStateOf<String?>(null) }
+    val s = hw.session
+    // test silnika wyłącza się, gdy wychodzimy z tej zakładki
+    DisposableEffect(Unit) { onDispose { if (s.freeDrive) s.setFreeDrive(false) } }
+    SectionTitle("Test silnika (bez jazdy)")
+    Label("Koła kręcą się przyciskami — sprawdzisz kierunek silnika, czujnik kąta i wzmocnienie. Wyłącza się samo, gdy ciągnik ruszy.", Ss.TextSoft, 13.sp)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        ActionButton(
+            background = if (s.freeDrive) Ss.Warning else Ss.SurfaceHigh, border = if (s.freeDrive) Ss.Warning else Ss.BorderStrong,
+            onClick = { s.setFreeDrive(!s.freeDrive); hw.touch() },
+        ) { ButtonText(if (s.freeDrive) "Test WŁĄCZONY" else "Włącz test", color = if (s.freeDrive) Ss.OnWarning else Ss.Text, weight = FontWeight.Bold) }
+        if (s.freeDrive) {
+            ActionButton(Modifier.width(64.dp), onClick = { s.nudgeFreeDrive(-5.0); hw.touch() }) { ButtonText("◀◀", size = 16.sp) }
+            ActionButton(Modifier.width(56.dp), onClick = { s.nudgeFreeDrive(-1.0); hw.touch() }) { ButtonText("◀", size = 16.sp) }
+            ActionButton(onClick = { s.centerFreeDrive(); hw.touch() }) { ButtonText("${s.freeDriveAngle.pl(0, plusSign = true)}° · prosto") }
+            ActionButton(Modifier.width(56.dp), onClick = { s.nudgeFreeDrive(1.0); hw.touch() }) { ButtonText("▶", size = 16.sp) }
+            ActionButton(Modifier.width(64.dp), onClick = { s.nudgeFreeDrive(5.0); hw.touch() }) { ButtonText("▶▶", size = 16.sp) }
+        }
+    }
     SectionTitle("Czujnik kąta kół")
     Num("Impulsy na stopień", "Ustaw tak, żeby kąt na ekranie zgadzał się z kołami", p.countsPerDegree.toDouble(), "", 1.0, 1.0, 255.0, 0) { set(p.copy(countsPerDegree = it.toInt())) }
     Num("Przesunięcie zera", null, p.wasOffset.toDouble(), "", 5.0, -4000.0, 4000.0, 0) { set(p.copy(wasOffset = it.toInt())) }
@@ -251,6 +281,79 @@ private fun ColumnScope.BoardTab(hw: HardwareController, p: VehicleProfile, set:
         )
     }
     Label("Zmiany wysyłają się też same, 1,5 s po ostatnim dotknięciu.", Ss.TextMuted, 13.sp)
+}
+
+@Composable
+private fun ColumnScope.NtripTab(hw: HardwareController) {
+    val c = hw.ntripConfig
+    var host by remember { mutableStateOf(c.host) }
+    var port by remember { mutableStateOf(c.port.toString()) }
+    var mount by remember { mutableStateOf(c.mount) }
+    var user by remember { mutableStateOf(c.user) }
+    var pass by remember { mutableStateOf(c.password) }
+    SectionTitle("Poprawki RTK przez internet (NTRIP)")
+    Label(
+        "Tablet/komputer pobiera poprawki z castera (np. ASG-EUPOS, własna stacja) i wysyła je do płytki AIO (UDP ${c.udpPort}), " +
+            "tak jak robi to AgIO. Potrzebny internet w tablecie i tryb SPRZĘT.",
+        Ss.TextSoft, 13.sp,
+    )
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Pill(
+            hw.ntripStatus,
+            if (hw.ntripReceiving) Ss.Accent else if (c.enabled) Ss.Warning else Ss.TextMuted,
+            if (hw.ntripReceiving) Ss.AccentSoft else Ss.SurfaceHigh,
+        )
+        if (hw.ntripReceiving) Label("${hw.ntripRate.pl(0)} B/s · razem ${(hw.ntripBytes / 1024.0).pl(0)} kB", Ss.TextSoft, 14.sp)
+    }
+    Field("Adres castera", host, "np. system.asgeupos.pl") { host = it }
+    Field("Port", port, "2101", number = true) { port = it.filter { ch -> ch.isDigit() }.take(5) }
+    Field("Punkt montowania (mountpoint)", mount, "np. NAWGEO_POJ_3_1") { mount = it }
+    Field("Login", user, "") { user = it }
+    Field("Hasło", pass, "", password = true) { pass = it }
+    Num("Wysyłaj pozycję do castera co", "Potrzebne dla sieci VRS; 0 = nie wysyłaj", c.ggaIntervalS.toDouble(), "s", 1.0, 0.0, 60.0, 0) {
+        hw.updateNtrip(hw.ntripConfig.copy(ggaIntervalS = it.toInt()))
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = {
+            hw.updateNtrip(
+                hw.ntripConfig.copy(
+                    enabled = true, host = host.trim(), port = port.toIntOrNull() ?: 2101,
+                    mount = mount.trim(), user = user.trim(), password = pass,
+                ),
+            )
+        }) { ButtonText("Zapisz i połącz", color = Ss.OnAccent, weight = FontWeight.Bold) }
+        if (c.enabled) {
+            ActionButton(onClick = { hw.updateNtrip(hw.ntripConfig.copy(enabled = false)) }) { ButtonText("Rozłącz", color = Ss.TextSoft) }
+        }
+    }
+    Label("Hasło zapisuje się w pliku ustawień na tym urządzeniu (tak jak w AgIO).", Ss.TextMuted, 12.sp)
+}
+
+@Composable
+private fun Field(label: String, value: String, hint: String, password: Boolean = false, number: Boolean = false, onChange: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Ss.Surface)
+            .border(1.dp, Ss.Border, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(label, Modifier.width(240.dp), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        BasicTextField(
+            value = value,
+            onValueChange = onChange,
+            singleLine = true,
+            textStyle = TextStyle(color = Ss.Text, fontSize = 17.sp),
+            cursorBrush = SolidColor(Ss.Accent),
+            visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = KeyboardOptions(keyboardType = if (number) KeyboardType.Number else if (password) KeyboardType.Password else KeyboardType.Text),
+            modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(Ss.Ground)
+                .border(1.dp, Ss.BorderStrong, RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 12.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty() && hint.isNotEmpty()) Text(hint, color = Ss.TextMuted, fontSize = 17.sp)
+                inner()
+            },
+        )
+    }
 }
 
 @Composable
@@ -310,19 +413,61 @@ private fun LivePanel(hw: HardwareController) {
     val s = hw.session
     val now = hw.now()
     val st = s.autosteer?.takeIf { s.autosteerAlive(now) }
-    Panel(Modifier.width(280.dp).fillMaxHeight()) {
+    val imu = s.imu
+    Panel(Modifier.width(300.dp).fillMaxHeight().verticalScroll(rememberScrollState())) {
         SectionTitle("Na żywo")
         if (!hw.hardware) {
             Label("Włącz tryb SPRZĘT na ekranie Połączenia, żeby widzieć odczyty z płytki.", Ss.TextSoft, 14.sp)
         }
-        Stat("Odchyłka", if (s.line != null) "${s.xteCm.pl(1, plusSign = true)} cm" else "—", valueSize = 22.sp)
-        Stat("Kąt zadany", "${s.steerSetDeg.pl(1, plusSign = true)}°", valueSize = 22.sp)
-        Stat("Kąt kół", st?.let { "${it.actualAngleDeg.pl(1, plusSign = true)}°" } ?: "—", valueSize = 22.sp)
-        Stat("PWM", st?.pwm?.toString() ?: "—", valueSize = 22.sp)
-        val imu = hw.session.imu
-        Stat("Przechył", imu.rollDeg?.takeIf { imu.rollAlive(now) }?.let { "${it.pl(1, plusSign = true)}° · poprawka ${(hw.session.rollCorrectionM * 100).pl(0, plusSign = true)} cm" } ?: "brak IMU", valueSize = 18.sp)
-        Stat("Człon całkujący", "${(s.integral * 100).pl(1, plusSign = true)} cm", valueSize = 18.sp)
-        Stat("Przełącznik autosteru", st?.let { if (it.steerSwitch) "WŁĄCZONY" else "WYŁĄCZONY" } ?: "—", valueSize = 18.sp)
+        Row {
+            Box(Modifier.weight(1f)) { Stat("Kąt zadany", "${(if (s.freeDrive) s.freeDriveAngle else s.steerSetDeg).pl(1, plusSign = true)}°", valueSize = 20.sp) }
+            Box(Modifier.weight(1f)) { Stat("Kąt kół", st?.let { "${it.actualAngleDeg.pl(1, plusSign = true)}°" } ?: "—", valueSize = 20.sp) }
+        }
+        Chart(hw.histSet, hw.histActual, minRange = 5f, unit = "°")
+        Label("Zielona — zadany, biała — kąt kół (30 s)", Ss.TextMuted, 12.sp)
+        Row {
+            Box(Modifier.weight(1f)) { Stat("Odchyłka", if (hw.histXte.lastOrNull()?.isNaN() == false) "${s.xteCm.pl(1, plusSign = true)} cm" else "—", valueSize = 20.sp) }
+            Box(Modifier.weight(1f)) { Stat("PWM", st?.pwm?.toString() ?: "—", valueSize = 20.sp) }
+        }
+        Chart(hw.histXte, null, minRange = 10f, unit = "cm")
+        Stat("Przechył", imu.rollDeg?.takeIf { imu.rollAlive(now) }?.let { "${it.pl(1, plusSign = true)}° · poprawka ${(s.rollCorrectionM * 100).pl(0, plusSign = true)} cm" } ?: "brak IMU", valueSize = 16.sp)
+        Row {
+            Box(Modifier.weight(1f)) { Stat("Całka", "${(s.integral * 100).pl(1, plusSign = true)} cm", valueSize = 16.sp) }
+            Box(Modifier.weight(1f)) { Stat("Przełącznik", st?.let { if (it.steerSwitch) "WŁ." else "WYŁ." } ?: "—", valueSize = 16.sp) }
+        }
+    }
+}
+
+/** Mały wykres przebiegu (środek = 0, skala dopasowuje się sama). */
+@Composable
+private fun Chart(a: ArrayDeque<Float>, b: ArrayDeque<Float>?, minRange: Float, unit: String) {
+    val va = a.toList()
+    val vb = b?.toList()
+    var range = minRange
+    for (v in va) if (!v.isNaN()) range = maxOf(range, kotlin.math.abs(v))
+    vb?.forEach { if (!it.isNaN()) range = maxOf(range, kotlin.math.abs(it)) }
+    Box(Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(10.dp)).background(Ss.Ground)) {
+        Canvas(Modifier.fillMaxSize()) {
+            val h = size.height
+            val w = size.width
+            val n = HardwareController.HISTORY
+            fun y(v: Float) = h / 2 - v / range * (h / 2 - 6f)
+            drawLine(Ss.Border, Offset(0f, h / 2), Offset(w, h / 2), 1.5f)
+            fun series(list: List<Float>, color: Color, width: Float) {
+                val path = Path()
+                var started = false
+                val start = n - list.size
+                list.forEachIndexed { i, v ->
+                    if (v.isNaN()) { started = false; return@forEachIndexed }
+                    val x = (start + i) * w / (n - 1)
+                    if (!started) { path.moveTo(x, y(v)); started = true } else path.lineTo(x, y(v))
+                }
+                drawPath(path, color, style = Stroke(width = width))
+            }
+            vb?.let { series(it, Ss.Text, 2f) }
+            series(va, if (vb == null) Ss.Warning else Ss.Accent, 2.5f)
+        }
+        Text("±${range.toDouble().pl(0)} $unit", Modifier.align(Alignment.TopEnd).padding(4.dp), color = Ss.TextMuted, fontSize = 11.sp)
     }
 }
 

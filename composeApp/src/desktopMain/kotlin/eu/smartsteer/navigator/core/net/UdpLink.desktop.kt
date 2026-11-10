@@ -43,10 +43,10 @@ private class JvmUdpLink : UdpLink {
         return null
     }
 
-    override fun send(bytes: ByteArray): String? {
+    override fun send(bytes: ByteArray, port: Int): String? {
         val s = socket ?: return "Nasłuch nie działa"
         return try {
-            s.send(DatagramPacket(bytes, bytes.size, target, AogFrame.PORT_TO_MODULES))
+            s.send(DatagramPacket(bytes, bytes.size, target, port))
             null
         } catch (e: Exception) {
             "Brak sieci 192.168.5.x: ${e.message}"

@@ -7,8 +7,8 @@ package eu.smartsteer.navigator.core.net
 interface UdpLink {
     /** Uruchamia nasłuch. Zwraca opis błędu (np. port zajęty przez AgIO) albo null. */
     fun start(onPacket: (bytes: ByteArray, length: Int, from: String) -> Unit): String?
-    /** Wysyła ramkę do modułów. Zwraca opis błędu albo null. */
-    fun send(bytes: ByteArray): String?
+    /** Wysyła ramkę do modułów (domyślnie port 8888). Zwraca opis błędu albo null. */
+    fun send(bytes: ByteArray, port: Int = 8888): String?
     fun stop()
 }
 

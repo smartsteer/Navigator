@@ -116,6 +116,13 @@ fun ConnectionsScreen(ctrl: DemoController, hw: HardwareController) {
                     if (asOk) Ss.Accent else Ss.Warning,
                 )
             }
+            val nc = hw.ntripConfig
+            Module(
+                "Poprawki NTRIP",
+                if (nc.enabled) "${nc.host}:${nc.port}/${nc.mount} → UDP ${nc.udpPort}" else "Ustawienia → NTRIP",
+                if (hw.ntripReceiving) "${hw.ntripRate.pl(0)} B/s" else if (nc.enabled) "Brak" else "Wyłączone",
+                if (hw.ntripReceiving) Ss.Accent else if (nc.enabled) Ss.Warning else Ss.TextMuted,
+            )
             if (hw.hardware) {
                 Module("Moduł maszyny (sekcje)", "PGN 239 co 100 ms · włączone sekcje: ${s.sections.on.count { it }}", "Wysyłam", Ss.Accent)
             } else {

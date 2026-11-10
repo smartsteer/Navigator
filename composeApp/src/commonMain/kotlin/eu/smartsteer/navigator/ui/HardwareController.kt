@@ -8,6 +8,11 @@ import eu.smartsteer.navigator.core.aog.AutosteerStatus
 import eu.smartsteer.navigator.core.hw.HardwareSession
 import eu.smartsteer.navigator.core.net.UdpLink
 import eu.smartsteer.navigator.core.net.createUdpLink
+import eu.smartsteer.navigator.core.gps.FixQuality
+import eu.smartsteer.navigator.core.net.TcpClient
+import eu.smartsteer.navigator.core.net.createTcpClient
+import eu.smartsteer.navigator.core.ntrip.Ntrip
+import eu.smartsteer.navigator.core.ntrip.NtripConfig
 import eu.smartsteer.navigator.core.field.FieldStore
 import eu.smartsteer.navigator.core.settings.Profiles
 import eu.smartsteer.navigator.core.settings.fieldFiles
@@ -204,6 +209,181 @@ class HardwareController {
         tick++
     }
 
+    // ---------------- wykresy ----------------
+    /** Historia ostatnich 30 s (co 100 ms): kąt zadany, kąt kół, odchyłka w cm. */
+    val histSet = ArrayDeque<Float>()
+    val histActual = ArrayDeque<Float>()
+    val histXte = ArrayDeque<Float>()
+
+    private fun recordHistory() {
+        val st = session.autosteer?.takeIf { session.autosteerAlive(now()) }
+        histSet.addLast((if (session.freeDrive) session.freeDriveAngle else session.steerSetDeg).toFloat())
+        histActual.addLast(st?.actualAngleDeg?.toFloat() ?: Float.NaN)
+        histXte.addLast(if (session.line != null || session.curveRef != null || session.contour.guide.isNotEmpty()) session.xteCm.toFloat() else Float.NaN)
+        for (h in listOf(histSet, histActual, histXte)) while (h.size > HISTORY) h.removeFirst()
+    }
+
+    // ---------------- NTRIP ----------------
+    private val ntripFile = "ntrip.cfg"
+    var ntripConfig by mutableStateOf(
+        runCatching { files.read(ntripFile)?.let { NtripConfig.fromJson(it) } }.getOrNull() ?: NtripConfig(),
+    )
+        private set
+    var ntripStatus by mutableStateOf("Wyłączony")
+        private set
+    var ntripReceiving by mutableStateOf(false)
+        private set
+    var ntripBytes = 0L; private set
+    /** Bajty poprawek na sekundę (średnia). */
+    var ntripRate by mutableStateOf(0.0)
+        private set
+    private var ntrip: TcpClient? = null
+    private sealed interface NtripEvent {
+        data object Connected : NtripEvent
+        class Data(val bytes: ByteArray) : NtripEvent
+        class Closed(val error: String?) : NtripEvent
+    }
+    private val ntripEvents = Channel<NtripEvent>(512, BufferOverflow.DROP_OLDEST)
+    private var ntripHdr = ByteArray(0)
+    private var ntripHeaderDone = false
+    private var ntripRetryAtS = 0.0
+    private var ntripLastGgaS = 0.0
+    private var ntripRateBytes = 0L
+    private var ntripRateAtS = 0.0
+
+    fun updateNtrip(c: NtripConfig) {
+        val old = ntripConfig
+        ntripConfig = c
+        try { files.write(ntripFile, c.toJson()) } catch (_: Exception) {}
+        // zmiana adresu / punktu / loginu — łączymy od nowa
+        if (ntrip != null && (old.host != c.host || old.port != c.port || old.mount != c.mount || old.user != c.user || old.password != c.password || !c.enabled)) {
+            stopNtrip(if (c.enabled) "Łączę od nowa…" else "Wyłączony")
+            ntripRetryAtS = 0.0
+        }
+        tick++
+    }
+
+    private fun stopNtrip(status: String?) {
+        ntrip?.close()
+        ntrip = null
+        ntripReceiving = false
+        if (status != null) ntripStatus = status
+    }
+
+    private suspend fun ntripStep(l: UdpLink?) {
+        val c = ntripConfig
+        val want = c.enabled && c.host.isNotBlank() && c.mount.isNotBlank()
+        if (!want) {
+            if (ntrip != null) stopNtrip(null)
+            ntripStatus = if (c.enabled) "Uzupełnij adres i punkt montowania" else "Wyłączony"
+            return
+        }
+        if (ntrip == null && now() >= ntripRetryAtS) {
+            val t = createTcpClient()
+            ntrip = t
+            ntripHdr = ByteArray(0); ntripHeaderDone = false
+            ntripStatus = "Łączę z ${c.host}:${c.port}…"
+            t.start(
+                c.host.trim(), c.port,
+                onConnected = { ntripEvents.trySend(NtripEvent.Connected) },
+                onData = { b, n -> ntripEvents.trySend(NtripEvent.Data(b.copyOf(n))) },
+                onClosed = { e -> ntripEvents.trySend(NtripEvent.Closed(e)) },
+            )
+        }
+        while (true) {
+            val ev = ntripEvents.tryReceive().getOrNull() ?: break
+            val t = ntrip
+            when (ev) {
+                is NtripEvent.Connected -> if (t != null) {
+                    val req = Ntrip.request(c)
+                    withContext(Dispatchers.Default) { t.send(req) }
+                    ntripStatus = "Połączono, czekam na odpowiedź…"
+                }
+                is NtripEvent.Closed -> {
+                    if (ntrip != null) {
+                        ntrip = null
+                        ntripReceiving = false
+                        ntripStatus = "Rozłączono: ${ev.error ?: "koniec połączenia"} — ponowię za 10 s"
+                        ntripRetryAtS = now() + 10
+                    }
+                }
+                is NtripEvent.Data -> if (t != null) onNtripData(ev.bytes, c, l)
+            }
+        }
+        // pozycja dla castera (VRS) co ustawiony czas
+        val g = session.lastGga
+        if (ntripReceiving && c.ggaIntervalS > 0 && g != null && session.gpsAlive(now()) && now() - ntripLastGgaS >= c.ggaIntervalS) {
+            ntripLastGgaS = now()
+            val code = when (g.fix) {
+                FixQuality.GPS -> 1; FixQuality.DGPS -> 2; FixQuality.RTK_FIX -> 4; FixQuality.RTK_FLOAT -> 5; else -> 1
+            }
+            val gga = Ntrip.gga(g.latitude, g.longitude, g.utcSeconds ?: 0.0, code, g.satellites, g.hdop, g.altitude).encodeToByteArray()
+            val t = ntrip
+            if (t != null) withContext(Dispatchers.Default) { t.send(gga) }
+        }
+        if (now() - ntripRateAtS >= 2.0) {
+            ntripRate = ntripRateBytes / (now() - ntripRateAtS).coerceAtLeast(0.1)
+            ntripRateBytes = 0
+            ntripRateAtS = now()
+        }
+    }
+
+    private suspend fun onNtripData(bytes: ByteArray, c: NtripConfig, l: UdpLink?) {
+        var data = bytes
+        if (!ntripHeaderDone) {
+            // nagłówek zbieramy jako bajty — po nim od razu idą binarne dane RTCM
+            ntripHdr += bytes
+            val crlf = indexOf(ntripHdr, CRLF)
+            if (crlf < 0) {
+                if (ntripHdr.size > 4000) { stopNtrip("Nieznana odpowiedź castera"); ntripRetryAtS = now() + 30 }
+                return
+            }
+            val first = ntripHdr.decodeToString(0, crlf)
+            val end: Int
+            val headerText: String
+            if (first.startsWith("ICY")) {
+                // NTRIP 1.0: „ICY 200 OK”, czasem z pustą linią
+                val blank = ntripHdr.size >= crlf + 4 && ntripHdr[crlf + 2] == '\r'.code.toByte() && ntripHdr[crlf + 3] == '\n'.code.toByte()
+                end = if (blank) crlf + 4 else crlf + 2
+                headerText = first
+            } else {
+                val e = indexOf(ntripHdr, CRLFCRLF)
+                if (e < 0) {
+                    if (ntripHdr.size > 4000) { stopNtrip("Nieznana odpowiedź castera"); ntripRetryAtS = now() + 30 }
+                    return
+                }
+                end = e + 4
+                headerText = ntripHdr.decodeToString(0, e)
+            }
+            when (Ntrip.reply(headerText)) {
+                Ntrip.Reply.OK -> {
+                    ntripHeaderDone = true
+                    ntripReceiving = true
+                    ntripStatus = "Odbieram poprawki z „${c.mount}”"
+                    ntripLastGgaS = 0.0 // od razu wyślij pozycję
+                    data = ntripHdr.copyOfRange(end.coerceAtMost(ntripHdr.size), ntripHdr.size)
+                    ntripHdr = ByteArray(0)
+                }
+                Ntrip.Reply.UNAUTHORIZED -> { stopNtrip("Zły login lub hasło"); ntripRetryAtS = now() + 60; return }
+                Ntrip.Reply.SOURCETABLE -> { stopNtrip("Caster nie zna punktu „${c.mount}” (odesłał listę punktów)"); ntripRetryAtS = now() + 60; return }
+                Ntrip.Reply.ERROR -> { stopNtrip("Caster odmówił: ${first.take(60)}"); ntripRetryAtS = now() + 30; return }
+            }
+        }
+        if (data.isEmpty()) return
+        ntripBytes += data.size
+        ntripRateBytes += data.size
+        val link = l ?: return
+        // RTCM do płytki AIO jak w AgIO: rozgłoszenie UDP na port 2233, w kawałkach mieszczących się w pakiecie
+        withContext(Dispatchers.Default) {
+            var i = 0
+            while (i < data.size) {
+                val e = (i + NTRIP_CHUNK).coerceAtMost(data.size)
+                link.send(data.copyOfRange(i, e), c.udpPort)
+                i = e
+            }
+        }
+    }
+
     /** Ręczne „Wyślij do płytki”. */
     fun sendBoardConfig() { configDirty = true; configChangedAt = now() - 10; tick++ }
 
@@ -243,6 +423,7 @@ class HardwareController {
             configChangedAt = now() - 10
         } else {
             session.setEngaged(false, now())
+            if (session.freeDrive) session.setFreeDrive(false)
             stopRequested = true // pętla wyśle ostatnią ramkę „autoster wyłączony” i zamknie gniazdo
         }
         hardware = on
@@ -269,8 +450,10 @@ class HardwareController {
                 linkError = null
                 stopRequested = false
             }
-            if (!hardware) continue
+            if (!hardware) { if (ntrip != null) stopNtrip(null); continue }
             session.update(now())
+            recordHistory()
+            ntripStep(l)
             // autozapis pola co 30 s
             if (session.fieldName != null && now() - lastFieldSaveS > 30) saveField()
             val frame = session.steerFrame()
@@ -308,5 +491,20 @@ class HardwareController {
     private fun addLog(s: String) {
         log.addFirst(s)
         while (log.size > 14) log.removeLast()
+    }
+
+    private fun indexOf(h: ByteArray, n: ByteArray): Int {
+        outer@ for (i in 0..h.size - n.size) {
+            for (j in n.indices) if (h[i + j] != n[j]) continue@outer
+            return i
+        }
+        return -1
+    }
+
+    companion object {
+        const val HISTORY = 300
+        private val CRLF = byteArrayOf(13, 10)
+        private val CRLFCRLF = byteArrayOf(13, 10, 13, 10)
+        private const val NTRIP_CHUNK = 256
     }
 }

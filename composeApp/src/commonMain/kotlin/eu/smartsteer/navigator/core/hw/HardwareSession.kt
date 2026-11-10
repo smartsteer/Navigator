@@ -274,6 +274,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             else -> null
         }
         engaged = why == null
+        if (engaged) freeDrive = false
         if (why != null) fail(why)
         return why
     }
@@ -283,6 +284,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         if (engaged && !gpsAlive(nowS)) { engaged = false; fail("Utracono GPS — autoster wyłączony") }
         if (engaged && !autosteerAlive(nowS)) { engaged = false; fail("Moduł autosterowania nie odpowiada — autoster wyłączony") }
         checkSpeedLimits()
+        if (freeDrive && speedKmh > FREE_DRIVE_MAX_KMH) { freeDrive = false; fail("Test silnika wyłączony — ciągnik jedzie") }
         val p = pivot
         val roll = imu.rollDeg?.takeIf { imu.rollAlive(nowS) }
         val r: AbSteering.Output? = when (mode) {
@@ -462,13 +464,38 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     }
 
     /** Ramka PGN 254 do modułu skrętu. */
-    fun steerFrame(): ByteArray = SteerData(
-        speedKmh = speedKmh,
-        autosteerOn = engaged,
-        steerAngleDeg = if (engaged) steerSetDeg else 0.0,
-        lineDistanceCm = xteCm.roundToInt(),
-        sections = sections.bits(),
-    ).toFrame()
+    fun steerFrame(): ByteArray = if (freeDrive) {
+        // Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs
+        // („Drive button”): prędkość na sztywno 8 km/h, status włączony, kąt z przycisków.
+        SteerData(speedKmh = 8.0, autosteerOn = true, steerAngleDeg = freeDriveAngle, lineDistanceCm = 0, sections = sections.bits()).toFrame()
+    } else {
+        SteerData(
+            speedKmh = speedKmh,
+            autosteerOn = engaged,
+            steerAngleDeg = if (engaged) steerSetDeg else 0.0,
+            lineDistanceCm = xteCm.roundToInt(),
+            sections = sections.bits(),
+        ).toFrame()
+    }
+
+    // ---------------- test silnika (Free drive) ----------------
+    /** Ręczne kręcenie kołami z ekranu — do sprawdzenia silnika i czujnika kąta bez jazdy. */
+    var freeDrive = false; private set
+    var freeDriveAngle = 0.0; private set
+
+    fun setFreeDrive(on: Boolean) {
+        freeDrive = on
+        freeDriveAngle = 0.0
+        if (on) engaged = false
+        ok(if (on) "Test silnika: koła kręcą się przyciskami" else "Test silnika wyłączony")
+    }
+
+    fun nudgeFreeDrive(deltaDeg: Double) {
+        if (!freeDrive) return
+        freeDriveAngle = (freeDriveAngle + deltaDeg).coerceIn(-profile.maxSteerAngle, profile.maxSteerAngle)
+    }
+
+    fun centerFreeDrive() { freeDriveAngle = 0.0 }
 
     /** Ramka PGN 239 do modułu maszyny (sekcje). */
     fun machineFrame(): ByteArray = Sections.machineFrame(speedKmh, sections.bits())
@@ -560,6 +587,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     companion object {
         const val MIN_AB_M = 20.0
         const val SEGMENT_M = 200.0
+        const val FREE_DRIVE_MAX_KMH = 3.0
         const val CURVE_STEP_M = 0.5
         const val CONTOUR_MIN_KMH = 1.0
         const val PGN_EXTERNAL_IMU = 0xD3

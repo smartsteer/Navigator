@@ -20,6 +20,8 @@ data class Gga(
     val altitude: Double,
     /** Wiek poprawek RTK w sekundach (null = brak). */
     val correctionAge: Double?,
+    /** Czas pozycji: sekundy od północy UTC (null = brak). */
+    val utcSeconds: Double? = null,
 )
 
 data class Vtg(val courseDeg: Double?, val speedKmh: Double)
@@ -58,6 +60,7 @@ object Nmea {
             hdop = f[8].toDoubleOrNull() ?: 99.0,
             altitude = f[9].toDoubleOrNull() ?: 0.0,
             correctionAge = f[13].toDoubleOrNull(),
+            utcSeconds = utc(f[1]),
         )
     }
 
@@ -89,6 +92,7 @@ object Nmea {
             hdop = f[8].toDoubleOrNull() ?: 99.0,
             altitude = f[9].toDoubleOrNull() ?: 0.0,
             correctionAge = f[10].toDoubleOrNull(),
+            utcSeconds = utc(f[1]),
         )
         // PAOGI: kurs i przechył w stopniach (liczby z kropką). PANDA: z IMU, liczby całkowite ×10
         // (65535 / 32767 = brak IMU) — tak czyta je AgIO (NMEA.Designer.cs, ParsePANDA/ParsePAOGI).
@@ -120,6 +124,15 @@ object Nmea {
         val f = body.split(',')
         if (f[0].length < 5 || !f[0].endsWith(type)) return null
         return f
+    }
+
+    /** "123519.50" -> 45319,5 s od północy. */
+    internal fun utc(v: String): Double? {
+        if (v.length < 6) return null
+        val h = v.substring(0, 2).toIntOrNull() ?: return null
+        val m = v.substring(2, 4).toIntOrNull() ?: return null
+        val sec = v.substring(4).toDoubleOrNull() ?: return null
+        return h * 3600 + m * 60 + sec
     }
 
     /** "5150.1234","N" -> 51.835390 (ddmm.mmmm / dddmm.mmmm). */
