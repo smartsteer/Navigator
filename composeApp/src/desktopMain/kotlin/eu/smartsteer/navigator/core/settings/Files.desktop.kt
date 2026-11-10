@@ -24,6 +24,17 @@ actual fun importFiles(): TextFiles = DirFiles(File(smartSteerDir(), "Import").a
 
 actual fun exportFiles(): TextFiles = DirFiles(File(smartSteerDir(), "Raporty").apply { mkdirs() })
 
+private fun agoBase(): File {
+    val home = System.getProperty("user.home") ?: "."
+    val docs = File(home, "Documents").takeIf { it.isDirectory } ?: File(home)
+    val main = File(docs, "AgOpenGPS")
+    return if (main.isDirectory) main else File(smartSteerDir(), "Import/AgOpenGPS")
+}
+
+actual fun agoFiles(sub: String): TextFiles? = File(agoBase(), sub).takeIf { it.isDirectory }?.let { DirFiles(it) }
+
+actual fun agoLocation(): String = agoBase().absolutePath
+
 actual fun warFiles(): TextFiles = DirFiles(File(smartSteerDir(), "WAR").apply { mkdirs() })
 
 actual fun nowText(): String =

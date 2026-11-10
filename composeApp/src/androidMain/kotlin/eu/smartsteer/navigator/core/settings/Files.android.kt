@@ -21,6 +21,12 @@ actual fun importFiles(): TextFiles =
 actual fun exportFiles(): TextFiles =
     DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "Raporty"))
 
+private fun agoBase(): File = File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "Import/AgOpenGPS")
+
+actual fun agoFiles(sub: String): TextFiles? = File(agoBase(), sub).takeIf { it.isDirectory }?.let { DirFiles(it) }
+
+actual fun agoLocation(): String = agoBase().absolutePath
+
 actual fun warFiles(): TextFiles =
     DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "WAR"))
 

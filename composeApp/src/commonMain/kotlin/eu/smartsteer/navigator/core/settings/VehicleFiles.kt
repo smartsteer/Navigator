@@ -20,3 +20,12 @@ expect fun openFolder(path: String): Boolean
 
 /** Folder danych WAR (ustawienia połączenia, pola i zlecenia z WAR, kolejka wysyłki). */
 expect fun warFiles(): TextFiles
+
+/**
+ * Podfolder danych AgOpenGPS (np. „VehicleProfiles”, „ToolProfiles”, „Vehicles”, „Fields”).
+ * Windows: Dokumenty\AgOpenGPS; Android: folder importu\AgOpenGPS. Null = brak.
+ */
+expect fun agoFiles(sub: String): TextFiles?
+
+/** Folder AgOpenGPS do pokazania rolnikowi. */
+expect fun agoLocation(): String

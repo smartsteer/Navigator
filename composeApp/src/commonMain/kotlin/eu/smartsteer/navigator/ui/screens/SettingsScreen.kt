@@ -387,6 +387,22 @@ private fun ColumnScope.WarTab(hw: HardwareController) {
 }
 
 @Composable
+private fun PickRow(title: String, sub: String, selected: Boolean, onClick: () -> Unit) {
+    ActionButton(
+        Modifier.fillMaxWidth(),
+        background = if (selected) Ss.AccentSoft else Ss.SurfaceHigh,
+        border = if (selected) Ss.Accent else Ss.BorderStrong,
+        onClick = onClick,
+    ) {
+        Text(if (selected) "✓" else "○", color = if (selected) Ss.Accent else Ss.TextMuted, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Column(Modifier.weight(1f)) {
+            Text(title, color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Label(sub, Ss.TextMuted, 12.sp)
+        }
+    }
+}
+
+@Composable
 private fun Field(label: String, value: String, hint: String, password: Boolean = false, number: Boolean = false, onChange: (String) -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Ss.Surface)
@@ -461,6 +477,28 @@ private fun ColumnScope.ProfilesTab(hw: HardwareController) {
     }
     msg?.let { Label(it, Ss.TextSoft, 14.sp) }
     Label("Pliki profili: ${hw.profilesLocation}", Ss.TextMuted, 12.sp)
+
+    // --- Kopiuj z AgOpenGPS ---
+    SectionTitle("Kopiuj ustawienia z AgOpenGPS")
+    val vehicles = remember(hw.tick / 50) { hw.agoVehicles() }
+    val tools = remember(hw.tick / 50) { hw.agoTools() }
+    var pickV by remember { mutableStateOf<String?>(null) }
+    var pickT by remember { mutableStateOf<String?>(null) }
+    if (vehicles.isEmpty() && tools.isEmpty()) {
+        Label("Nie znalazłem AgOpenGPS na tym komputerze (szukam w: ${hw.agoFolder}).", Ss.TextMuted, 13.sp)
+    } else {
+        Label("Wybierz pojazd i (w nowszym AgOpenGPS) narzędzie — powstanie nowy profil ze wszystkimi ustawieniami: wymiary, antena, prowadzenie, moduł skrętu, płytka, IMU, sekcje, zawrót.", Ss.TextSoft, 13.sp)
+        vehicles.forEach { v ->
+            PickRow("Pojazd: " + v.substringAfter('/').removeSuffix(".xml"), v.substringBefore('/'), pickV == v) { pickV = if (pickV == v) null else v }
+        }
+        tools.forEach { t ->
+            PickRow("Narzędzie: " + t.substringAfter('/').removeSuffix(".xml"), "ToolProfiles", pickT == t) { pickT = if (pickT == t) null else t }
+        }
+        ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = { msg = hw.copyFromAgo(pickV, pickT) }) {
+            ButtonText("Kopiuj do nowego profilu", color = Ss.OnAccent, weight = FontWeight.Bold)
+        }
+        msg?.let { Label(it, Ss.TextSoft, 14.sp) }
+    }
 }
 
 // ---------------- podgląd na żywo ----------------

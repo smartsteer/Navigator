@@ -25,7 +25,10 @@ import eu.smartsteer.navigator.core.settings.warFiles
 import eu.smartsteer.navigator.core.update.platformUpdater
 import eu.smartsteer.navigator.core.war.WarField
 import eu.smartsteer.navigator.core.war.nowIso
+import eu.smartsteer.navigator.core.io.AgoImport
 import eu.smartsteer.navigator.core.io.FieldExchange
+import eu.smartsteer.navigator.core.settings.agoFiles
+import eu.smartsteer.navigator.core.settings.agoLocation
 import eu.smartsteer.navigator.core.io.FieldImport
 import eu.smartsteer.navigator.core.settings.exportFiles
 import eu.smartsteer.navigator.core.settings.importFiles
@@ -249,6 +252,70 @@ class HardwareController {
             openField(n)
         } catch (e: Exception) {
             "Nie udało się założyć pola: ${e.message}"
+        }
+    }
+
+    // ---------------- „Kopiuj z AgOpenGPS” ----------------
+
+    /** Profile pojazdów AgOpenGPS: nowe (VehicleProfiles) i stare (Vehicles, wszystko w jednym pliku). */
+    fun agoVehicles(): List<String> =
+        listOf("VehicleProfiles", "Vehicles").flatMap { d ->
+            agoFiles(d)?.list().orEmpty().filter { it.endsWith(".xml", true) }.map { "$d/$it" }
+        }
+
+    fun agoTools(): List<String> = agoFiles("ToolProfiles")?.list().orEmpty().filter { it.endsWith(".xml", true) }.map { "ToolProfiles/$it" }
+
+    val agoFolder: String get() = agoLocation()
+
+    private fun readAgo(path: String): String? {
+        val dir = path.substringBefore('/')
+        return agoFiles(dir)?.read(path.substringAfter('/'))
+    }
+
+    /** Nowy profil z ustawień AgOpenGPS (pojazd + opcjonalnie narzędzie). Zwraca komunikat. */
+    fun copyFromAgo(vehicle: String?, tool: String?): String {
+        if (vehicle == null && tool == null) return "Wybierz profil pojazdu albo narzędzia"
+        var p = VehicleProfile()
+        var count = 0
+        for (path in listOfNotNull(vehicle, tool)) {
+            val text = readAgo(path) ?: return "Nie można odczytać $path"
+            val (np, n) = AgoImport.applySettings(p, AgoImport.parseSettings(text))
+            p = np
+            count += n
+        }
+        if (count == 0) return "W wybranych plikach nie ma znanych ustawień AgOpenGPS"
+        val base = listOfNotNull(vehicle, tool).joinToString(" + ") { it.substringAfter('/').removeSuffix(".xml").removeSuffix(".XML") }
+        var name = Profiles.sanitize("AOG $base").ifEmpty { "AOG" }
+        var k = 2
+        while (profileNames.contains(name)) name = Profiles.sanitize("AOG $base ($k)").also { k++ }
+        profile = p
+        session.profile = p
+        val err = saveProfileAs(name)
+        configDirty = true
+        configChangedAt = now()
+        return err ?: "Skopiowano $count ustawień do profilu „$name” — sprawdź wymiary i wyślij do płytki"
+    }
+
+    /** Pola AgOpenGPS (foldery z Field.txt). */
+    fun agoFields(): List<String> {
+        val f = agoFiles("Fields") ?: return emptyList()
+        return f.list().filter { f.read("$it/Field.txt") != null }.sortedBy { it.lowercase() }
+    }
+
+    fun importAgoField(name: String): String {
+        val f = agoFiles("Fields") ?: return "Brak folderu pól AgOpenGPS"
+        val field = f.read("$name/Field.txt")?.let { AgoImport.toField(name, it, f.read("$name/Boundary.txt"), f.read("$name/TrackLines.txt")) }
+            ?: return "Nie można odczytać pola „$name”"
+        var n = Profiles.sanitize(name).ifEmpty { "Pole AOG" }
+        var k = 2
+        while (fieldStore.exists(n)) n = "${Profiles.sanitize(name)} ($k)".also { k++ }
+        return try {
+            fieldStore.save(field.copy(name = n), "")
+            refreshFields()
+            tick++
+            "Zaimportowano pole „$n”" + if (field.boundary == null) " (bez granicy)" else ""
+        } catch (e: Exception) {
+            "Nie udało się zapisać pola: ${e.message}"
         }
     }
 

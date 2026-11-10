@@ -128,6 +128,16 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                 }
             }
 
+            SectionTitle("Pola z AgOpenGPS")
+            val agoFields = remember(hw.tick / 50) { hw.agoFields() }
+            if (agoFields.isEmpty()) Label("Nie znalazłem pól AgOpenGPS (szukam w: ${hw.agoFolder}\\Fields).", Ss.TextMuted, 13.sp)
+            agoFields.forEach { f ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(f, Modifier.weight(1f), color = Ss.Text, fontSize = 15.sp)
+                    ActionButton(onClick = { msg = hw.importAgoField(f) }) { ButtonText("Kopiuj") }
+                }
+            }
+
             SectionTitle("Import z WAR i innych programów")
             Label("Wrzuć plik KML albo ISOXML (TASKDATA.XML lub cały folder TASKDATA) do folderu importu — pojawi się poniżej.", Ss.TextSoft, 13.sp)
             val files = remember(hw.tick / 30) { hw.importCandidates() }
