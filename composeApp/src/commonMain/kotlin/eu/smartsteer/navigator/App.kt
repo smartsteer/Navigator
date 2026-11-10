@@ -4,6 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -91,6 +98,20 @@ fun App() {
             }
         }
 
+        // dźwięki: zdarzenia (autoster, GPS, zawrót, sekcje, zlecenia) sprawdzane co 100 ms
+        LaunchedEffect(hw) {
+            while (true) {
+                delay(100)
+                hw.soundStep()
+            }
+        }
+
+        // Interfejs jest zaprojektowany na 1280 × 780 dp. Na mniejszych ekranach (telefon, mały tablet)
+        // skalujemy całość proporcjonalnie, żeby nic nie było ucięte.
+        BoxWithConstraints(Modifier.fillMaxSize().background(Ss.Ground).windowInsetsPadding(WindowInsets.safeDrawing)) {
+            val d = LocalDensity.current
+            val scale = minOf(1f, maxWidth.value / DESIGN_W, maxHeight.value / DESIGN_H).coerceAtLeast(0.35f)
+            CompositionLocalProvider(LocalDensity provides Density(d.density * scale, d.fontScale)) {
         Column(Modifier.fillMaxSize().background(Ss.Ground)) {
             TopBar(ctrl, hw)
             UpdateBar(upd, ctrl, hw)
@@ -108,8 +129,13 @@ fun App() {
                 }
             }
         }
+            }
+        }
     }
 }
+
+private const val DESIGN_W = 1280f
+private const val DESIGN_H = 780f
 
 @Composable
 private fun UpdateBar(upd: UpdateController, ctrl: DemoController, hw: HardwareController) {

@@ -15,6 +15,10 @@ import eu.smartsteer.navigator.core.net.createTcpClient
 import eu.smartsteer.navigator.core.ntrip.Ntrip
 import eu.smartsteer.navigator.core.ntrip.NtripConfig
 import eu.smartsteer.navigator.core.field.FieldData
+import eu.smartsteer.navigator.core.sound.AlertState
+import eu.smartsteer.navigator.core.sound.AlertTracker
+import eu.smartsteer.navigator.core.sound.SoundKind
+import eu.smartsteer.navigator.core.sound.SoundPlayer
 import eu.smartsteer.navigator.core.field.FieldStore
 import eu.smartsteer.navigator.core.geo.LocalPlane
 import eu.smartsteer.navigator.core.settings.warFiles
@@ -632,6 +636,33 @@ class HardwareController {
     private var mapNoteUntilS = 0.0
 
     fun mapMessage(m: String) { mapNote = m; mapNoteUntilS = now() + 8; tick++ }
+
+    // ---------------- dźwięki ----------------
+    private val soundFile = "dzwieki.cfg"
+    var soundOn by mutableStateOf(runCatching { files.read(soundFile)?.trim() != "0" }.getOrDefault(true))
+        private set
+    private val alerts = AlertTracker()
+
+    fun setSound(on: Boolean) {
+        soundOn = on
+        try { files.write(soundFile, if (on) "1" else "0") } catch (_: Exception) {}
+        if (on) SoundPlayer.play(SoundKind.SECTION_ON)
+        tick++
+    }
+
+    /** Co 100 ms: zmiany stanu → dźwięki (autoster, GPS, RTK, zawrót, sekcje, zlecenia z WAR). */
+    fun soundStep() {
+        val n = now()
+        val s = session
+        val ev = alerts.events(
+            AlertState(
+                hardware = hardware, engaged = s.engaged, userToggleS = s.lastUserToggleS,
+                gpsOk = hardware && s.gpsAlive(n), rtkFix = s.fix == FixQuality.RTK_FIX, turning = s.youTurnPath != null,
+                anySection = s.sections.anyOn(), newOrders = war.newOrders.size, nowS = n,
+            ),
+        )
+        if (soundOn) ev.firstOrNull()?.let { SoundPlayer.play(it) }
+    }
 
     /** Odświeżenie ekranu po akcji z UI. */
     fun touch() { tick++ }

@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -389,7 +390,7 @@ private fun HwStats(hw: HardwareController) {
 private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, modifier: Modifier) {
     // pasy pokrycia zamieniamy na Path raz (otwarty pas — gdy przybędzie punktów)
     val stripCache = remember { HashMap<Coverage.Strip, Pair<Int, Path>>() }
-    Canvas(modifier.background(Ss.MapGround)) {
+    Canvas(modifier.clipToBounds().background(Ss.MapGround)) {
         hw.tick
         val s = hw.session
         val pos = s.pivot ?: Vec2.ZERO

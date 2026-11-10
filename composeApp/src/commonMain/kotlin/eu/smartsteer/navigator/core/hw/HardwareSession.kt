@@ -266,7 +266,11 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     // ---------------- autoster ----------------
 
     /** Zwraca komunikat, dlaczego nie można włączyć, albo null, gdy włączono. */
+    /** Kiedy rolnik ostatnio dotknął przycisku autosteru (do rozróżnienia dźwięku: wyłączył sam / wyłączył się). */
+    var lastUserToggleS = Double.NEGATIVE_INFINITY; private set
+
     fun setEngaged(on: Boolean, nowS: Double): String? {
+        lastUserToggleS = nowS
         if (!on) { engaged = false; return null }
         val why = when {
             mode == GuidanceMode.AB && line == null -> "Najpierw utwórz linię AB"

@@ -86,7 +86,10 @@ fun SettingsScreen(hw: HardwareController) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 when (tab) {
-                    Tab.Vehicle -> VehicleTab(p, set)
+                    Tab.Vehicle -> {
+                        Choice("Dźwięki (autoster, alarmy, zawrót, sekcje)", listOf("WŁ.", "WYŁ."), if (hw.soundOn) 0 else 1) { hw.setSound(it == 0) }
+                        VehicleTab(p, set)
+                    }
                     Tab.Tool -> ToolTab(p, set)
                     Tab.Guidance -> GuidanceTab(p, set)
                     Tab.Imu -> ImuTab(hw, p, set)

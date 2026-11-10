@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -33,7 +34,7 @@ fun MapCanvas(ctrl: DemoController, modifier: Modifier = Modifier) {
     // pasy pokrycia zamieniamy na Path tylko raz (otwarty pas — gdy przybędzie punktów)
     val stripCache = remember(session) { HashMap<CoverageStrip, Pair<Int, Path>>() }
 
-    Canvas(modifier.background(Ss.MapGround)) {
+    Canvas(modifier.clipToBounds().background(Ss.MapGround)) {
         @Suppress("UNUSED_VARIABLE") val frame = ctrl.frame // odświeżanie co klatkę
         val s = ctrl.session
         val sc = ctrl.zoom * density               // piksele na metr
