@@ -3,15 +3,32 @@ package eu.smartsteer.navigator.core.net
 import eu.smartsteer.navigator.core.aog.AogFrame
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.NetworkInterface
 import java.net.SocketException
 
 actual fun createUdpLink(): UdpLink = JvmUdpLink()
 
+actual fun localAddresses(): List<LocalAddress> = try {
+    NetworkInterface.getNetworkInterfaces().toList()
+        .filter { it.isUp && !it.isLoopback }
+        .flatMap { nic ->
+            nic.inetAddresses.toList().filterIsInstance<Inet4Address>()
+                .map { LocalAddress(it.hostAddress ?: "", nic.displayName ?: nic.name) }
+        }
+} catch (e: Exception) {
+    emptyList()
+}
+
 private class JvmUdpLink : UdpLink {
     @Volatile private var socket: DatagramSocket? = null
-    private val target by lazy { InetAddress.getByName(MODULES_BROADCAST) }
+    @Volatile private var target: InetAddress = InetAddress.getByAddress(byteArrayOf(192.toByte(), 168.toByte(), 5, 255.toByte()))
+
+    override fun setSubnet(a: Int, b: Int, c: Int) {
+        target = InetAddress.getByAddress(byteArrayOf(a.toByte(), b.toByte(), c.toByte(), 255.toByte()))
+    }
 
     override fun start(onPacket: (ByteArray, Int, String) -> Unit): String? {
         if (socket != null) return null
@@ -49,8 +66,29 @@ private class JvmUdpLink : UdpLink {
             s.send(DatagramPacket(bytes, bytes.size, target, port))
             null
         } catch (e: Exception) {
-            "Brak sieci 192.168.5.x: ${e.message}"
+            "Brak sieci ${target.hostAddress?.removeSuffix(".255")}.x: ${e.message}"
         }
+    }
+
+    override fun broadcastAll(bytes: ByteArray, port: Int): String? {
+        val all = InetAddress.getByAddress(byteArrayOf(-1, -1, -1, -1))
+        var sent = 0
+        var lastError: String? = null
+        for (a in localAddresses()) {
+            try {
+                DatagramSocket(null).use { t ->
+                    t.reuseAddress = true
+                    t.broadcast = true
+                    // jak AgIO: wysyłka z portu 9999 danej karty — moduły odpowiadają na 9999
+                    try { t.bind(InetSocketAddress(InetAddress.getByName(a.address), AogFrame.PORT_FROM_MODULES)) } catch (e: Exception) { t.bind(InetSocketAddress(InetAddress.getByName(a.address), 0)) }
+                    t.send(DatagramPacket(bytes, bytes.size, all, port))
+                    sent++
+                }
+            } catch (e: Exception) {
+                lastError = e.message
+            }
+        }
+        return if (sent > 0) null else (lastError ?: "Brak włączonej karty sieciowej")
     }
 
     override fun stop() {

@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import eu.smartsteer.navigator.core.aog.AogFrame
+import eu.smartsteer.navigator.core.aog.ModuleScan
 import eu.smartsteer.navigator.core.aog.AutosteerStatus
 import eu.smartsteer.navigator.core.hw.HardwareSession
 import eu.smartsteer.navigator.core.net.UdpLink
@@ -207,6 +208,54 @@ class HardwareController {
         fieldStore.delete(name)
         refreshFields()
         tick++
+    }
+
+    // ---------------- sieć modułów ----------------
+    private val netFile = "siec.cfg"
+    /** Sieć modułów: trzy pierwsze liczby adresu (domyślnie 192.168.5, jak w AgOpenGPS). */
+    var subnet by mutableStateOf(
+        runCatching { files.read(netFile)?.let { ModuleScan.parseSubnet(it) } }.getOrNull() ?: listOf(192, 168, 5),
+    )
+        private set
+    val subnetText: String get() = subnet.joinToString(".")
+    /** Moduły, które odpowiedziały na szukanie (PGN 203). */
+    var foundModules by mutableStateOf(listOf<ModuleScan.Module>())
+        private set
+    var netMessage by mutableStateOf<String?>(null)
+        private set
+    var lastRxS = Double.NEGATIVE_INFINITY; private set
+    private var pendingBroadcast: ByteArray? = null
+
+    /** Czy coś przyszło z sieci w ostatnich 3 s. */
+    fun receiving(): Boolean = hardware && now() - lastRxS < 3.0
+
+    fun setSubnet(text: String): String? {
+        val v = ModuleScan.parseSubnet(text) ?: return "Wpisz trzy liczby, np. 192.168.5"
+        subnet = v
+        try { files.write(netFile, subnetText) } catch (_: Exception) {}
+        link?.setSubnet(v[0], v[1], v[2])
+        netMessage = "Sieć modułów: $subnetText.x"
+        tick++
+        return null
+    }
+
+    /** Szukanie modułów — odpowiedzi pojawią się w [foundModules]. Działa w trybie SPRZĘT. */
+    fun scanModules(): String? {
+        if (!hardware || link == null) return "Najpierw włącz tryb SPRZĘT"
+        foundModules = emptyList()
+        pendingBroadcast = ModuleScan.scanRequest()
+        netMessage = "Szukam modułów…"
+        tick++
+        return null
+    }
+
+    /** Przestawia wszystkie moduły na sieć [subnet] (PGN 201), jak przycisk w AgIO. */
+    fun moveModulesToSubnet(): String? {
+        if (!hardware || link == null) return "Najpierw włącz tryb SPRZĘT"
+        pendingBroadcast = ModuleScan.subnetChange(subnet[0], subnet[1], subnet[2])
+        netMessage = "Wysłano nową sieć $subnetText.x do modułów — wyłącz i włącz płytkę, potem „Szukaj modułów”"
+        tick++
+        return null
     }
 
     // ---------------- wykresy ----------------
@@ -415,6 +464,7 @@ class HardwareController {
         if (on) {
             if (link == null) {
                 val l = createUdpLink()
+                l.setSubnet(subnet[0], subnet[1], subnet[2])
                 linkError = l.start { b, n, from -> inbox.trySend(Packet(b.copyOf(n), from)) }
                 link = if (linkError == null) l else null
             }
@@ -436,6 +486,8 @@ class HardwareController {
             for (p in inbox) {
                 if (!hardware) continue
                 rxCount++
+                lastRxS = now()
+                AogFrame.parse(p.bytes)?.let { f -> ModuleScan.parseReply(f)?.let { m -> foundModules = foundModules.filter { it.source != m.source } + m } }
                 session.onDatagram(p.bytes, p.bytes.size, now())
                 addLog(describe(p))
             }
@@ -451,6 +503,9 @@ class HardwareController {
                 stopRequested = false
             }
             if (!hardware) { if (ntrip != null) stopNtrip(null); continue }
+            if (l != null) {
+                pendingBroadcast?.let { b -> pendingBroadcast = null; netMessage = withContext(Dispatchers.Default) { l.broadcastAll(b) } ?: netMessage }
+            }
             session.update(now())
             recordHistory()
             ntripStep(l)
