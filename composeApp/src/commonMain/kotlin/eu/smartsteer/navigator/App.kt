@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import eu.smartsteer.navigator.ui.DemoController
+import eu.smartsteer.navigator.ui.DisplayPrefs
 import eu.smartsteer.navigator.core.field.Polygon
 import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.settings.nowText
@@ -57,6 +58,8 @@ import eu.smartsteer.navigator.ui.screens.HardwareMapScreen
 import eu.smartsteer.navigator.ui.screens.ImplementScreen
 import eu.smartsteer.navigator.ui.screens.MapScreen
 import eu.smartsteer.navigator.ui.screens.SettingsScreen
+import eu.smartsteer.navigator.ui.screens.HardwareSteerScreen
+import eu.smartsteer.navigator.ui.screens.HardwareImplementScreen
 import eu.smartsteer.navigator.ui.screens.SteerScreen
 import eu.smartsteer.navigator.ui.theme.SmartSteerTheme
 import eu.smartsteer.navigator.ui.theme.Ss
@@ -116,7 +119,9 @@ fun App() {
         // skalujemy całość proporcjonalnie, żeby nic nie było ucięte.
         BoxWithConstraints(Modifier.fillMaxSize().background(Ss.Ground).windowInsetsPadding(WindowInsets.safeDrawing)) {
             val d = LocalDensity.current
-            val scale = minOf(1f, maxWidth.value / DESIGN_W, maxHeight.value / DESIGN_H).coerceAtLeast(0.35f)
+            val fit = minOf(maxWidth.value / DESIGN_W, maxHeight.value / DESIGN_H)
+            // tryb tablet: całość powiększona do ekranu (większe przyciski); zwykły: tylko zmniejszanie, gdy ekran mały
+            val scale = (if (DisplayPrefs.tablet) fit.coerceAtMost(2.5f) else minOf(1f, fit)).coerceAtLeast(0.35f)
             CompositionLocalProvider(LocalDensity provides Density(d.density * scale, d.fontScale)) {
         Column(Modifier.fillMaxSize().background(Ss.Ground)) {
             TopBar(ctrl, hw)
@@ -127,8 +132,8 @@ fun App() {
                     when (screen) {
                         Screen.Map -> if (hw.hardware) HardwareMapScreen(hw) else MapScreen(ctrl)
                         Screen.Fields -> if (hw.hardware) HardwareFieldsScreen(hw) else FieldsScreen(ctrl)
-                        Screen.Steer -> SteerScreen(ctrl)
-                        Screen.Implement -> ImplementScreen(ctrl)
+                        Screen.Steer -> if (hw.hardware) HardwareSteerScreen(hw) else SteerScreen(ctrl)
+                        Screen.Implement -> if (hw.hardware) HardwareImplementScreen(hw) else ImplementScreen(ctrl)
                         Screen.Connections -> ConnectionsScreen(ctrl, hw)
                         Screen.Settings -> SettingsScreen(hw)
                     }
@@ -377,5 +382,24 @@ private fun NavRail(current: Screen, onSelect: (Screen) -> Unit) {
                 Text(s.label, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
+        Box(Modifier.weight(1f))
+        RailToggle("TABLET", DisplayPrefs.tablet) { DisplayPrefs.updateTablet(!DisplayPrefs.tablet) }
+        if (DisplayPrefs.fullScreenSupported) RailToggle("PEŁNY\nEKRAN", DisplayPrefs.fullScreen) { DisplayPrefs.toggleFullScreen() }
+    }
+}
+
+/** Mały przełącznik na dole paska nawigacji (tryb tablet / pełny ekran). */
+@Composable
+private fun RailToggle(label: String, on: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(10.dp))
+            .background(if (on) Ss.AccentSoft else Ss.SurfaceHigh)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label, color = if (on) Ss.Accent else Ss.TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp,
+        )
     }
 }

@@ -1,6 +1,10 @@
 package eu.smartsteer.navigator.ui.screens
 
 import androidx.compose.foundation.Canvas
+import eu.smartsteer.navigator.core.field.SectionMode
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.DisposableEffect
@@ -44,6 +48,7 @@ import eu.smartsteer.navigator.core.settings.SteerEnable
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import eu.smartsteer.navigator.core.war.WarProtocol
 import eu.smartsteer.navigator.ui.HardwareController
+import eu.smartsteer.navigator.ui.DisplayPrefs
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
 import eu.smartsteer.navigator.ui.components.IconKind
@@ -89,6 +94,8 @@ fun SettingsScreen(hw: HardwareController) {
                 when (tab) {
                     Tab.Vehicle -> {
                         Choice("Dźwięki (autoster, alarmy, zawrót, sekcje)", listOf("WŁ.", "WYŁ."), if (hw.soundOn) 0 else 1) { hw.setSound(it == 0) }
+                        Choice("Ekran", listOf("Zwykły", "Tablet (powiększony)"), if (DisplayPrefs.tablet) 1 else 0) { DisplayPrefs.updateTablet(it == 1) }
+                        if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }
                         VehicleTab(p, set)
                     }
                     Tab.Tool -> ToolTab(p, set)
@@ -193,6 +200,12 @@ private fun ColumnScope.GuidanceTab(p: VehicleProfile, set: (VehicleProfile) -> 
         if (p.youTurnSkip * p.passSpacing >= 2 * p.youTurnRadius) "Kształt: szeroki zawrót „U”." else "Kształt: „omega” (odstęp mniejszy niż 2 × promień) — potrzebuje więcej miejsca na uwrociu.",
         Ss.TextMuted, 13.sp,
     )
+    GuidanceTuning(p, set)
+}
+
+/** Algorytm prowadzenia i jego wzmocnienia (Ustawienia → Prowadzenie i ekran Sterowanie). */
+@Composable
+private fun ColumnScope.GuidanceTuning(p: VehicleProfile, set: (VehicleProfile) -> Unit) {
     SectionTitle("Algorytm prowadzenia")
     Segmented(SteerAlgorithm.entries.map { it.label }, p.algorithm.ordinal, { set(p.copy(algorithm = SteerAlgorithm.entries[it])) })
     if (p.algorithm == SteerAlgorithm.PURE_PURSUIT) {
@@ -727,5 +740,157 @@ private fun Choice(label: String, options: List<String>, selected: Int, onSelect
     ) {
         Text(label, Modifier.weight(1f), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Segmented(options, selected, onSelect)
+    }
+}
+
+// ---------------- ekrany Sterowanie i Maszyna w trybie Sprzęt ----------------
+
+/** Sterowanie (tryb Sprzęt): odczyty modułu skrętu na żywo, strojenie prowadzenia i silnika, test silnika. */
+@Composable
+fun HardwareSteerScreen(hw: HardwareController) {
+    hw.tick
+    val p = hw.profile
+    val set: (VehicleProfile) -> Unit = { hw.updateProfile(it) }
+    val s = hw.session
+    val now = hw.now()
+    val st = s.autosteer?.takeIf { s.autosteerAlive(now) }
+    Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(
+            Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Panel(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.weight(1f)) { Stat("Autoster", if (s.engaged) "WŁĄCZONY" else "wyłączony", valueSize = 20.sp, valueColor = if (s.engaged) Ss.Accent else Ss.TextSoft) }
+                    Box(Modifier.weight(1f)) { Stat("Moduł skrętu", if (st != null) "połączony" else "brak", valueSize = 20.sp, valueColor = if (st != null) Ss.Accent else Ss.Warning) }
+                    Box(Modifier.weight(1f)) { Stat("Przełącznik", st?.let { if (it.steerSwitch) "WŁ." else "WYŁ." } ?: "—", valueSize = 20.sp) }
+                    Box(Modifier.weight(1f)) { Stat("Prędkość", "${s.speedKmh.pl(1)} km/h", valueSize = 20.sp) }
+                }
+                s.message?.let { Label(it, Ss.Warning, 13.sp) }
+            }
+            SectionTitle("Ograniczenia")
+            Num("Maksymalny skręt kół", null, p.maxSteerAngle, "°", 1.0, 10.0, 90.0, 0) { set(p.copy(maxSteerAngle = it)) }
+            Num("Wyłącz powyżej", "Autoster wyłączy się przy większej prędkości", p.maxSteerSpeed, "km/h", 1.0, 1.0, 40.0, 0) { set(p.copy(maxSteerSpeed = it)) }
+            GuidanceTuning(p, set)
+            ModuleTab(hw, p, set)
+            Label("Ustawienia modułu skrętu wysyłają się do płytki same (po 1,5 s od ostatniej zmiany) i zapisują w profilu „${hw.profileName}”.", Ss.TextMuted, 12.sp)
+        }
+        LivePanel(hw)
+    }
+}
+
+/** Maszyna (tryb Sprzęt): rysunek zestawu z profilu, sekcje na żywo, ustawienia maszyny. */
+@Composable
+fun HardwareImplementScreen(hw: HardwareController) {
+    hw.tick
+    val p = hw.profile
+    val set: (VehicleProfile) -> Unit = { hw.updateProfile(it) }
+    val sec = hw.session.sections
+    Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Panel(Modifier.weight(1f).fillMaxHeight()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { SectionTitle("Zestaw — profil „${hw.profileName}”") }
+                Segmented(
+                    options = SectionMode.entries.map { it.label },
+                    selected = sec.mode.ordinal,
+                    onSelect = {
+                        val m = SectionMode.entries[it]
+                        if (m == SectionMode.MANUAL && sec.mode != SectionMode.MANUAL) sec.manual.fill(true)
+                        sec.mode = m
+                        hw.touch()
+                    },
+                    selectedColor = { when (SectionMode.entries[it]) { SectionMode.AUTO -> Ss.Accent; SectionMode.MANUAL -> Ss.Warning; SectionMode.OFF -> Ss.TextMuted } },
+                )
+            }
+            RigDrawing(hw, Modifier.weight(1f).fillMaxWidth())
+            Text(
+                "Szerokość robocza ${p.toolWidth.pl(2)} m · ${p.numSections} sekcji · odstęp przejazdów ${p.passSpacing.pl(2)} m",
+                color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+            )
+            Label(
+                "Rozstaw osi ${p.wheelbase.pl(2)} m · antena ${abs(p.antennaPivot).pl(2)} m ${if (p.antennaPivot >= 0) "przed" else "za"} tylną osią · " +
+                    "zaczep ${abs(p.hitchLength).pl(1)} m ${if (p.hitchLength < 0) "za" else "przed"} osią" +
+                    (if (p.toolTrailing) " · dyszel ${abs(p.trailingHitchLength).pl(1)} m" else "") +
+                    (if (abs(p.toolOffset) >= 0.005) " · maszyna ${abs(p.toolOffset).pl(2)} m w ${if (p.toolOffset > 0) "prawo" else "lewo"}" else ""),
+                Ss.TextSoft, 13.sp,
+            )
+        }
+        Column(
+            Modifier.width(470.dp).fillMaxHeight().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) { ToolTab(p, set) }
+    }
+}
+
+/** Widok z góry: ciągnik, antena, zaczep, maszyna i sekcje (zielona = pracuje). Wymiary z profilu, w skali. */
+@Composable
+private fun RigDrawing(hw: HardwareController, modifier: Modifier) {
+    val p = hw.profile
+    val sec = hw.session.sections
+    val tm = rememberTextMeasurer()
+    Canvas(modifier.padding(vertical = 12.dp)) {
+        val widths = p.sectionWidthsEffective
+        val total = widths.sum().coerceAtLeast(0.1)
+        val track = p.trackWidth.coerceAtLeast(0.5)
+        val front = p.wheelbase + 0.9
+        val rear = -0.7
+        val hitchY = p.hitchLength
+        val toolY = if (p.toolTrailing) hitchY + p.trailingHitchLength else hitchY
+        val depth = 0.7
+        val minY = minOf(rear, toolY - depth) - 0.3
+        val maxY = front + 0.3
+        val left = -total / 2 + p.toolOffset
+        val minX = minOf(-track / 2 - 0.3, left) - 0.3
+        val maxX = maxOf(track / 2 + 0.3, left + total) + 0.3
+        val k = minOf(size.width / (maxX - minX), size.height / (maxY - minY)).toFloat()
+        val ox = size.width / 2f - ((minX + maxX) / 2).toFloat() * k
+        val oy = size.height / 2f + ((minY + maxY) / 2).toFloat() * k
+        fun pt(x: Double, y: Double) = Offset(ox + x.toFloat() * k, oy - y.toFloat() * k)
+
+        // ciągnik: kadłub, koła, kabina
+        val body = Path().apply {
+            val a = pt(-track / 2 + 0.25, front); val b = pt(track / 2 - 0.25, rear)
+            addRoundRect(androidx.compose.ui.geometry.RoundRect(a.x, a.y, b.x, b.y, androidx.compose.ui.geometry.CornerRadius(0.3f * k)))
+        }
+        drawPath(body, Ss.Tractor)
+        fun wheel(x: Double, y: Double, w: Double, l: Double) {
+            val a = pt(x - w / 2, y + l / 2); val b = pt(x + w / 2, y - l / 2)
+            drawRect(Color(0xFF1B1F1D), a, androidx.compose.ui.geometry.Size(b.x - a.x, b.y - a.y))
+        }
+        wheel(-track / 2, 0.0, 0.5, 1.5); wheel(track / 2, 0.0, 0.5, 1.5)
+        wheel(-track / 2 + 0.1, p.wheelbase, 0.4, 1.0); wheel(track / 2 - 0.1, p.wheelbase, 0.4, 1.0)
+        drawLine(Ss.Text.copy(alpha = 0.5f), pt(-track / 2, 0.0), pt(track / 2, 0.0), 2f)
+        drawLine(Ss.Text.copy(alpha = 0.5f), pt(-track / 2, p.wheelbase), pt(track / 2, p.wheelbase), 2f)
+        // antena
+        val ant = pt(-p.antennaOffset, p.antennaPivot)
+        drawCircle(Ss.GuideLine, 0.22f * k + 3f, ant)
+        drawCircle(Ss.Ground, 0.22f * k + 3f, ant, style = Stroke(2f))
+        // zaczep i dyszel
+        val hitch = pt(0.0, hitchY)
+        drawLine(Ss.Text, pt(0.0, minOf(0.0, hitchY.coerceAtLeast(rear))), hitch, 4f)
+        drawCircle(Ss.Text, 6f, hitch)
+        val toolC = pt(p.toolOffset, toolY)
+        if (p.toolTrailing) drawLine(Ss.Text, hitch, toolC, 4f)
+        // belka maszyny i sekcje
+        drawLine(Ss.TextMuted, pt(left, toolY), pt(left + total, toolY), 3f)
+        var x = left
+        widths.forEachIndexed { i, w ->
+            val a = pt(x + 0.03, toolY + depth / 2)
+            val b = pt(x + w - 0.03, toolY - depth / 2)
+            val on = i < sec.on.size && sec.on[i]
+            drawRoundRect(
+                if (on) Ss.Accent else if (sec.mode == SectionMode.OFF) Ss.Dim else Ss.SurfaceHigh,
+                a, androidx.compose.ui.geometry.Size(b.x - a.x, b.y - a.y), androidx.compose.ui.geometry.CornerRadius(6f),
+            )
+            if (b.x - a.x > 18f) {
+                val t = tm.measure("${i + 1}", TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (on) Ss.OnAccent else Ss.Text))
+                drawText(t, topLeft = Offset((a.x + b.x) / 2 - t.size.width / 2f, (a.y + b.y) / 2 - t.size.height / 2f))
+            }
+            x += w
+        }
+        drawCircle(Ss.Text, 4f, toolC)
+        // podpis anteny
+        val t = tm.measure("antena", TextStyle(fontSize = 12.sp, color = Ss.TextSoft))
+        drawText(t, topLeft = Offset(ant.x + 0.3f * k + 6f, ant.y - t.size.height / 2f))
     }
 }
