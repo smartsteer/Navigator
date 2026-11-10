@@ -12,7 +12,7 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 - [ ] 5. Granica pola nagrywana objazdem, uwrocie, zapis i wczytywanie pól (pliki JSON w katalogu aplikacji)
 - [ ] 6. Sekcje przez PGN 239, czasy włączania/wyłączania z wyprzedzeniem, zapis mapy pokrycia
 - [ ] 7. Klient NTRIP (poprawki RTK przez internet tabletu → do odbiornika przez UDP)
-- [ ] 8. IMU: kompensacja przechyłu (wysokość anteny), kurs z IMU
+- [x] 8. IMU: kompensacja przechyłu (wysokość anteny), kurs z IMU
 - [ ] 9. Auto‑zawroty przeniesione z AgOpenGPS (YouTurn) na prawdziwych granicach
 - [ ] 10. Import KML / ISOXML (granice, linie)
 - [ ] 11. Integracja z WAR — **wymaga decyzji właściciela, nie robić w nocy**
@@ -34,3 +34,5 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
   W polu sprawdzić: komputer/tablet z adresem 192.168.5.x, ekran Połączenia → SPRZĘT — czy widać GGA/VTG i PGN 253; zapisać A i B, czy odchyłka i strona (lewo/prawo) się zgadzają; pierwsze włączenie autosteru na wolnej prędkości. Jeszcze nie ma: przesunięcia anteny względem osi i szerokości maszyny w ustawieniach (na razie 0 m i 3 m), zapisu linii po restarcie.
 - 2026-11-10 — etap 3: pure pursuit z członem całkującym i Stanley przeniesione z AgOpenGPS (CABLine.cs, CGuidance.cs, CVehicle.cs); ekran Ustawienia (ciągnik, antena, maszyna, prowadzenie, moduł skrętu PGN 252, płytka PGN 251, zerowanie czujnika kąta); profile pojazdów w plikach JSON z kopią .last (Windows: Dokumenty\SmartSteer\Pojazdy). Poprawione kodowanie odległości w PGN 254 (2 cm/jedn., +127, 255 = wyłączony).
   W polu sprawdzić: wpisać wymiary i antenę, „Wyślij do płytki” i czy płytka przyjmuje ustawienia (np. odwrócenie czujnika kąta); wyzerować czujnik kąta przy kołach prosto; porównać pure pursuit i Stanley na tej samej linii; przy człon całkującym > 0 czy znika stała odchyłka na zboczu.
+- 2026-11-10 — etap 8 (IMU) przeniesiony z AgOpenGPS/AgIO: przechył z PGN 253, PANDA/PAOGI i zewnętrznego IMU (PGN 211/212) z zerem, odwróceniem i filtrem; przesunięcie pozycji anteny na zboczu (sin przechyłu × wysokość anteny); fuzja kursu IMU z GPS; kompensacja zbocza w prowadzeniu; zakładka Ustawienia → IMU. Poprawione: PANDA podaje kurs i przechył ×10 (jak czyta AgIO).
+  W polu sprawdzić: na płaskim „Wyzeruj przechył”; prawe koła niżej = przechył dodatni (inaczej „Odwróć przechył”); wpisać wysokość anteny i sprawdzić na zboczu, czy przejazdy w obie strony leżą w tym samym miejscu; na postoju kurs ma stać, a nie skakać.

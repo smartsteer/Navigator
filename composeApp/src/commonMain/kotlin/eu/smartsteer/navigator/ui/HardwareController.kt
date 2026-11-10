@@ -130,6 +130,17 @@ class HardwareController {
         return null
     }
 
+    /**
+     * Zerowanie przechyłu: ciągnik stoi na płaskim, bieżący odczyt IMU staje się zerem.
+     * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Settings/FormSteerWiz.cs (zerowanie rollZero).
+     */
+    fun zeroRoll(): String? {
+        val raw = session.imu.rawRollDeg?.takeIf { session.imu.rollAlive(now()) } ?: return "Brak odczytu przechyłu z IMU"
+        if (kotlin.math.abs(raw) > 10) return "Przechył ponad 10° — ustaw ciągnik na płaskim"
+        updateProfile(profile.copy(rollZero = raw))
+        return null
+    }
+
     /** Ręczne „Wyślij do płytki”. */
     fun sendBoardConfig() { configDirty = true; configChangedAt = now() - 10; tick++ }
 

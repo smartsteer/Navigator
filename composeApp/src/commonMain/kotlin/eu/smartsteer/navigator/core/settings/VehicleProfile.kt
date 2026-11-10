@@ -12,7 +12,7 @@ enum class SteerEnable(val label: String) { NONE("Brak"), SWITCH("Przełącznik"
  * jak profile pojazdów w AgOpenGPS. Wartości domyślne takie jak w AgOpenGPS.
  *
  * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), pliki
- * SourceCode/GPS/Properties/VehicleSettings.cs i ToolSettings.cs (nazwy i wartości domyślne ustawień).
+ * SourceCode/GPS/Properties/VehicleSettings.cs i ToolSettings.cs (nazwy i wartości domyślne ustawień, w tym setIMU_*).
  */
 data class VehicleProfile(
     // --- Pojazd ---
@@ -57,6 +57,16 @@ data class VehicleProfile(
     val stanleyIntegral: Double = 0.0,
     /** Kompensacja zbocza: ° skrętu na ° przechyłu (wymaga IMU). */
     val sideHillComp: Double = 0.0,
+
+    // --- IMU (żyroskop) ---
+    /** Przechył odczytany na płaskim terenie, ° (odejmowany od odczytu). */
+    val rollZero: Double = 0.0,
+    /** Filtr przechyłu 0–0,98: większy = gładszy, ale wolniejszy. */
+    val rollFilter: Double = 0.0,
+    /** Odwrócenie znaku przechyłu (IMU zamontowane odwrotnie). */
+    val invertRoll: Boolean = false,
+    /** Waga korekty kursu IMU przez GPS (fuzja); 0 = kurs tylko z GPS. */
+    val fusionWeight: Double = 0.06,
 
     // --- Moduł skrętu (PGN 252) ---
     val gainP: Int = 50,
@@ -136,6 +146,7 @@ data class VehicleProfile(
         "acquireFactor" to acquireFactor, "purePursuitIntegral" to purePursuitIntegral,
         "stanleyDistanceGain" to stanleyDistanceGain, "stanleyHeadingGain" to stanleyHeadingGain,
         "stanleyIntegral" to stanleyIntegral, "sideHillComp" to sideHillComp,
+        "rollZero" to rollZero, "rollFilter" to rollFilter, "invertRoll" to invertRoll, "fusionWeight" to fusionWeight,
         "gainP" to gainP, "highPwm" to highPwm, "lowPwm" to lowPwm, "minPwm" to minPwm,
         "countsPerDegree" to countsPerDegree, "wasOffset" to wasOffset, "ackerman" to ackerman,
         "invertWas" to invertWas, "invertRelays" to invertRelays, "invertMotor" to invertMotor,
@@ -172,6 +183,10 @@ data class VehicleProfile(
                 stanleyHeadingGain = num("stanleyHeadingGain", d.stanleyHeadingGain),
                 stanleyIntegral = num("stanleyIntegral", d.stanleyIntegral),
                 sideHillComp = num("sideHillComp", d.sideHillComp),
+                rollZero = num("rollZero", d.rollZero),
+                rollFilter = num("rollFilter", d.rollFilter),
+                invertRoll = bool("invertRoll", d.invertRoll),
+                fusionWeight = num("fusionWeight", d.fusionWeight),
                 gainP = int("gainP", d.gainP),
                 highPwm = int("highPwm", d.highPwm),
                 lowPwm = int("lowPwm", d.lowPwm),

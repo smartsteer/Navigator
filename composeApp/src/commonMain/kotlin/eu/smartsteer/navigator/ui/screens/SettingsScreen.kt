@@ -51,7 +51,7 @@ import kotlin.math.abs
 import kotlin.math.round
 
 private enum class Tab(val label: String) {
-    Vehicle("Ciągnik"), Tool("Maszyna"), Guidance("Prowadzenie"), Module("Moduł skrętu"), Board("Płytka"), Profiles("Profile"),
+    Vehicle("Ciągnik"), Tool("Maszyna"), Guidance("Prowadzenie"), Imu("IMU"), Module("Moduł skrętu"), Board("Płytka"), Profiles("Profile"),
 }
 
 /** Ustawienia sprzętu i prowadzenia, zapisywane w profilu pojazdu (jak w AgOpenGPS). */
@@ -77,6 +77,7 @@ fun SettingsScreen(hw: HardwareController) {
                     Tab.Vehicle -> VehicleTab(p, set)
                     Tab.Tool -> ToolTab(p, set)
                     Tab.Guidance -> GuidanceTab(p, set)
+                    Tab.Imu -> ImuTab(hw, p, set)
                     Tab.Module -> ModuleTab(hw, p, set)
                     Tab.Board -> BoardTab(hw, p, set)
                     Tab.Profiles -> ProfilesTab(hw)
@@ -132,8 +133,40 @@ private fun ColumnScope.GuidanceTab(p: VehicleProfile, set: (VehicleProfile) -> 
         Num("Wzmocnienie kursu", null, p.stanleyHeadingGain, "×", 0.1, 0.1, 1.5, 1) { set(p.copy(stanleyHeadingGain = it)) }
         Num("Człon całkujący", "0 = wyłączony", p.stanleyIntegral, "", 0.05, 0.0, 1.0, 2) { set(p.copy(stanleyIntegral = it)) }
     }
-    SectionTitle("Zbocza")
-    Num("Kompensacja zbocza", "Stopnie skrętu na stopień przechyłu (wymaga IMU)", p.sideHillComp, "", 0.01, 0.0, 1.0, 2) { set(p.copy(sideHillComp = it)) }
+}
+
+@Composable
+private fun ColumnScope.ImuTab(hw: HardwareController, p: VehicleProfile, set: (VehicleProfile) -> Unit) {
+    var zeroMsg by remember { mutableStateOf<String?>(null) }
+    val imu = hw.session.imu
+    val now = hw.now()
+    SectionTitle("Żyroskop (IMU)")
+    Label(
+        if (imu.rollAlive(now) || imu.headingAlive(now)) {
+            "IMU działa: " + listOfNotNull(
+                imu.rollDeg?.takeIf { imu.rollAlive(now) }?.let { "przechył ${it.pl(1, plusSign = true)}°" },
+                imu.headingDeg?.takeIf { imu.headingAlive(now) }?.let { "kurs ${it.pl(1)}°" },
+            ).joinToString(" · ")
+        } else {
+            "Brak danych z IMU. Odczyt przychodzi z modułu skrętu (PGN 253), zdań PANDA/PAOGI albo osobnego IMU."
+        },
+        if (imu.rollAlive(now)) Ss.Accent else Ss.Warning, 14.sp,
+    )
+    SectionTitle("Przechył")
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ActionButton(background = Ss.AccentSoft, border = Ss.Accent, onClick = { zeroMsg = hw.zeroRoll() ?: "Zero przechyłu ustawione" }) {
+            ButtonText("Wyzeruj przechył — na płaskim", color = Ss.Accent, weight = FontWeight.Bold)
+        }
+        zeroMsg?.let { Label(it, Ss.TextSoft, 14.sp) }
+    }
+    Num("Zero przechyłu", "Odczyt na płaskim terenie", p.rollZero, "°", 0.1, -10.0, 10.0, 1) { set(p.copy(rollZero = it)) }
+    Toggle("Odwróć przechył", p.invertRoll) { set(p.copy(invertRoll = it)) }
+    Label("Sprawdź: prawe koła niżej (np. w bruździe) = przechył dodatni. Jeśli jest ujemny, włącz odwrócenie.", Ss.TextMuted, 13.sp)
+    Num("Filtr przechyłu", "Większy = spokojniej, ale z opóźnieniem", p.rollFilter, "", 0.05, 0.0, 0.95, 2) { set(p.copy(rollFilter = it)) }
+    Label("Wysokość anteny (zakładka Ciągnik): ${p.antennaHeight.pl(2)} m — od niej zależy poprawka pozycji na zboczu.", Ss.TextSoft, 13.sp)
+    SectionTitle("Kurs")
+    Num("Korekta kursu IMU przez GPS", "Fuzja; 0 = kurs tylko z GPS", p.fusionWeight, "", 0.01, 0.0, 0.5, 2) { set(p.copy(fusionWeight = it)) }
+    Num("Kompensacja zbocza", "Stopnie skrętu na stopień przechyłu", p.sideHillComp, "", 0.01, 0.0, 1.0, 2) { set(p.copy(sideHillComp = it)) }
 }
 
 @Composable
@@ -261,6 +294,8 @@ private fun LivePanel(hw: HardwareController) {
         Stat("Kąt zadany", "${s.steerSetDeg.pl(1, plusSign = true)}°", valueSize = 22.sp)
         Stat("Kąt kół", st?.let { "${it.actualAngleDeg.pl(1, plusSign = true)}°" } ?: "—", valueSize = 22.sp)
         Stat("PWM", st?.pwm?.toString() ?: "—", valueSize = 22.sp)
+        val imu = hw.session.imu
+        Stat("Przechył", imu.rollDeg?.takeIf { imu.rollAlive(now) }?.let { "${it.pl(1, plusSign = true)}° · poprawka ${(hw.session.rollCorrectionM * 100).pl(0, plusSign = true)} cm" } ?: "brak IMU", valueSize = 18.sp)
         Stat("Człon całkujący", "${(s.integral * 100).pl(1, plusSign = true)} cm", valueSize = 18.sp)
         Stat("Przełącznik autosteru", st?.let { if (it.steerSwitch) "WŁĄCZONY" else "WYŁĄCZONY" } ?: "—", valueSize = 18.sp)
     }

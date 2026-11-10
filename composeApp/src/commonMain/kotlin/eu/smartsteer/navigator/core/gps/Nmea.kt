@@ -29,7 +29,7 @@ data class Hdt(val headingDeg: Double)
 
 /**
  * PANDA / PAOGI — zdania płytek AgOpenGPS: pozycja + prędkość + kurs + przechył w jednym.
- * PAOGI: kurs z dwóch anten; PANDA: kurs z IMU (na razie nieużywany do prowadzenia).
+ * PAOGI: kurs i przechył z dwóch anten; PANDA: kurs i przechył z IMU na płytce.
  */
 data class Panda(
     val gga: Gga,
@@ -74,7 +74,7 @@ object Nmea {
         return Hdt(f[1].toDoubleOrNull() ?: return null)
     }
 
-    /** Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Classes/CNMEA.cs (układ pól PANDA/PAOGI). */
+    /** Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/AgIO/Source/Forms/NMEA.Designer.cs (układ i skala pól PANDA/PAOGI). */
     fun parsePanda(sentence: String): Panda? {
         val dual = sentence.trim().startsWith("\$PAOGI")
         val f = fields(sentence, if (dual) "PAOGI" else "PANDA") ?: return null
@@ -90,12 +90,17 @@ object Nmea {
             altitude = f[9].toDoubleOrNull() ?: 0.0,
             correctionAge = f[10].toDoubleOrNull(),
         )
-        val heading = f[12].toDoubleOrNull()?.takeIf { it in 0.0..360.0 }
+        // PAOGI: kurs i przechył w stopniach (liczby z kropką). PANDA: z IMU, liczby całkowite ×10
+        // (65535 / 32767 = brak IMU) — tak czyta je AgIO (NMEA.Designer.cs, ParsePANDA/ParsePAOGI).
+        val h = f[12].toDoubleOrNull()
+        val r = f[13].toDoubleOrNull()
+        val heading = if (dual) h else h?.takeIf { it < 65535.0 }?.div(10.0)
+        val roll = if (dual) r else r?.takeIf { it < 32767.0 }?.div(10.0)
         return Panda(
             gga = gga,
             speedKmh = (f[11].toDoubleOrNull() ?: 0.0) * 1.852,
-            headingDeg = heading,
-            rollDeg = f[13].toDoubleOrNull()?.takeIf { it != 8888.0 },
+            headingDeg = heading?.takeIf { it in 0.0..360.0 },
+            rollDeg = roll?.takeIf { kotlin.math.abs(it) <= 90.0 },
             dualAntenna = dual,
         )
     }

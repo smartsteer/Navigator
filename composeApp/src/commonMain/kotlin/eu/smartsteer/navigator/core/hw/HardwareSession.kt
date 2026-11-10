@@ -23,7 +23,7 @@ data class AbLine(val a: Vec2, val b: Vec2) {
 }
 
 /** Źródło kursu ciągnika — pokazywane na ekranie słowem. */
-enum class HeadingSource(val label: String) { NONE("brak"), MOTION("z ruchu"), VTG("VTG"), DUAL("2 anteny") }
+enum class HeadingSource(val label: String) { NONE("brak"), MOTION("z ruchu"), VTG("VTG"), DUAL("2 anteny"), IMU("IMU + GPS") }
 
 /**
  * Tryb Sprzęt: pozycja z prawdziwego odbiornika, linia AB z przycisków, autoster na tej linii.
@@ -75,6 +75,11 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     private var dualHeading: Double? = null
     private var dualTimeS = Double.NEGATIVE_INFINITY
 
+    /** Żyroskop: przechył i kurs z PGN 253, PANDA/PAOGI albo zewnętrznego IMU (PGN 211). */
+    val imu = Imu()
+    /** Ostatnie przesunięcie anteny przez przechył, m (+ = w prawo) — do podglądu. */
+    var rollCorrectionM = 0.0; private set
+
     fun gpsAlive(nowS: Double) = nowS - lastFixTimeS <= GPS_TIMEOUT_S && fix != FixQuality.NONE
     fun autosteerAlive(nowS: Double) = nowS - lastAutosteerTimeS <= 1.0
 
@@ -88,8 +93,25 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             return
         }
         val frame = AogFrame.parse(bytes, length) ?: return
-        AutosteerStatus.from(frame)?.let { autosteer = it; lastAutosteerTimeS = nowS }
+        AutosteerStatus.from(frame)?.let {
+            autosteer = it
+            lastAutosteerTimeS = nowS
+            it.headingDeg?.let { h -> imu.onHeading(h, nowS) }
+            it.rollDeg?.let { r -> imu.onRoll(r, filtered = true, profile, nowS) }
+            return
+        }
+        val d = frame.data
+        when (frame.pgn) {
+            // Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/UDPComm.Designer.cs (0xD3, 0xD4)
+            PGN_EXTERNAL_IMU -> if (d.size >= 6) {
+                imu.onHeading(int16(d, 0) * 0.1, nowS)
+                imu.onRoll(int16(d, 2) * 0.1, filtered = true, profile, nowS)
+            }
+            PGN_IMU_DISCONNECT -> if (d.isNotEmpty() && d[0].toInt() == 1) imu.disconnect()
+        }
     }
+
+    private fun int16(d: ByteArray, i: Int) = ((d[i].toInt() and 0xFF) or ((d[i + 1].toInt() and 0xFF) shl 8)).toShort().toInt()
 
     fun onNmea(sentence: String, nowS: Double) {
         if (sentence.length < 6) return
@@ -98,6 +120,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             sentence.startsWith("\$PANDA") || sentence.startsWith("\$PAOGI") -> Nmea.parsePanda(sentence)?.let { p ->
                 speedKmh = p.speedKmh
                 if (p.dualAntenna && p.headingDeg != null) { dualHeading = p.headingDeg * PI / 180; dualTimeS = nowS }
+                if (!p.dualAntenna) p.headingDeg?.let { imu.onHeading(it, nowS) }
+                p.rollDeg?.let { imu.onRoll(it, filtered = !p.dualAntenna, profile, nowS) }
                 onPosition(p.gga, nowS)
             }
             type == "GGA" -> Nmea.parseGga(sentence)?.let { onPosition(it, nowS) }
@@ -119,8 +143,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         antenna = p
         lastFixTimeS = nowS
         updateHeading(p, nowS)
-        // antena → środek ciągnika (przesunięcie w bok, + = antena po lewej) → tylna oś
-        val center = p + Vec2.right(headingRad) * profile.antennaOffset
+        // antena → środek ciągnika (przesunięcie w bok, + = antena po lewej; przechył na zboczu) → tylna oś
+        rollCorrectionM = imu.rollCorrection(profile, nowS)
+        val center = p + Vec2.right(headingRad) * (profile.antennaOffset + rollCorrectionM)
         val pv = center - Vec2.forward(headingRad) * profile.antennaPivot
         pivot = pv
         if (trail.isEmpty() || trail.last().distanceTo(pv) >= 0.5) {
@@ -129,21 +154,33 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         }
     }
 
-    /** Kurs: dwie anteny > VTG (przy ruchu) > z kolejnych pozycji. Na postoju zostaje ostatni. */
+    /**
+     * Kurs: dwie anteny > IMU skorygowane GPS-em > VTG (przy ruchu) > z kolejnych pozycji.
+     * Z IMU kurs jest stabilny także na postoju i przy wolnej jeździe.
+     */
     private fun updateHeading(p: Vec2, nowS: Double) {
-        val moving = speedKmh >= MIN_HEADING_KMH
         val dual = dualHeading
+        if (dual != null && nowS - dualTimeS < 1.0) { headingRad = dual; headingSource = HeadingSource.DUAL; return }
+        val moving = speedKmh >= MIN_HEADING_KMH
         val vtg = vtgCourse
         val ref = motionRef
+        var gps: Double? = null
+        var src = HeadingSource.NONE
         when {
-            dual != null && nowS - dualTimeS < 1.0 -> { headingRad = dual; headingSource = HeadingSource.DUAL }
-            vtg != null && moving && nowS - vtgTimeS < 1.0 -> { headingRad = vtg; headingSource = HeadingSource.VTG }
+            vtg != null && moving && nowS - vtgTimeS < 1.0 -> { gps = vtg; src = HeadingSource.VTG }
             ref == null -> motionRef = p
             p.distanceTo(ref) >= 0.5 -> {
-                headingRad = atan2(p.x - ref.x, p.y - ref.y)
-                headingSource = HeadingSource.MOTION
+                gps = atan2(p.x - ref.x, p.y - ref.y)
+                src = HeadingSource.MOTION
                 motionRef = p
             }
+        }
+        if (imu.headingAlive(nowS) && profile.fusionWeight > 0) {
+            headingRad = if (gps != null) imu.fuse(gps, profile.fusionWeight) else imu.corrected()
+            headingSource = HeadingSource.IMU
+        } else if (gps != null) {
+            headingRad = gps
+            headingSource = src
         }
     }
 
@@ -200,7 +237,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val p = pivot
         if (l == null || p == null) { xteCm = 0.0; steerSetDeg = 0.0; goal = null; return }
         val (a, b) = activeSegment(l, p)
-        val r = steering.compute(a, b, p, headingRad, speedKmh, engaged, profile)
+        val r = steering.compute(a, b, p, headingRad, speedKmh, engaged, profile, imu.rollDeg?.takeIf { imu.rollAlive(nowS) })
         xteCm = r.distanceFromLine * 100
         steerSetDeg = r.steerAngleDeg
         goal = r.goal
@@ -279,6 +316,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     companion object {
         const val MIN_AB_M = 20.0
         const val SEGMENT_M = 200.0
+        const val PGN_EXTERNAL_IMU = 0xD3
+        const val PGN_IMU_DISCONNECT = 0xD4
         const val GPS_TIMEOUT_S = 1.0
         /** Poniżej tej prędkości nie liczymy kursu z ruchu (szum RTK), km/h. */
         const val MIN_HEADING_KMH = 1.0
