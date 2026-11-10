@@ -380,7 +380,7 @@ private fun NavRail(current: Screen, onSelect: (Screen) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
             ) {
                 NavIcon(s.icon, color)
-                Text(s.label, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(s.label, color = color, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
             }
         }
         Box(Modifier.weight(1f))

@@ -101,7 +101,7 @@ fun HardwareMapScreen(hw: HardwareController) {
             }
         }
 
-        HwInfo(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp))
+        HwInfo(hw, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 16.dp))
         OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
 
         // prawa kolumna: linia, zawrót, sekcje
@@ -110,7 +110,7 @@ fun HardwareMapScreen(hw: HardwareController) {
             GuideSheet(hw, Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 84.dp)) { sheet = false }
         }
 
-        if (hw.simulating) SimControls(hw, locked, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 96.dp))
+        if (hw.simulating) SimControls(hw, locked, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 190.dp))
         HwSectionsBar(hw, locked, Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
         HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))
         SteerButton(hw, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))

@@ -888,7 +888,6 @@ private fun RigDrawing(hw: HardwareController, modifier: Modifier) {
             }
             x += w
         }
-        drawCircle(Ss.Text, 4f, toolC)
         // podpis anteny
         val t = tm.measure("antena", TextStyle(fontSize = 12.sp, color = Ss.TextSoft))
         drawText(t, topLeft = Offset(ant.x + 0.3f * k + 6f, ant.y - t.size.height / 2f))
