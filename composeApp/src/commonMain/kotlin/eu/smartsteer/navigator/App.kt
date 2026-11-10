@@ -36,7 +36,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
 import eu.smartsteer.navigator.ui.DemoController
+import eu.smartsteer.navigator.ui.brandImage
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.UpdateBanner
 import eu.smartsteer.navigator.ui.UpdateController
@@ -158,9 +160,17 @@ private fun TopBar(ctrl: DemoController, hw: HardwareController) {
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Row(Modifier.width(224.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            NavIcon(IconKind.Logo, Ss.Accent, 30.dp)
-            Column {
-                Text("SmartSteer", color = Ss.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            val brand = remember { brandImage() }
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                if (brand != null) {
+                    // „WAR Navigator” ze znakiem WAR (branding/war-navigator-naglowek.svg)
+                    Image(brand, contentDescription = "WAR Navigator", modifier = Modifier.height(30.dp))
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        NavIcon(IconKind.Logo, Ss.Accent, 26.dp)
+                        Text("WAR Navigator", color = Ss.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
                 Text(if (hwOn) "Sprzęt · płytka AIO" else "Pole demo · symulator", color = Ss.TextMuted, fontSize = 12.sp)
             }
         }

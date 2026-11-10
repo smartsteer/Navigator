@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
             ?.createMulticastLock("navigator-udp")
             ?.apply { setReferenceCounted(false); acquire() }
         eu.smartsteer.navigator.core.settings.AndroidStorage.filesDir = filesDir
+        eu.smartsteer.navigator.core.settings.AndroidStorage.resources = resources
         setContent { App() }
         hideSystemBars()
     }

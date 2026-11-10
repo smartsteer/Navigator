@@ -16,7 +16,7 @@ fun main() = application {
     Window(
         icon = icon,
         onCloseRequest = ::exitApplication,
-        title = "SmartSteer Navigator",
+        title = "WAR Navigator",
         state = rememberWindowState(width = 1280.dp, height = 800.dp),
     ) {
         App()

@@ -5,6 +5,8 @@ import java.io.File
 /** Ustawiane w MainActivity (katalog plików aplikacji). */
 object AndroidStorage {
     var filesDir: File? = null
+    /** Zasoby aplikacji (logo). */
+    var resources: android.content.res.Resources? = null
 }
 
 actual fun vehicleFiles(): TextFiles =
