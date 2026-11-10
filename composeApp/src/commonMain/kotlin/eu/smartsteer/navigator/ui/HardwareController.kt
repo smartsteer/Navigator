@@ -15,6 +15,11 @@ import eu.smartsteer.navigator.core.net.createTcpClient
 import eu.smartsteer.navigator.core.ntrip.Ntrip
 import eu.smartsteer.navigator.core.ntrip.NtripConfig
 import eu.smartsteer.navigator.core.field.FieldStore
+import eu.smartsteer.navigator.core.io.FieldExchange
+import eu.smartsteer.navigator.core.io.FieldImport
+import eu.smartsteer.navigator.core.settings.exportFiles
+import eu.smartsteer.navigator.core.settings.importFiles
+import eu.smartsteer.navigator.core.settings.nowText
 import eu.smartsteer.navigator.core.settings.Profiles
 import eu.smartsteer.navigator.core.settings.fieldFiles
 import eu.smartsteer.navigator.core.settings.VehicleProfile
@@ -176,12 +181,65 @@ class HardwareController {
         }
     }
 
+    // ---------------- import (KML / ISOXML) i raporty dla WAR ----------------
+    private val importDir by lazy { importFiles() }
+    private val exportDir by lazy { exportFiles() }
+    val importLocation: String get() = importDir.location
+    val exportLocation: String get() = exportDir.location
+    private var fieldStartedText = ""
+
+    /** Pliki gotowe do importu: *.kml, *.xml oraz foldery z TASKDATA.XML. */
+    fun importCandidates(): List<String> = try {
+        importDir.list().filter { n ->
+            val l = n.lowercase()
+            l.endsWith(".kml") || l.endsWith(".xml") || importDir.read("$n/TASKDATA.XML") != null || importDir.read("$n/taskdata.xml") != null
+        }.sortedBy { it.lowercase() }
+    } catch (e: Exception) { emptyList() }
+
+    /** Wczytuje pola z pliku do listy pól. Zwraca komunikat dla rolnika. */
+    fun importFile(name: String): String {
+        val text = importDir.read(name) ?: importDir.read("$name/TASKDATA.XML") ?: importDir.read("$name/taskdata.xml")
+            ?: return "Nie można odczytać „$name”"
+        val base = name.substringBeforeLast('.')
+        val fields = if (text.contains("<kml", ignoreCase = true)) FieldImport.parseKml(text, base) else FieldImport.parseIsoxml(text)
+        if (fields.isEmpty()) return "W pliku „$name” nie ma granicy ani linii"
+        val added = ArrayList<String>()
+        for (f in fields) {
+            val data = FieldExchange.toFieldData(f) ?: continue
+            var n = Profiles.sanitize(data.name).ifEmpty { "Pole" }
+            var k = 2
+            while (fieldStore.exists(n)) n = "${Profiles.sanitize(data.name)} ($k)".also { k++ }
+            try { fieldStore.save(data.copy(name = n), "") ; added.add(n) } catch (_: Exception) {}
+        }
+        refreshFields()
+        tick++
+        return if (added.isEmpty()) "Nic nie zaimportowano" else "Zaimportowano: ${added.joinToString(", ")}"
+    }
+
+    /** Raport zabiegu (GeoJSON) do folderu raportów — do wczytania w WAR. */
+    fun writeReport(): String? {
+        val f = session.fieldData() ?: return "Żadne pole nie jest otwarte"
+        val end = nowText()
+        val json = FieldExchange.reportGeoJson(
+            f, session.coverage, profileName, profile.toolWidth, profile.numSections,
+            fieldStartedText.ifEmpty { end }, end,
+        )
+        val file = "${Profiles.sanitize(f.name)} ${end.replace(":", "")}.geojson"
+        return try {
+            exportDir.write(file, json)
+            null
+        } catch (e: Exception) {
+            "Nie udało się zapisać raportu: ${e.message}"
+        }
+    }
+
     fun newField(raw: String): String? {
         val name = Profiles.sanitize(raw)
         if (name.isEmpty()) return "Wpisz nazwę pola"
         if (fieldStore.exists(name)) return "Pole „$name” już istnieje"
         session.fieldName?.let { saveField() }
         if (!session.newField(name)) return session.message
+        fieldStartedText = nowText()
         val err = saveField()
         tick++
         return err
@@ -191,6 +249,7 @@ class HardwareController {
         session.fieldName?.let { saveField() }
         val (f, cov) = fieldStore.load(name) ?: return "Pole „$name” jest uszkodzone"
         session.openField(f, cov)
+        fieldStartedText = nowText()
         tick++
         return null
     }
@@ -198,6 +257,7 @@ class HardwareController {
     fun closeField(): String? {
         val err = saveField()
         if (err != null && session.fieldName != null) return err
+        if (session.coverage.workedM2 > 0) writeReport()
         session.closeField()
         tick++
         return null

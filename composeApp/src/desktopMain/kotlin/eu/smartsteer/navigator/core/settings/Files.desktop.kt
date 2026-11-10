@@ -14,6 +14,27 @@ actual fun fieldFiles(): TextFiles {
     return DirFiles(File(docs, "SmartSteer/Pola"))
 }
 
+private fun smartSteerDir(): File {
+    val home = System.getProperty("user.home") ?: "."
+    val docs = File(home, "Documents").takeIf { it.isDirectory } ?: File(home)
+    return File(docs, "SmartSteer")
+}
+
+actual fun importFiles(): TextFiles = DirFiles(File(smartSteerDir(), "Import").apply { mkdirs() })
+
+actual fun exportFiles(): TextFiles = DirFiles(File(smartSteerDir(), "Raporty").apply { mkdirs() })
+
+actual fun nowText(): String =
+    java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+
+actual fun openFolder(path: String): Boolean = try {
+    File(path).mkdirs()
+    java.awt.Desktop.getDesktop().open(File(path))
+    true
+} catch (e: Exception) {
+    false
+}
+
 internal class DirFiles(private val dir: File) : TextFiles {
     override val location: String get() = dir.absolutePath
     override fun list(): List<String> = dir.list()?.toList().orEmpty()

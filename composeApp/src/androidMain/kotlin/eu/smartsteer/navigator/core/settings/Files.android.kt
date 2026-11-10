@@ -13,6 +13,17 @@ actual fun vehicleFiles(): TextFiles =
 actual fun fieldFiles(): TextFiles =
     DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "Pola"))
 
+actual fun importFiles(): TextFiles =
+    DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "Import"))
+
+actual fun exportFiles(): TextFiles =
+    DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "Raporty"))
+
+actual fun nowText(): String =
+    java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
+
+actual fun openFolder(path: String): Boolean = false
+
 internal class DirFiles(private val dir: File) : TextFiles {
     override val location: String get() = dir.absolutePath
     override fun list(): List<String> = dir.list()?.toList().orEmpty()

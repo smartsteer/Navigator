@@ -14,7 +14,7 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
 - [x] 7. Klient NTRIP (poprawki RTK przez internet tabletu → do odbiornika przez UDP)
 - [x] 8. IMU: kompensacja przechyłu (wysokość anteny), kurs z IMU
 - [x] 9. Auto‑zawroty przeniesione z AgOpenGPS (YouTurn) na prawdziwych granicach
-- [ ] 10. Import KML / ISOXML (granice, linie)
+- [x] 10. Import KML / ISOXML (granice, linie)
 - [ ] 11. Integracja z WAR — **wymaga decyzji właściciela, nie robić w nocy**
 
 ## Zasady interfejsu (obowiązują przy każdym etapie)
@@ -44,3 +44,6 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
   W polu sprawdzić: wpisać dane castera, czy status zmienia się na „Odbieram poprawki” i odbiornik przechodzi w RTK FIX; test silnika — czy koła idą w stronę przycisku i kąt na wykresie nadąża za zadanym.
 - 2026-11-10 — etap 9: auto-zawrót na granicy pola (wzorowany na CYouTurn.cs): zaczyna się, gdy linia AB/krzywa dochodzi do linii zawrotu (granica − odstęp), kształt „U” albo „omega” o promieniu R (domyślnie 8,1 m jak w AgOpenGPS), cofany aż zmieści się w granicy, na przejazd co ustawioną liczbę; kierunek zmienia się sam po każdym zawrocie, przycisk „Następny w prawo/lewo” i „Przerwij zawrót”; gdy zawrót się nie mieści — autoster staje przed granicą zamiast wyjeżdżać z pola.
   W polu sprawdzić: na wolnej prędkości, z granicą i uwrociem co najmniej 2 szerokości — czy zawrót zaczyna się w dobrym miejscu, nie wychodzi za granicę i ciągnik łapie sąsiedni przejazd; dobrać promień do ciągnika z maszyną.
+- 2026-11-10 — sieć płytki do wyboru (domyślnie 192.168.5), „Szukaj modułów” (PGN 202/203) i „Przestaw moduły na sieć” (PGN 201) jak w AgIO, samouczek łączenia w aplikacji (Połączenia) i docs/LACZENIE.md.
+- 2026-11-10 — etap 10: import KML i ISOXML (granica, AB, krzywa) z folderu Dokumenty\SmartSteer\Import; raport zabiegu GeoJSON do Dokumenty\SmartSteer\Raporty (sam przy zamknięciu pola) — wymiana z WAR przez pliki, opis w docs/WAR.md. Etap 11 (API WAR) czeka na opis interfejsu.
+  W polu sprawdzić: Połączenia → samouczek, wszystkie kroki ✓; wczytać pole z KML/ISOXML i porównać granicę z rzeczywistością; po pracy zamknąć pole i sprawdzić raport w folderze Raporty.

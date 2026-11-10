@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.core.field.Polygon
+import eu.smartsteer.navigator.core.settings.openFolder
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
@@ -106,10 +107,23 @@ fun HardwareFieldsScreen(hw: HardwareController) {
             msg?.let { Label(it, Ss.TextSoft, 14.sp) }
             hw.fieldError?.let { Label(it, Ss.Warning, 14.sp) }
             Label("Pliki pól: ${hw.fieldsLocation}", Ss.TextMuted, 12.sp)
+
+            SectionTitle("Import z WAR i innych programów")
+            Label("Wrzuć plik KML albo ISOXML (TASKDATA.XML lub cały folder TASKDATA) do folderu importu — pojawi się poniżej.", Ss.TextSoft, 13.sp)
+            val files = remember(hw.tick / 30) { hw.importCandidates() }
+            if (files.isEmpty()) Label("Folder importu jest pusty.", Ss.TextMuted, 13.sp)
+            files.forEach { f ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(f, Modifier.weight(1f), color = Ss.Text, fontSize = 15.sp)
+                    ActionButton(onClick = { msg = hw.importFile(f) }) { ButtonText("Wczytaj") }
+                }
+            }
+            ActionButton(onClick = { if (!openFolder(hw.importLocation)) msg = "Folder importu: ${hw.importLocation}" }) { ButtonText("Otwórz folder importu", color = Ss.TextSoft) }
+            Label(hw.importLocation, Ss.TextMuted, 12.sp)
         }
 
         // --- bieżące pole ---
-        Panel(Modifier.weight(1f).fillMaxHeight()) {
+        Panel(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) {
             val name = s.fieldName
             if (name == null) {
                 SectionTitle("Żadne pole nie jest otwarte")
@@ -173,6 +187,12 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                 else "Krok = jeden przejazd (${s.profile.passSpacing.pl(2)} m). Na uwrociu sekcje się wyłączają (ustawienie w Ustawienia → Maszyna).",
                 Ss.TextMuted, 13.sp,
             )
+            SectionTitle("Raport zabiegu (dla WAR)")
+            Label("Zapisuje się sam przy zamykaniu pola: GeoJSON z granicą, obrobionymi pasami, hektarami, datą i maszyną.", Ss.TextSoft, 13.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ActionButton(onClick = { msg = hw.writeReport() ?: "Raport zapisany w folderze raportów" }) { ButtonText("Zapisz raport teraz") }
+                ActionButton(onClick = { if (!openFolder(hw.exportLocation)) msg = "Folder raportów: ${hw.exportLocation}" }) { ButtonText("Otwórz folder raportów", color = Ss.TextSoft) }
+            }
             SectionTitle("Mapa pokrycia")
             // dwa dotknięcia — żeby nie skasować pracy przypadkiem
             ActionButton(
