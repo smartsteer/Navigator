@@ -57,4 +57,28 @@ class NtripTest {
         assertEquals(1, f.data[2].toInt())
         assertEquals(3000, ((f.data[3].toInt() and 0xFF) or ((f.data[4].toInt() and 0xFF) shl 8)).toShort().toInt())
     }
+
+    @Test
+    fun sourcetableIsParsedAndSortedByDistance() {
+        val text = "SOURCETABLE 200 OK\r\nContent-Type: text/plain\r\n\r\n" +
+            "CAS;system.asgeupos.pl;8080;ASG;GUGiK;0;POL;52.0;21.0\r\n" +
+            "NET;ASG-EUPOS;GUGiK;B;N;;;;\r\n" +
+            "STR;KRAK_RTCM_3_1;Krakow;RTCM 3.1;1004(1),1012(1);2;GPS+GLO;ASG-EUPOS;POL;50.07;19.92;0;0;sNTRIP;none;B;N;9600;\r\n" +
+            "STR;WROC_RTCM_3_1;Wroclaw;RTCM 3.1;1004(1);2;GPS;ASG-EUPOS;POL;51.11;17.06;0;0;sNTRIP;none;B;N;9600;\r\n" +
+            "STR;NAWGEO_POJ_3_1;VRS;RTCM 3.1;;2;GPS+GLO;ASG-EUPOS;POL;0.00;0.00;1;1;sNTRIP;none;B;N;9600;\r\n" +
+            "ENDSOURCETABLE\r\n"
+        val list = Ntrip.parseSourcetable(text)
+        assertEquals(listOf("KRAK_RTCM_3_1", "WROC_RTCM_3_1", "NAWGEO_POJ_3_1"), list.map { it.name })
+        val vrs = list[2]
+        assertTrue(vrs.nmea && vrs.networkSolution)
+        assertEquals(null, vrs.lat)
+        // ciągnik pod Wrocławiem: najpierw Wrocław, potem Kraków, punkt bez współrzędnych na końcu
+        val sorted = Ntrip.sortByDistance(list, 51.0, 17.0)
+        assertEquals(listOf("WROC_RTCM_3_1", "KRAK_RTCM_3_1", "NAWGEO_POJ_3_1"), sorted.map { it.first.name })
+        val dKrak = sorted[1].second!!
+        assertTrue(dKrak in 210.0..240.0, "Wrocław–Kraków ok. 220 km, wyszło $dKrak")
+        // zapytanie o listę: „GET /” bez punktu montowania
+        val r = Ntrip.sourcetableRequest(NtripConfig(host = "c", mount = "X")).decodeToString()
+        assertTrue(r.startsWith("GET / HTTP/1.0\r\n"))
+    }
 }

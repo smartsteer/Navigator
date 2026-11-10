@@ -151,7 +151,7 @@ fun Segmented(
     }
 }
 
-enum class IconKind { Map, Field, Steer, Implement, Network, ChevronLeft, ChevronRight, Plus, Minus, Target, Restart, Logo, Settings }
+enum class IconKind { Map, Field, Steer, Implement, Network, ChevronLeft, ChevronRight, Plus, Minus, Target, Restart, Logo, Settings, LineAB, UTurn, SectionsAuto, SectionsOff, Lock, Unlock, Tractor, Wheel, Follow }
 
 /** Ikony rysowane kreską w siatce 24×24 (jak w projekcie), bez zewnętrznych bibliotek. */
 @Composable
@@ -197,6 +197,22 @@ fun DrawScope.drawIcon(kind: IconKind, color: Color, strokeWidth: Float = 2f) {
             drawCircle(Ss.Surface, 2.6f * u, o(8f, 12f)); drawCircle(color, 2.6f * u, o(8f, 12f), style = st)
             drawCircle(Ss.Surface, 2.6f * u, o(13f, 18f)); drawCircle(color, 2.6f * u, o(13f, 18f), style = st)
         }
+        IconKind.LineAB -> {
+            poly(5f, 19f, 9f, 13f, 15f, 11f, 19f, 5f)
+            drawCircle(color, 2.2f * u, o(5f, 19f)); drawCircle(color, 2.2f * u, o(19f, 5f))
+        }
+        IconKind.UTurn -> { poly(7f, 21f, 7f, 9f); drawArc(color, 180f, 180f, false, o(7f, 4f), Size(10f * u, 10f * u), style = st); poly(17f, 9f, 17f, 15f); poly(14f, 12f, 17f, 15f, 20f, 12f) }
+        IconKind.SectionsAuto -> { for (x in listOf(4f, 9f, 14f, 19f)) line(x, 6f, x, 15f); line(2f, 18f, 22f, 18f) }
+        IconKind.SectionsOff -> { for (x in listOf(4f, 9f, 14f)) line(x, 6f, x, 13f); line(15f, 15f, 21f, 21f); line(21f, 15f, 15f, 21f) }
+        IconKind.Lock -> { rect(5f, 11f, 14f, 10f, 2f); drawArc(color, 180f, 180f, false, o(8f, 4f), Size(8f * u, 10f * u), style = st); line(8f, 9f, 8f, 11f); line(16f, 9f, 16f, 11f) }
+        IconKind.Unlock -> { rect(5f, 11f, 14f, 10f, 2f); drawArc(color, 180f, 180f, false, o(8f, 3f), Size(8f * u, 8f * u), style = st); line(8f, 7f, 8f, 11f) }
+        IconKind.Tractor -> { rect(4f, 10f, 11f, 6f, 1f); rect(8f, 5f, 6f, 5f, 1f); drawCircle(color, 3.5f * u, o(7f, 18f), style = st); drawCircle(color, 2.2f * u, o(18f, 19f), style = st); line(15f, 13f, 20f, 13f); line(20f, 13f, 20f, 17f) }
+        IconKind.Wheel -> {
+            drawCircle(color, 9.5f * u, o(12f, 12f), style = st)
+            drawCircle(color, 2.5f * u, o(12f, 12f), style = st)
+            line(2.5f, 11f, 9.5f, 12f); line(21.5f, 11f, 14.5f, 12f); line(12f, 14.5f, 12f, 21.5f)
+        }
+        IconKind.Follow -> { poly(12f, 3f, 19f, 20f, 12f, 16f, 5f, 20f, close = true) }
         IconKind.Logo -> { drawCircle(color, 9f * u, o(12f, 12f), style = st); line(12f, 3f, 12f, 21f); poly(7f, 21f, 12f, 12f, 17f, 21f) }
     }
 }

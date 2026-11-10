@@ -1,5 +1,6 @@
 package eu.smartsteer.navigator.ui
 
+import eu.smartsteer.navigator.core.sim.SimReceiver
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -37,7 +38,9 @@ import eu.smartsteer.navigator.core.settings.Profiles
 import eu.smartsteer.navigator.core.settings.fieldFiles
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import eu.smartsteer.navigator.core.settings.vehicleFiles
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
@@ -468,6 +471,52 @@ class HardwareController {
     private var ntripRateBytes = 0L
     private var ntripRateAtS = 0.0
 
+    // lista punktów montowania z castera (sourcetable)
+    var mounts by mutableStateOf<List<Ntrip.Mount>>(emptyList())
+        private set
+    var mountsStatus by mutableStateOf<String?>(null)
+        private set
+    var mountsLoading by mutableStateOf(false)
+        private set
+
+    /** Pobiera listę aktywnych punktów montowania („GET /”). Działa także bez trybu SPRZĘT — potrzebny tylko internet. */
+    suspend fun fetchMounts(host: String, port: Int, user: String, password: String) {
+        if (host.isBlank()) { mountsStatus = "Wpisz adres castera"; return }
+        if (mountsLoading) return
+        mountsLoading = true
+        mountsStatus = "Pobieram listę z ${host.trim()}…"
+        val client = createTcpClient()
+        val done = CompletableDeferred<String?>()
+        val buf = ArrayList<ByteArray>()
+        var total = 0
+        val req = Ntrip.sourcetableRequest(NtripConfig(host = host.trim(), port = port, user = user.trim(), password = password))
+        client.start(
+            host.trim(), port,
+            onConnected = { client.send(req)?.let { done.complete(it) } },
+            onData = { b, n ->
+                if (total < 2_000_000) { buf.add(b.copyOf(n)); total += n }
+                // koniec listy — nie czekamy, aż caster zamknie połączenie
+                if (b.copyOf(n).decodeToString().contains("ENDSOURCETABLE")) done.complete(null)
+            },
+            onClosed = { err -> done.complete(err) },
+        )
+        val err = withTimeoutOrNull(12_000) { done.await() } ?: if (done.isCompleted) null else "Brak odpowiedzi (12 s)"
+        withContext(Dispatchers.Default) { client.close() }
+        val parts = runCatching { buf.toList() }.getOrDefault(emptyList())
+        val all = ByteArray(parts.sumOf { it.size }).also { var o = 0; for (c in parts) { c.copyInto(it, o); o += c.size } }
+        val text = all.decodeToString()
+        val list = Ntrip.parseSourcetable(text)
+        mounts = list
+        mountsStatus = when {
+            list.isNotEmpty() -> "Aktywnych punktów: ${list.size}"
+            Ntrip.reply(text) == Ntrip.Reply.UNAUTHORIZED -> "Caster wymaga logowania — sprawdź login i hasło"
+            err != null && total == 0 -> "Nie udało się połączyć: $err"
+            else -> "Caster nie zwrócił listy punktów"
+        }
+        mountsLoading = false
+        tick++
+    }
+
     fun updateNtrip(c: NtripConfig) {
         val old = ntripConfig
         ntripConfig = c
@@ -682,6 +731,7 @@ class HardwareController {
             if (l != null) {
                 pendingBroadcast?.let { b -> pendingBroadcast = null; netMessage = withContext(Dispatchers.Default) { l.broadcastAll(b) } ?: netMessage }
             }
+            if (simulating) simStep()
             session.update(now())
             recordHistory()
             ntripStep(l)
@@ -702,6 +752,35 @@ class HardwareController {
             }
             tick++
         }
+    }
+
+    // ---------------- symulacja jazdy (bez płytki) ----------------
+    private val simFile = "symulacja.cfg"
+    /** Udawany odbiornik RTK i moduł skrętu — do nauki obsługi i sprawdzenia ustawień bez ciągnika. */
+    val sim = SimReceiver()
+    var simulating by mutableStateOf(runCatching { files.read(simFile)?.trim() == "1" }.getOrDefault(false))
+        private set
+
+    fun setSimulation(on: Boolean) {
+        simulating = on
+        try { files.write(simFile, if (on) "1" else "0") } catch (_: Exception) {}
+        if (on && !hardware) setHardwareMode(true)
+        tick++
+    }
+
+    private fun simStep() {
+        val s = session
+        val steer = when {
+            s.engaged -> s.steerSetDeg
+            s.freeDrive -> s.freeDriveAngle
+            else -> null
+        }
+        sim.step(0.1, steer)
+        val t = now()
+        s.onNmea(sim.vtg(), t)
+        s.onNmea(sim.gga(), t)
+        val f = sim.pgn253()
+        s.onDatagram(f, f.size, t)
     }
 
     /** Kurs, za którym obraca się mapa (wygładzony). */

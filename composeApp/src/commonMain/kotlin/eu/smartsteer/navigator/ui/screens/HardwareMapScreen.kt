@@ -26,6 +26,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -70,23 +76,185 @@ import kotlin.math.roundToInt
 fun HardwareMapScreen(hw: HardwareController) {
     var zoom by remember { mutableStateOf(20f) }
     var headingUp by remember { mutableStateOf(true) }
-    var panel by remember { mutableStateOf(true) }
-    Row(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxHeight()) {
-            HwCanvas(hw, zoom, headingUp, Modifier.fillMaxSize())
-            HwInfo(hw, Modifier.align(Alignment.TopStart).padding(16.dp))
-            Column(Modifier.align(Alignment.TopEnd).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                HwSquare({ zoom = (zoom * 1.3f).coerceAtMost(60f) }) { NavIcon(IconKind.Plus, Ss.Text, 22.dp) }
-                HwSquare({ zoom = (zoom / 1.3f).coerceAtLeast(1.5f) }) { NavIcon(IconKind.Minus, Ss.Text, 22.dp) }
-                HwSquare({ headingUp = !headingUp }) { ButtonText(if (headingUp) "KURS" else "N", size = 13.sp, weight = FontWeight.Bold) }
-                // chowanie prawego panelu — więcej miejsca na mapę
-                HwSquare({ panel = !panel }) { ButtonText(if (panel) "▶" else "◀", size = 16.sp, weight = FontWeight.Bold) }
+    var tilt by remember { mutableStateOf(false) }
+    var locked by remember { mutableStateOf(false) }
+    var sheet by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxSize()) {
+        HwCanvas(hw, zoom, headingUp, tilt, locked, Modifier.fillMaxSize())
+
+        // lewa kolumna narzędzi mapy
+        Column(
+            Modifier.align(Alignment.CenterStart).padding(start = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            MapTool(IconKind.Follow, headingUp, enabled = !locked, label = if (headingUp) "KURS" else "N") { headingUp = !headingUp }
+            MapTool(null, tilt, enabled = !locked, label = "3D") { tilt = !tilt }
+            MapTool(if (locked) IconKind.Lock else IconKind.Unlock, locked, enabled = true, label = null) { locked = !locked }
+            Column(Modifier.width(52.dp).hwOverlay()) {
+                Box(Modifier.size(52.dp).clickable(enabled = !locked, role = Role.Button) { zoom = (zoom * 1.3f).coerceAtMost(80f) }, contentAlignment = Alignment.Center) {
+                    NavIcon(IconKind.Plus, Ss.Text, 22.dp)
+                }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Ss.Border))
+                Box(Modifier.size(52.dp).clickable(enabled = !locked, role = Role.Button) { zoom = (zoom / 1.3f).coerceAtLeast(1.5f) }, contentAlignment = Alignment.Center) {
+                    NavIcon(IconKind.Minus, Ss.Text, 22.dp)
+                }
             }
-            OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 16.dp))
-            HwSectionsBar(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp))
-            HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp))
         }
-        if (panel) HwRightPanel(hw) else CompactSteer(hw)
+
+        HwInfo(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp))
+        OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
+
+        // prawa kolumna: linia, zawrót, sekcje
+        RightTools(hw, sheet, locked, { sheet = !sheet }, Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 12.dp))
+        if (sheet) {
+            GuideSheet(hw, Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 84.dp)) { sheet = false }
+        }
+
+        if (hw.simulating) SimControls(hw, locked, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 96.dp))
+        HwSectionsBar(hw, locked, Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
+        HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))
+        SteerButton(hw, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))
+    }
+}
+
+/** Okrągły przycisk na mapie (lewa kolumna). */
+@Composable
+private fun MapTool(icon: IconKind?, active: Boolean, enabled: Boolean, label: String?, onClick: () -> Unit) {
+    Column(
+        Modifier.size(52.dp).clip(RoundedCornerShape(14.dp))
+            .background(if (active) Ss.AccentSoft else Ss.Bar.copy(alpha = 0.92f))
+            .border(1.dp, if (active) Ss.Accent else Ss.Border, RoundedCornerShape(14.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        val c = if (active) Ss.Accent else Ss.Text
+        if (icon != null) NavIcon(icon, c, if (label != null) 20.dp else 24.dp)
+        if (label != null) Text(label, color = c, fontSize = if (icon == null) 16.sp else 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Prawa kolumna narzędzi: linia prowadzenia, auto-zawrót, sekcje AUTO / WYŁ. */
+@Composable
+private fun RightTools(hw: HardwareController, sheetOpen: Boolean, locked: Boolean, onSheet: () -> Unit, modifier: Modifier) {
+    hw.tick
+    val s = hw.session
+    val sec = s.sections
+    Column(
+        modifier.width(64.dp).clip(RoundedCornerShape(18.dp)).background(Ss.Bar.copy(alpha = 0.94f))
+            .border(1.dp, Ss.Border, RoundedCornerShape(18.dp)).padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RoundTool(IconKind.LineAB, sheetOpen, !locked, s.mode.label, onSheet)
+        RoundTool(IconKind.UTurn, s.autoUturn, !locked && s.mode != GuidanceMode.CONTOUR, if (s.autoUturn) (if (s.uTurnRight) "▶" else "◀") else "zawrót") {
+            s.autoUturn = !s.autoUturn; if (!s.autoUturn) s.cancelTurn(); hw.touch()
+        }
+        RoundTool(IconKind.SectionsAuto, sec.mode == SectionMode.AUTO, !locked, "AUTO") { sec.mode = SectionMode.AUTO; hw.touch() }
+        RoundTool(IconKind.SectionsOff, sec.mode == SectionMode.OFF, !locked, "WYŁ.", warn = true) { sec.mode = SectionMode.OFF; hw.touch() }
+    }
+}
+
+@Composable
+private fun RoundTool(icon: IconKind, active: Boolean, enabled: Boolean, label: String, warn: Boolean = false, onClick: () -> Unit) {
+    val on = if (warn) Ss.Warning else Ss.Accent
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(50.dp).clip(CircleShape).background(if (active) on else Ss.SurfaceHigh)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) { NavIcon(icon, if (active) Ss.OnAccent else Ss.Text, 26.dp) }
+        Text(label, color = if (active) on else Ss.TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+    }
+}
+
+/** Duży okrągły przycisk autosteru (prawy dolny róg). */
+@Composable
+private fun SteerButton(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val s = hw.session
+    val now = hw.now()
+    val hasLine = when (s.mode) {
+        GuidanceMode.AB -> s.line != null
+        GuidanceMode.CURVE -> s.curveRef != null
+        GuidanceMode.CONTOUR -> s.contour.guide.isNotEmpty()
+    }
+    val ready = hasLine && s.gpsAlive(now) && s.autosteerAlive(now)
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(
+            Modifier.size(96.dp).clip(CircleShape)
+                .background(if (s.engaged) Ss.Accent else Ss.Bar.copy(alpha = 0.94f))
+                .border(4.dp, if (s.engaged || ready) Ss.Accent else Ss.Dim, CircleShape)
+                .clickable(role = Role.Button) { s.setEngaged(!s.engaged, now) },
+            contentAlignment = Alignment.Center,
+        ) { NavIcon(IconKind.Wheel, if (s.engaged) Ss.OnAccent else if (ready) Ss.Accent else Ss.TextMuted, 54.dp, 2.4f) }
+        Text(
+            when {
+                s.engaged -> "AUTOSTER"
+                ready -> "gotowy"
+                !hasLine -> "brak linii"
+                !s.gpsAlive(now) -> "brak GPS"
+                else -> "brak modułu"
+            },
+            color = if (s.engaged) Ss.Accent else Ss.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+/** Wysuwany panel linii: tryb AB / krzywa / kontur, przyciski A-B, przesunięcie, zawrót, odczyty. */
+@Composable
+private fun GuideSheet(hw: HardwareController, modifier: Modifier, onClose: () -> Unit) {
+    hw.tick
+    val s = hw.session
+    Column(
+        modifier.width(280.dp).clip(RoundedCornerShape(18.dp)).background(Ss.Bar.copy(alpha = 0.97f))
+            .border(1.dp, Ss.Border, RoundedCornerShape(18.dp)).verticalScroll(rememberScrollState()).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Linia prowadzenia", Modifier.weight(1f), color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            ActionButton(Modifier.width(52.dp), onClick = onClose) { ButtonText("✕", size = 16.sp) }
+        }
+        Segmented(GuidanceMode.entries.map { it.label }, s.mode.ordinal, { s.setMode(GuidanceMode.entries[it]); hw.touch() }, Modifier.fillMaxWidth())
+        when (s.mode) {
+            GuidanceMode.AB -> AbControls(hw)
+            GuidanceMode.CURVE -> CurveControls(hw)
+            GuidanceMode.CONTOUR -> {
+                Label("Prowadzi wzdłuż poprzedniego przejazdu, o szerokość maszyny obok. Przejazdy nagrywają się same podczas jazdy.", Ss.TextSoft, 13.sp)
+                ActionButton(Modifier.fillMaxWidth(), onClick = { s.clearContour(); hw.touch() }) { ButtonText("Wyczyść ślady", color = Ss.TextSoft) }
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Label("Przesuń linię · ${if (s.lineShiftCm == 0) "0" else s.lineShiftCm.toDouble().pl(0, plusSign = true)} cm")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm -= 2; hw.touch() }) { NavIcon(IconKind.ChevronLeft, Ss.Text, 22.dp, 2.4f) }
+                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm += 2; hw.touch() }) { NavIcon(IconKind.ChevronRight, Ss.Text, 22.dp, 2.4f) }
+            }
+        }
+        if (s.mode != GuidanceMode.CONTOUR) TurnControls(hw)
+        HwStats(hw)
+    }
+}
+
+/** Symulacja jazdy: prędkość i ręczny skręt (gdy autoster nie prowadzi). */
+@Composable
+private fun SimControls(hw: HardwareController, locked: Boolean, modifier: Modifier) {
+    hw.tick
+    val sim = hw.sim
+    Row(
+        modifier.hwOverlay().padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Column(Modifier.padding(horizontal = 6.dp)) {
+            Text("SYMULACJA", color = Ss.Warning, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("${sim.targetSpeedKmh.pl(1)} km/h", color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
+        ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.targetSpeedKmh = (sim.targetSpeedKmh - 1).coerceAtLeast(0.0); hw.touch() } }) { NavIcon(IconKind.Minus, Ss.Text, 20.dp) }
+        ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.targetSpeedKmh = (sim.targetSpeedKmh + 1).coerceAtMost(25.0); hw.touch() } }) { NavIcon(IconKind.Plus, Ss.Text, 20.dp) }
+        ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.manualSteerDeg = (sim.manualSteerDeg - 5).coerceAtLeast(-30.0); hw.touch() } }) { NavIcon(IconKind.ChevronLeft, Ss.Text, 20.dp) }
+        ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.manualSteerDeg = 0.0; hw.touch() } }) { ButtonText("${sim.manualSteerDeg.pl(0)}°", size = 13.sp) }
+        ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.manualSteerDeg = (sim.manualSteerDeg + 5).coerceAtMost(30.0); hw.touch() } }) { NavIcon(IconKind.ChevronRight, Ss.Text, 20.dp) }
     }
 }
 
@@ -141,104 +309,6 @@ private fun HwMessage(hw: HardwareController, modifier: Modifier) {
     hw.tick
     val m = hw.mapNote ?: hw.session.message ?: return
     Text(m, modifier.hwOverlay().padding(horizontal = 16.dp, vertical = 12.dp), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-}
-
-@Composable
-private fun HwRightPanel(hw: HardwareController) {
-    hw.tick
-    val s = hw.session
-    val now = hw.now()
-    Column(
-        Modifier.width(248.dp).fillMaxHeight().background(Ss.Surface).verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        val hasLine = when (s.mode) {
-            GuidanceMode.AB -> s.line != null
-            GuidanceMode.CURVE -> s.curveRef != null
-            GuidanceMode.CONTOUR -> s.contour.guide.isNotEmpty()
-        }
-        val ready = hasLine && s.gpsAlive(now) && s.autosteerAlive(now)
-        val shape = RoundedCornerShape(20.dp)
-        val border = if (ready || s.engaged) Ss.Accent else Ss.Dim
-        Column(
-            Modifier.fillMaxWidth().height(120.dp).clip(shape)
-                .background(if (s.engaged) Ss.Accent else Color.Transparent)
-                .border(3.dp, border, shape)
-                .clickable(role = Role.Button) { s.setEngaged(!s.engaged, now) },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
-        ) {
-            val fg = if (s.engaged) Ss.OnAccent else if (ready) Ss.Text else Ss.TextMuted
-            NavIcon(IconKind.Steer, fg, 38.dp)
-            Text(if (s.engaged) "AUTOSTER" else "RĘCZNIE", color = fg, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(
-                when {
-                    s.engaged -> "Włączony · dotknij, aby wyłączyć"
-                    ready -> "Dotknij, aby włączyć"
-                    !hasLine -> when (s.mode) {
-                        GuidanceMode.AB -> "Najpierw linia AB"
-                        GuidanceMode.CURVE -> "Najpierw nagraj krzywą"
-                        GuidanceMode.CONTOUR -> "Brak przejazdu obok"
-                    }
-                    !s.gpsAlive(now) -> "Czekam na GPS"
-                    else -> "Czekam na moduł skrętu"
-                },
-                color = fg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
-            )
-        }
-
-        Segmented(
-            GuidanceMode.entries.map { it.label }, s.mode.ordinal,
-            { s.setMode(GuidanceMode.entries[it]); hw.touch() },
-            Modifier.fillMaxWidth(),
-        )
-        when (s.mode) {
-            GuidanceMode.AB -> AbControls(hw)
-            GuidanceMode.CURVE -> CurveControls(hw)
-            GuidanceMode.CONTOUR -> {
-                Label("Prowadzi wzdłuż poprzedniego przejazdu, o szerokość maszyny obok. Przejazdy nagrywają się same podczas jazdy.", Ss.TextSoft, 13.sp)
-                ActionButton(Modifier.fillMaxWidth(), onClick = { s.clearContour(); hw.touch() }) { ButtonText("Wyczyść ślady", color = Ss.TextSoft) }
-            }
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Label("Przesuń linię · ${if (s.lineShiftCm == 0) "0" else s.lineShiftCm.toDouble().pl(0, plusSign = true)} cm")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm -= 2; hw.touch() }) { NavIcon(IconKind.ChevronLeft, Ss.Text, 22.dp, 2.4f) }
-                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm += 2; hw.touch() }) { NavIcon(IconKind.ChevronRight, Ss.Text, 22.dp, 2.4f) }
-            }
-        }
-        if (s.mode != GuidanceMode.CONTOUR) TurnControls(hw)
-        HwStats(hw)
-    }
-}
-
-/** Zwinięty panel: tylko duży przycisk autosteru i odchyłka — reszta ekranu dla mapy. */
-@Composable
-private fun CompactSteer(hw: HardwareController) {
-    hw.tick
-    val s = hw.session
-    val now = hw.now()
-    val shape = RoundedCornerShape(18.dp)
-    Column(
-        Modifier.width(132.dp).fillMaxHeight().background(Ss.Surface).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Column(
-            Modifier.fillMaxWidth().height(130.dp).clip(shape)
-                .background(if (s.engaged) Ss.Accent else Color.Transparent)
-                .border(3.dp, if (s.engaged) Ss.Accent else Ss.Dim, shape)
-                .clickable(role = Role.Button) { s.setEngaged(!s.engaged, now) },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
-        ) {
-            val fg = if (s.engaged) Ss.OnAccent else Ss.Text
-            NavIcon(IconKind.Steer, fg, 34.dp)
-            Text(if (s.engaged) "AUTO" else "RĘCZNIE", color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
-        Stat("Prędkość", "${s.speedKmh.pl(1)} km/h", valueSize = 18.sp)
-        Stat("Kąt", "${s.steerSetDeg.pl(1, plusSign = true)}°", valueSize = 18.sp)
-    }
 }
 
 /** Auto-zawrót: włącznik, kierunek najbliższego zawrotu, przerwanie trwającego. */
@@ -305,46 +375,44 @@ private fun polygonPath(pts: List<Vec2>): Path = Path().apply {
     close()
 }
 
-/** Pasek sekcji na dole mapy: tryb (AUTO / RĘCZNIE / WYŁ.) i przyciski sekcji. */
+/** Pasek sekcji na dole mapy: numer sekcji i jej tryb (AUTO / RĘCZ. / WYŁ.); dotknięcie = sterowanie ręczne. */
 @Composable
-private fun HwSectionsBar(hw: HardwareController, modifier: Modifier) {
+private fun HwSectionsBar(hw: HardwareController, locked: Boolean, modifier: Modifier) {
     hw.tick
     val s = hw.session
     val sec = s.sections
     val n = s.profile.numSections.coerceIn(1, 16)
+    val w = if (n > 10) 46.dp else if (n > 6) 56.dp else 68.dp
     Row(
-        modifier.hwOverlay().padding(10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier.clip(RoundedCornerShape(16.dp)).background(Ss.Bar.copy(alpha = 0.94f))
+            .border(1.dp, Ss.Border, RoundedCornerShape(16.dp)).padding(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Segmented(
-            options = SectionMode.entries.map { it.label },
-            selected = sec.mode.ordinal,
-            onSelect = {
-                val m = SectionMode.entries[it]
-                if (m == SectionMode.MANUAL && sec.mode != SectionMode.MANUAL) sec.manual.fill(true)
-                sec.mode = m
-                hw.touch()
-            },
-            selectedColor = { when (SectionMode.entries[it]) { SectionMode.AUTO -> Ss.Accent; SectionMode.MANUAL -> Ss.Warning; SectionMode.OFF -> Ss.TextMuted } },
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (i in 0 until n) {
-                val on = sec.on[i]
-                val armed = sec.mode == SectionMode.MANUAL && sec.manual[i]
-                val bg = when { on -> Ss.Accent; armed -> Ss.AccentSoft; else -> Ss.SurfaceHigh }
-                val fg = if (on) Ss.OnAccent else if (armed) Ss.Accent else Ss.TextSoft
-                Box(
-                    Modifier.size(if (n > 10) 44.dp else 52.dp).clip(RoundedCornerShape(10.dp)).background(bg)
-                        .border(1.dp, if (armed && !on) Ss.Accent else Color.Transparent, RoundedCornerShape(10.dp))
-                        .clickable(role = Role.Button) {
-                            // dotknięcie sekcji przełącza na tryb ręczny (jak w AgOpenGPS)
-                            if (sec.mode != SectionMode.MANUAL) { sec.manual.fill(true); sec.mode = SectionMode.MANUAL }
-                            sec.manual[i] = !sec.manual[i]
-                            hw.touch()
-                        },
-                    contentAlignment = Alignment.Center,
-                ) { Text("${i + 1}", color = fg, fontSize = 17.sp, fontWeight = FontWeight.Bold) }
+        for (i in 0 until n) {
+            val on = sec.on[i]
+            val manual = sec.mode == SectionMode.MANUAL
+            val armed = manual && sec.manual[i]
+            val bg = when { on -> Ss.Accent; armed -> Ss.AccentSoft; else -> Ss.SurfaceHigh }
+            val fg = if (on) Ss.OnAccent else if (armed) Ss.Accent else Ss.TextSoft
+            val tag = when {
+                sec.mode == SectionMode.OFF -> "WYŁ."
+                manual -> if (sec.manual[i]) "RĘCZ." else "WYŁ."
+                else -> "AUTO"
+            }
+            Column(
+                Modifier.width(w).height(52.dp).clip(RoundedCornerShape(10.dp)).background(bg)
+                    .border(1.dp, if (armed && !on) Ss.Accent else Color.Transparent, RoundedCornerShape(10.dp))
+                    .clickable(enabled = !locked, role = Role.Button) {
+                        // dotknięcie sekcji przełącza na tryb ręczny (jak w AgOpenGPS)
+                        if (sec.mode != SectionMode.MANUAL) { sec.manual.fill(true); sec.mode = SectionMode.MANUAL }
+                        sec.manual[i] = !sec.manual[i]
+                        hw.touch()
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text("${i + 1}", color = fg, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(tag, color = fg.copy(alpha = 0.8f), fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
     }
@@ -421,12 +489,19 @@ private fun HwStats(hw: HardwareController) {
 }
 
 @Composable
-private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, modifier: Modifier) {
+private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, tilt: Boolean, locked: Boolean, modifier: Modifier) {
     // pasy pokrycia zamieniamy na Path raz (otwarty pas — gdy przybędzie punktów)
     val stripCache = remember { HashMap<Coverage.Strip, Pair<Int, Path>>() }
     val density = LocalDensity.current.density
+    val tm = rememberTextMeasurer()
     Canvas(
-        modifier.clipToBounds().background(Ss.MapGround).pointerInput(headingUp) {
+        modifier.clipToBounds().background(Ss.MapGround)
+            // „3D”: mapa pochylona jak widok z kabiny
+            .graphicsLayer {
+                if (tilt) { rotationX = 48f; cameraDistance = 9f * density; transformOrigin = TransformOrigin(0.5f, 0.72f) }
+            }
+            .pointerInput(headingUp, locked) {
+            if (locked) return@pointerInput
             // dotknięcie ciągnika zamienia przód z tyłem (jak w AgOpenGPS)
             detectTapGestures { tap ->
                 val tx = size.width / 2f
@@ -545,10 +620,9 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
                     val b = base + dir * r.toDouble()
                     val active = k == s.passIndex
                     drawLine(
-                        if (active) Ss.Accent else if (k == 0) Ss.MapLine.copy(alpha = 0.6f) else Ss.Dim,
+                        if (active) Ss.GuideLine else Ss.MapLine.copy(alpha = if (k == 0) 0.75f else 0.45f),
                         o(a), o(b),
-                        (if (active) 3f else 1.5f) * px,
-                        pathEffect = if (active || k == 0) null else PathEffect.dashPathEffect(floatArrayOf(8f * px, 8f * px)),
+                        (if (active) 4f else 1.5f) * px,
                     )
                 }
                 drawCircle(Ss.MapLine, 6f * px, o(l.a))
@@ -570,7 +644,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
                     lineTo(o(b - tf * 0.35).x, o(b - tf * 0.35).y); lineTo(o(a - tf * 0.35).x, o(a - tf * 0.35).y); close()
                 }
                 drawPath(quad, if (s.sections.on[i]) Ss.Accent else Ss.Dim)
-                drawPath(quad, Ss.Ground, style = Stroke(width = 1.5f * px))
+                drawPath(quad, Ss.OnAccent, style = Stroke(width = 1.5f * px))
             }
 
             // ciągnik: prosty trójkąt w kolorze z projektu, czubek = przód
@@ -583,9 +657,39 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, mo
                     lineTo(o(p - rt * 1.1 - fwd * 0.6).x, o(p - rt * 1.1 - fwd * 0.6).y)
                     close()
                 }
-                drawPath(tri, Ss.TractorBody)
-                drawPath(tri, Ss.Ground, style = Stroke(width = 1.5f * px))
-                s.antenna?.let { drawCircle(Ss.Text, 3f * px, o(it)) }
+                drawPath(tri, Ss.Tractor)
+                drawPath(tri, Ss.Text, style = Stroke(width = 2f * px))
+                drawCircle(Ss.Text, 4f * px, o(p))
+            }
+        }
+
+        // numery przejazdów u góry ekranu (jak w AgOpenGPS): aktywny na żółto
+        val l = s.line.takeIf { s.mode == GuidanceMode.AB }
+        if (l != null) {
+            val th = if (headingUp) -hw.viewHeading else 0.0
+            val cosT = kotlin.math.cos(th).toFloat()
+            val sinT = kotlin.math.sin(th).toFloat()
+            fun screen(p: Vec2): Offset {
+                val vx = ((p.x - cam.x) * sc).toFloat()
+                val vy = (-(p.y - cam.y) * sc).toFloat()
+                return Offset(size.width / 2 + vx * cosT - vy * sinT, size.height / 2 + vx * sinT + vy * cosT)
+            }
+            val up = if (headingUp) viewFwd else Vec2(0.0, 1.0)
+            val top = cam + up * ((size.height / 2 - 64f * density) / sc).toDouble()
+            val dir = Vec2.forward(l.heading)
+            val right = Vec2.right(l.heading)
+            val w = s.profile.passSpacing
+            val rad = 17f * density
+            for (k in s.passIndex - 8..s.passIndex + 8) {
+                val base = l.a + right * (k * w)
+                val pt = base + dir * ((top - base) dot dir)
+                val c = screen(pt)
+                if (c.x < rad || c.x > size.width - rad || c.y < 0 || c.y > size.height) continue
+                val active = k == s.passIndex
+                drawCircle(if (active) Ss.GuideLine else Ss.Bar.copy(alpha = 0.9f), rad, c)
+                drawCircle(if (active) Ss.GuideLine else Ss.MapLine.copy(alpha = 0.7f), rad, c, style = Stroke(width = 2f * density))
+                val layout = tm.measure(k.toString(), TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (active) Ss.OnWarning else Ss.Text))
+                drawText(layout, topLeft = Offset(c.x - layout.size.width / 2f, c.y - layout.size.height / 2f))
             }
         }
     }

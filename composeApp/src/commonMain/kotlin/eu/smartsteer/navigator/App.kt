@@ -38,6 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import eu.smartsteer.navigator.ui.DemoController
+import eu.smartsteer.navigator.core.field.Polygon
+import eu.smartsteer.navigator.core.gps.FixQuality
+import eu.smartsteer.navigator.core.settings.nowText
 import eu.smartsteer.navigator.ui.brandImage
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.UpdateBanner
@@ -157,6 +160,7 @@ private fun TopBar(ctrl: DemoController, hw: HardwareController) {
     val h = hw.session
     val hwOn = hw.hardware
     val gpsOk = hwOn && h.gpsAlive(hw.now())
+    if (hwOn) { HwTopBar(hw); return }
     Row(
         Modifier.fillMaxWidth().height(64.dp).background(Ss.Surface).padding(start = 20.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -191,6 +195,132 @@ private fun TopBar(ctrl: DemoController, hw: HardwareController) {
                 Text((if (hwOn) h.speedKmh else s.speedKmh).pl(1), color = Ss.Text, fontSize = 26.sp, fontWeight = FontWeight.Bold)
                 Text("km/h", color = Ss.TextMuted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp))
             }
+        }
+    }
+}
+
+/**
+ * Górny pasek w trybie Sprzęt (układ jak w nawigacjach rolniczych, kolory WAR):
+ * godzina · RTK i satelity · wiek poprawek · dokładność · lightbar z odchyłką · autoster · wydajność i koniec · prędkość · powierzchnia.
+ */
+@Composable
+private fun HwTopBar(hw: HardwareController) {
+    hw.tick
+    val h = hw.session
+    val now = hw.now()
+    val gpsOk = h.gpsAlive(now)
+    val g = h.lastGga
+    val rtk = gpsOk && h.fix == FixQuality.RTK_FIX
+    val stamp = remember(hw.tick / 50) { runCatching { nowText() }.getOrDefault("") }
+    val clock = stamp.takeLast(5)
+    val stateColor = when {
+        !gpsOk -> Ss.Danger
+        h.engaged -> Ss.Accent
+        !rtk -> Ss.Warning
+        else -> Ss.Leaf
+    }
+    Column(Modifier.fillMaxWidth().background(Ss.Bar)) {
+        Row(
+            Modifier.fillMaxWidth().height(62.dp).padding(start = 14.dp, end = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            val brand = remember { brandImage() }
+            if (brand != null) Image(brand, contentDescription = "WAR Navigator", modifier = Modifier.height(26.dp))
+            else NavIcon(IconKind.Logo, Ss.Accent, 26.dp)
+            Text(clock, color = Ss.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            // RTK + satelity
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                val label = if (gpsOk) h.fix.label else "BRAK GPS"
+                Box(
+                    Modifier.clip(RoundedCornerShape(8.dp)).background(if (rtk) Ss.Accent else if (gpsOk) Ss.Warning else Ss.Danger)
+                        .padding(horizontal = 10.dp, vertical = 3.dp),
+                ) { Text(label, color = if (rtk) Ss.OnAccent else Ss.Ground, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+                Text(
+                    "${if (gpsOk && g != null) g.satellites else "—"} SAT${if (hw.ntripReceiving) " · NTRIP" else ""}",
+                    color = Ss.TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                )
+            }
+            TopStat(g?.correctionAge?.takeIf { gpsOk }?.let { "${it.pl(0)} s" } ?: "—", "POPRAWKI",
+                if (gpsOk && (g?.correctionAge ?: 99.0) <= 5) Ss.Text else Ss.Warning)
+            TopStat(if (gpsOk) accuracyText(h.fix) else "—", "DOKŁADNOŚĆ", if (rtk) Ss.Text else Ss.Warning)
+            val hasLine = h.line != null || h.curveRef != null || h.contour.guide.isNotEmpty()
+            HwLightBar(if (hasLine && gpsOk) h.xteCm else null, Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                NavIcon(IconKind.Wheel, if (h.engaged) Ss.Accent else Ss.TextMuted, 26.dp, 2.2f)
+                Text(if (h.engaged) "AUTO" else "RĘCZNIE", color = if (h.engaged) Ss.Accent else Ss.TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+            // wydajność i przewidywany koniec (gdy znamy granicę pola)
+            val haH = h.speedKmh * h.profile.passSpacing / 10.0
+            val left = h.boundary?.let { (Polygon.area(it) - h.coverage.workedM2).coerceAtLeast(0.0) / 10_000 }
+            val end = if (left != null && haH > 0.3 && h.sections.anyOn()) endClock(clock, left / haH) else null
+            TopStat("${haH.pl(1)} ha/h", if (end != null) "KONIEC $end" else "WYDAJNOŚĆ")
+            TopStat("${h.speedKmh.pl(1)} km/h", "PRĘDKOŚĆ")
+            TopStat("${(h.coverage.workedM2 / 10_000).pl(2)} ha", "POWIERZCHNIA")
+        }
+        Box(Modifier.fillMaxWidth().height(3.dp).background(stateColor))
+    }
+}
+
+@Composable
+private fun TopStat(value: String, label: String, color: androidx.compose.ui.graphics.Color = Ss.Text) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        Text(value, color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(label, color = Ss.TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
+}
+
+/** Przybliżona dokładność pozycji dla danego rodzaju poprawki. */
+private fun accuracyText(f: FixQuality) = when (f) {
+    FixQuality.RTK_FIX -> "2 cm"
+    FixQuality.RTK_FLOAT -> "20 cm"
+    FixQuality.DGPS -> "50 cm"
+    FixQuality.GPS -> "1.5 m"
+    else -> "—"
+}
+
+/** Godzina „hh:mm” za [hours] godzin. */
+private fun endClock(clock: String, hours: Double): String? {
+    val parts = clock.split(":")
+    val hh = parts.getOrNull(0)?.toIntOrNull() ?: return null
+    val mm = parts.getOrNull(1)?.toIntOrNull() ?: return null
+    if (hours > 48) return null
+    val t = (hh * 60 + mm + (hours * 60).toInt()) % (24 * 60)
+    return "${(t / 60).toString().padStart(2, '0')}:${(t % 60).toString().padStart(2, '0')}"
+}
+
+/** Lightbar z odchyłką w środku: kratki po 2 cm na lewo i prawo, [xteCm] = null — brak linii. */
+@Composable
+private fun HwLightBar(xteCm: Double?, modifier: Modifier) {
+    val x = xteCm ?: 0.0
+    val a = abs(x)
+    val lit = if (xteCm == null || a < 1.5) 0 else minOf(8, ceil(a / 2.0).toInt())
+    val centerColor = when {
+        xteCm == null -> Ss.SurfaceHigh
+        lit == 0 -> Ss.Accent
+        lit < 5 -> Ss.Warning
+        else -> Ss.Danger
+    }
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally)) {
+        for (d in -8..8) {
+            if (d == 0) {
+                Box(
+                    Modifier.width(92.dp).height(42.dp).clip(RoundedCornerShape(10.dp)).background(centerColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        if (xteCm == null) "—" else "${a.pl(if (a < 10) 1 else 0)}",
+                        color = if (xteCm == null) Ss.TextMuted else Ss.Ground, fontSize = 24.sp, fontWeight = FontWeight.Bold,
+                    )
+                }
+                continue
+            }
+            val on = lit > 0 && abs(d) <= lit && (d > 0) == (x > 0)
+            val color = when {
+                on -> if (abs(d) >= 5) Ss.Danger else Ss.Warning
+                else -> Ss.Border
+            }
+            Box(Modifier.size(width = 9.dp, height = if (abs(d) % 4 == 0) 22.dp else 14.dp).clip(RoundedCornerShape(3.dp)).background(color))
         }
     }
 }

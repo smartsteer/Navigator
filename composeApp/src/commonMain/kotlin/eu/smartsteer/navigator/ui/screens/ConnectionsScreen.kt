@@ -85,6 +85,18 @@ private fun ModePanel(hw: HardwareController) {
                 selectedColor = { if (it == 1) Ss.Accent else Ss.Warning },
             )
         }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("Symulacja jazdy", color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Label("Udaje odbiornik RTK i moduł skrętu — można przećwiczyć linie, autoster, sekcje i zawroty bez ciągnika. W polu wyłącz.", Ss.TextMuted, 13.sp)
+            }
+            Segmented(
+                options = listOf("WYŁ.", "WŁ."),
+                selected = if (hw.simulating) 1 else 0,
+                onSelect = { hw.setSimulation(it == 1) },
+                selectedColor = { if (it == 1) Ss.Warning else Ss.TextMuted },
+            )
+        }
         hw.linkError?.let { Label(it, Ss.Warning, 14.sp) }
         if (hw.hardware) hw.sendError?.let { Label("Wysyłka: $it", Ss.Warning, 13.sp) }
     }

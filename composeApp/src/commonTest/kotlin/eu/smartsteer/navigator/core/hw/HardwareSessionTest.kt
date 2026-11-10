@@ -224,4 +224,23 @@ class HardwareSessionTest {
         h.flipHeading()
         assertTrue(abs(h.headingRad - 12 * PI / 180) < 1e-9)
     }
+
+    @Test
+    fun simulatedDrivingFollowsAbLine() {
+        val sim = eu.smartsteer.navigator.core.sim.SimReceiver()
+        val h = HardwareSession(VehicleProfile(antennaPivot = 0.0))
+        var t = 0.0
+        fun feed() {
+            h.onNmea(sim.vtg(), t); h.onNmea(sim.gga(), t)
+            val f = sim.pgn253(); h.onDatagram(f, f.size, t)
+            h.update(t)
+        }
+        feed()
+        h.restoreLine(AbLine(Vec2(1.0, 0.0), Vec2(1.0, 50.0))) // linia 1 m w prawo
+        repeat(20) { sim.step(0.1, null); t += 0.1; feed() }
+        assertNull(h.setEngaged(true, t))
+        repeat(400) { sim.step(0.1, if (h.engaged) h.steerSetDeg else null); t += 0.1; feed() }
+        assertTrue(h.engaged)
+        assertTrue(abs(h.xteCm) < 5.0, "odchyłka ${h.xteCm} cm")
+    }
 }

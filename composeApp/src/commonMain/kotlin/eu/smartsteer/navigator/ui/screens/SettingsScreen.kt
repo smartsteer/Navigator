@@ -25,6 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import eu.smartsteer.navigator.core.ntrip.Ntrip
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -360,9 +363,10 @@ private fun ColumnScope.NtripTab(hw: HardwareController) {
     }
     Field("Adres castera", host, "np. system.asgeupos.pl") { host = it }
     Field("Port", port, "2101", number = true) { port = it.filter { ch -> ch.isDigit() }.take(5) }
-    Field("Punkt montowania (mountpoint)", mount, "np. NAWGEO_POJ_3_1") { mount = it }
     Field("Login", user, "") { user = it }
     Field("Hasło", pass, "", password = true) { pass = it }
+    Field("Punkt montowania (mountpoint)", mount, "np. NAWGEO_POJ_3_1") { mount = it }
+    MountPicker(hw, host, port, user, pass, mount) { mount = it }
     Num("Wysyłaj pozycję do castera co", "Potrzebne dla sieci VRS; 0 = nie wysyłaj", c.ggaIntervalS.toDouble(), "s", 1.0, 0.0, 60.0, 0) {
         hw.updateNtrip(hw.ntripConfig.copy(ggaIntervalS = it.toInt()))
     }
@@ -380,6 +384,56 @@ private fun ColumnScope.NtripTab(hw: HardwareController) {
         }
     }
     Label("Hasło zapisuje się w pliku ustawień na tym urządzeniu (tak jak w AgIO).", Ss.TextMuted, 12.sp)
+}
+
+/** Lista aktywnych punktów montowania z castera — najbliższe najpierw; dotknięcie wybiera punkt. */
+@Composable
+private fun MountPicker(hw: HardwareController, host: String, port: String, user: String, pass: String, selected: String, onPick: (String) -> Unit) {
+    val scope = rememberCoroutineScope()
+    var showAll by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ActionButton(onClick = {
+            scope.launch { hw.fetchMounts(host, port.toIntOrNull() ?: 2101, user, pass) }
+        }) { ButtonText(if (hw.mountsLoading) "Pobieram…" else "Pobierz aktywne punkty z castera") }
+        hw.mountsStatus?.let { Label(it, if (hw.mounts.isEmpty() && !hw.mountsLoading) Ss.Warning else Ss.TextSoft, 13.sp) }
+    }
+    if (hw.mounts.isEmpty()) return
+    val g = hw.session.lastGga
+    val sorted = remember(hw.mounts, g?.latitude?.let { (it * 100).toInt() }, g?.longitude?.let { (it * 100).toInt() }) {
+        Ntrip.sortByDistance(hw.mounts, g?.latitude, g?.longitude)
+    }
+    if (g == null) Label("Brak pozycji GPS — lista alfabetyczna. Z pozycją najbliższe stacje będą na górze.", Ss.TextMuted, 12.sp)
+    val shown = if (showAll) sorted else sorted.take(12)
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Ss.Surface).border(1.dp, Ss.Border, RoundedCornerShape(12.dp)),
+    ) {
+        shown.forEachIndexed { i, (m, km) ->
+            val cur = m.name == selected
+            if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Ss.Border))
+            Row(
+                Modifier.fillMaxWidth().background(if (cur) Ss.AccentSoft else Ss.Surface)
+                    .clickable { onPick(m.name) }.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(m.name, color = if (cur) Ss.Accent else Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Label(
+                        listOf(m.identifier, m.format, m.navSystem).filter { it.isNotEmpty() }.joinToString(" · "),
+                        Ss.TextMuted, 12.sp,
+                    )
+                }
+                if (m.nmea || m.networkSolution) Pill("VRS / sieć", Ss.Info)
+                Text(km?.let { "${it.pl(if (it < 10) 1 else 0)} km" } ?: "—", color = Ss.TextSoft, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+    if (sorted.size > 12) {
+        ActionButton(onClick = { showAll = !showAll }) {
+            ButtonText(if (showAll) "Pokaż tylko najbliższe" else "Pokaż wszystkie (${sorted.size})", color = Ss.TextSoft)
+        }
+    }
+    Label("Po wybraniu punktu naciśnij „Zapisz i połącz”.", Ss.TextMuted, 12.sp)
 }
 
 @Composable

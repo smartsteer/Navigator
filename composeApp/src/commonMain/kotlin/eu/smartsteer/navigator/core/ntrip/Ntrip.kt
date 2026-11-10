@@ -2,6 +2,7 @@ package eu.smartsteer.navigator.core.ntrip
 
 import eu.smartsteer.navigator.core.update.MiniJson
 import kotlin.math.abs
+import kotlin.math.PI
 import kotlin.math.floor
 
 /** Ustawienia klienta NTRIP (poprawki RTK przez internet tabletu). */
@@ -64,6 +65,65 @@ object Ntrip {
         if (c.user.isNotEmpty()) sb.append("Authorization: Basic ").append(base64("${c.user}:${c.password}".encodeToByteArray())).append("\r\n")
         sb.append("Accept: */*\r\nConnection: close\r\n\r\n")
         return sb.toString().encodeToByteArray()
+    }
+
+    /** Zapytanie o listę punktów montowania (sourcetable): „GET /” bez nazwy punktu. */
+    fun sourcetableRequest(c: NtripConfig): ByteArray = request(c.copy(mount = ""))
+
+    /**
+     * Punkt montowania z listy castera (wiersz STR):
+     * STR;nazwa;opis;format;szczegóły;faza;systemy;sieć;kraj;szer;dług;nmea;rozwiązanie;generator;kompresja;autoryzacja;opłata;bitrate;…
+     */
+    data class Mount(
+        val name: String,
+        val identifier: String,
+        val format: String,
+        val navSystem: String,
+        val network: String,
+        val country: String,
+        val lat: Double?,
+        val lon: Double?,
+        /** Caster chce naszej pozycji (GGA) — zwykle sieć VRS. */
+        val nmea: Boolean,
+        /** 1 = rozwiązanie sieciowe (VRS / MAC), 0 = jedna stacja. */
+        val networkSolution: Boolean,
+        val auth: String,
+    )
+
+    /** Wiersze STR z odpowiedzi castera. */
+    fun parseSourcetable(text: String): List<Mount> = text.lineSequence().mapNotNull { line ->
+        val l = line.trim()
+        if (!l.startsWith("STR;")) return@mapNotNull null
+        val f = l.split(';')
+        fun at(i: Int) = f.getOrNull(i)?.trim().orEmpty()
+        val name = at(1)
+        if (name.isEmpty()) return@mapNotNull null
+        val lat = at(9).toDoubleOrNull()
+        val lon = at(10).toDoubleOrNull()
+        val zero = lat == 0.0 && lon == 0.0
+        Mount(
+            name = name, identifier = at(2), format = at(3), navSystem = at(6), network = at(7), country = at(8),
+            lat = if (zero) null else lat, lon = if (zero) null else lon,
+            nmea = at(11) == "1", networkSolution = at(12) == "1", auth = at(15),
+        )
+    }.toList()
+
+    /** Odległość po kuli ziemskiej, km. */
+    fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = PI / 180
+        val dLat = (lat2 - lat1) * r
+        val dLon = (lon2 - lon1) * r
+        val a = kotlin.math.sin(dLat / 2).let { it * it } +
+            kotlin.math.cos(lat1 * r) * kotlin.math.cos(lat2 * r) * kotlin.math.sin(dLon / 2).let { it * it }
+        return 2 * 6371.0 * kotlin.math.asin(kotlin.math.sqrt(a.coerceIn(0.0, 1.0)))
+    }
+
+    /** Lista posortowana: najbliższe najpierw (bez współrzędnych na końcu, alfabetycznie). */
+    fun sortByDistance(list: List<Mount>, lat: Double?, lon: Double?): List<Pair<Mount, Double?>> {
+        val withD = list.map { m ->
+            m to if (lat != null && lon != null && m.lat != null && m.lon != null) distanceKm(lat, lon, m.lat, m.lon) else null
+        }
+        return withD.sortedWith(compareBy<Pair<Mount, Double?>> { it.second == null }.thenBy { it.second ?: 0.0 }.thenBy { it.first.name })
     }
 
     enum class Reply { OK, UNAUTHORIZED, SOURCETABLE, ERROR }
