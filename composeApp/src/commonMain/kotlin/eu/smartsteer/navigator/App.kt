@@ -76,13 +76,14 @@ enum class Screen(val label: String, val icon: IconKind) {
     Settings("Ustawienia", IconKind.Settings),
 }
 
+/** [hwIn] i [startScreen] — tylko do zrzutów ekranu w testach. */
 @Composable
-fun App() {
+fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
     SmartSteerTheme {
         val ctrl = remember { DemoController() }
-        var screen by remember { mutableStateOf(Screen.Map) }
+        var screen by remember { mutableStateOf(startScreen) }
         val upd = remember { UpdateController() }
-        val hw = remember { HardwareController() }
+        val hw = remember { hwIn ?: HardwareController() }
 
         // sieć modułów (tryb Sprzęt): odbiór i wysyłka PGN 254 co 100 ms
         LaunchedEffect(hw) { hw.run() }
