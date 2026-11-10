@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,8 +22,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.core.field.Polygon
 import eu.smartsteer.navigator.core.settings.openFolder
 import eu.smartsteer.navigator.ui.HardwareController
+import eu.smartsteer.navigator.ui.components.TextInput
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
 import eu.smartsteer.navigator.ui.components.IconKind
@@ -61,18 +59,9 @@ fun HardwareFieldsScreen(hw: HardwareController) {
         ) {
             SectionTitle("Nowe pole")
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BasicTextField(
-                    value = newName,
-                    onValueChange = { newName = it.take(40) },
-                    singleLine = true,
-                    textStyle = TextStyle(color = Ss.Text, fontSize = 18.sp),
-                    cursorBrush = SolidColor(Ss.Accent),
-                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Ss.Ground)
-                        .border(1.dp, Ss.BorderStrong, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 14.dp),
-                    decorationBox = { inner ->
-                        if (newName.isEmpty()) Text("np. Za stodołą", color = Ss.TextMuted, fontSize = 18.sp)
-                        inner()
-                    },
+                TextInput(
+                    newName, { newName = it }, title = "Nazwa nowego pola", modifier = Modifier.weight(1f),
+                    hint = "np. Za stodołą", maxLength = 40, fontSize = 18.sp,
                 )
                 ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = {
                     val err = hw.newField(newName)

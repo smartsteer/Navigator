@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,8 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +34,8 @@ import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.net.localAddresses
 import eu.smartsteer.navigator.ui.DemoController
 import eu.smartsteer.navigator.ui.HardwareController
+import eu.smartsteer.navigator.ui.components.KeypadMode
+import eu.smartsteer.navigator.ui.components.TextInput
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
 import eu.smartsteer.navigator.ui.components.Label
@@ -101,14 +100,10 @@ private fun NetworkPanel(hw: HardwareController) {
         SectionTitle("Sieć płytki")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Sieć modułów", color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            BasicTextField(
-                value = text,
-                onValueChange = { v -> text = v.filter { it.isDigit() || it == '.' }.take(11) },
-                singleLine = true,
-                textStyle = TextStyle(color = Ss.Text, fontSize = 18.sp),
-                cursorBrush = SolidColor(Ss.Accent),
-                modifier = Modifier.width(150.dp).clip(RoundedCornerShape(10.dp)).background(Ss.Ground)
-                    .border(1.dp, Ss.BorderStrong, RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 12.dp),
+            TextInput(
+                text, { text = it }, title = "Sieć modułów (trzy pierwsze liczby adresu)", modifier = Modifier.width(150.dp),
+                hint = "192.168.5", mode = KeypadMode.Ip, maxLength = 11, fontSize = 18.sp,
+                filter = { v -> v.filter { it.isDigit() || it == '.' } },
             )
             Text(".x", color = Ss.TextMuted, fontSize = 18.sp)
             ActionButton(onClick = { msg = hw.setSubnet(text) ?: "Zapisano" }) { ButtonText("Zapisz") }

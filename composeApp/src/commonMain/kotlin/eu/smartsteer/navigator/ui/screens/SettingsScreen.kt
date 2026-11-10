@@ -2,25 +2,12 @@ package eu.smartsteer.navigator.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,8 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +44,10 @@ import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
 import eu.smartsteer.navigator.ui.components.IconKind
+import eu.smartsteer.navigator.ui.components.Keypad
+import eu.smartsteer.navigator.ui.components.KeypadMode
+import eu.smartsteer.navigator.ui.components.KeypadRequest
+import eu.smartsteer.navigator.ui.components.TextInput
 import eu.smartsteer.navigator.ui.components.Label
 import eu.smartsteer.navigator.ui.components.NavIcon
 import eu.smartsteer.navigator.ui.components.Panel
@@ -463,20 +451,10 @@ private fun Field(label: String, value: String, hint: String, password: Boolean 
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(label, Modifier.width(240.dp), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        BasicTextField(
-            value = value,
-            onValueChange = onChange,
-            singleLine = true,
-            textStyle = TextStyle(color = Ss.Text, fontSize = 17.sp),
-            cursorBrush = SolidColor(Ss.Accent),
-            visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
-            keyboardOptions = KeyboardOptions(keyboardType = if (number) KeyboardType.Number else if (password) KeyboardType.Password else KeyboardType.Text),
-            modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(Ss.Ground)
-                .border(1.dp, Ss.BorderStrong, RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 12.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty() && hint.isNotEmpty()) Text(hint, color = Ss.TextMuted, fontSize = 17.sp)
-                inner()
-            },
+        TextInput(
+            value, onChange, title = label, modifier = Modifier.weight(1f), hint = hint, password = password,
+            mode = if (number) KeypadMode.Number else KeypadMode.Text,
+            filter = if (number) { v -> v.filter { it.isDigit() } } else { v -> v },
         )
     }
 }
@@ -508,18 +486,9 @@ private fun ColumnScope.ProfilesTab(hw: HardwareController) {
     }
     SectionTitle("Zapisz jako nowy profil")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        BasicTextField(
-            value = newName,
-            onValueChange = { newName = it.take(40) },
-            singleLine = true,
-            textStyle = TextStyle(color = Ss.Text, fontSize = 18.sp),
-            cursorBrush = SolidColor(Ss.Accent),
-            modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Ss.Ground)
-                .border(1.dp, Ss.BorderStrong, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 14.dp),
-            decorationBox = { inner ->
-                if (newName.isEmpty()) Text("np. Fendt 724 + siewnik 6 m", color = Ss.TextMuted, fontSize = 18.sp)
-                inner()
-            },
+        TextInput(
+            newName, { newName = it }, title = "Nazwa nowego profilu", modifier = Modifier.weight(1f),
+            hint = "np. Fendt 724 + siewnik 6 m", maxLength = 40, fontSize = 18.sp,
         )
         ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = {
             val err = hw.saveProfileAs(newName)
@@ -656,7 +625,7 @@ private fun Num(
             if (minusLabel != null) ButtonText(minusLabel, size = 18.sp) else NavIcon(IconKind.Minus, Ss.Text, 20.dp)
         }
         NumberField(
-            value, decimals, fmt?.invoke(value) ?: (value.pl(decimals) + if (unit.isNotEmpty()) " $unit" else ""),
+            label, value, decimals, fmt?.invoke(value) ?: (value.pl(decimals) + if (unit.isNotEmpty()) " $unit" else ""),
             min, max, onChange, Modifier.width(150.dp),
         )
         ActionButton(Modifier.width(56.dp), onClick = { change(1) }) {
@@ -665,47 +634,30 @@ private fun Num(
     }
 }
 
-/** Liczba, którą można wpisać z klawiatury: dotknięcie → pole edycji, „Gotowe” albo odejście → zapis. */
+/** Liczba, którą można wpisać: dotknięcie → klawisz numeryczny na ekranie (Windows i Android), OK → zapis. */
 @Composable
 private fun NumberField(
-    value: Double, decimals: Int, display: String, min: Double, max: Double,
+    title: String, value: Double, decimals: Int, display: String, min: Double, max: Double,
     onCommit: (Double) -> Unit, modifier: Modifier,
 ) {
-    var editing by remember { mutableStateOf(false) }
-    var text by remember { mutableStateOf("") }
-    var hadFocus by remember { mutableStateOf(false) }
-    val focus = remember { FocusRequester() }
-    fun commit() {
-        val v = text.replace('−', '-').replace(',', '.').replace(" ", "").toDoubleOrNull()
-        if (v != null) onCommit(v.coerceIn(min, max))
-        editing = false
-        hadFocus = false
-    }
     val shape = RoundedCornerShape(10.dp)
-    if (!editing) {
-        Box(
-            modifier.clip(shape).background(Ss.Ground).border(1.dp, Ss.Border, shape)
-                .clickable { text = value.pl(decimals).replace('−', '-'); editing = true }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) { Text(display, color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
-    } else {
-        BasicTextField(
-            value = text,
-            onValueChange = { v -> text = v.filter { it.isDigit() || it in ".,-−" }.take(10) },
-            singleLine = true,
-            textStyle = TextStyle(color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
-            cursorBrush = SolidColor(Ss.Accent),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { commit() }),
-            modifier = modifier.clip(shape).background(Ss.Ground).border(2.dp, Ss.Accent, shape)
-                .focusRequester(focus)
-                .onFocusChanged { if (it.isFocused) hadFocus = true else if (hadFocus && editing) commit() }
-                .onPreviewKeyEvent { e -> if (e.key == Key.Enter || e.key == Key.NumPadEnter) { commit(); true } else false }
-                .padding(vertical = 12.dp),
-        )
-        LaunchedEffect(Unit) { focus.requestFocus() }
-    }
+    Box(
+        modifier.clip(shape).background(Ss.Ground).border(1.dp, Ss.Border, shape)
+            .clickable {
+                Keypad.open(KeypadRequest(
+                    title = title,
+                    initial = value.pl(decimals).replace('−', '-').replace(" ", ""),
+                    mode = KeypadMode.Number,
+                    hint = "Zakres: ${min.pl(decimals)} … ${max.pl(decimals)}",
+                    maxLength = 12,
+                    filter = { v -> v.filter { it.isDigit() || it in ".,-−" } },
+                ) { t ->
+                    t.replace('−', '-').replace(',', '.').toDoubleOrNull()?.let { onCommit(it.coerceIn(min, max)) }
+                })
+            }
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(display, color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
 }
 
 @Composable

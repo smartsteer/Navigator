@@ -41,6 +41,7 @@ import eu.smartsteer.navigator.ui.DemoController
 import eu.smartsteer.navigator.ui.brandImage
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.UpdateBanner
+import eu.smartsteer.navigator.ui.components.KeypadHost
 import eu.smartsteer.navigator.ui.UpdateController
 import eu.smartsteer.navigator.ui.components.IconKind
 import eu.smartsteer.navigator.ui.components.NavIcon
@@ -131,6 +132,8 @@ fun App() {
                 }
             }
         }
+        // klawiatura na ekranie (liczby; tekst na Windows) — nad wszystkim
+        KeypadHost()
             }
         }
     }
