@@ -4,7 +4,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.unit.Density
 import eu.smartsteer.navigator.core.geo.Vec2
-import eu.smartsteer.navigator.core.guidance.AbLine
+import eu.smartsteer.navigator.core.hw.AbLine
 import eu.smartsteer.navigator.core.sim.SimReceiver
 import eu.smartsteer.navigator.ui.HardwareController
 import org.jetbrains.skia.EncodedImageFormat
