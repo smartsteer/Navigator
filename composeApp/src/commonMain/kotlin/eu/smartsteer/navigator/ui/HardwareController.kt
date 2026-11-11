@@ -718,7 +718,7 @@ class HardwareController {
         return try {
             toolPresets.save(name, profile)
             toolNames = toolPresets.names()
-            setCurrentTool(name)
+            rememberTool(name)
             null
         } catch (e: Exception) { "Nie udało się zapisać: ${e.message}" }
     }
@@ -728,17 +728,17 @@ class HardwareController {
         val t = toolPresets.load(name) ?: return "Maszyna „$name” jest uszkodzona"
         if (session.engaged) session.setEngaged(false, now())
         updateProfile(ToolPresets.apply(profile, t))
-        setCurrentTool(name)
+        rememberTool(name)
         return null
     }
 
     fun deleteTool(name: String) {
         toolPresets.delete(name)
         toolNames = toolPresets.names()
-        if (currentTool == name) setCurrentTool("")
+        if (currentTool == name) rememberTool("")
     }
 
-    private fun setCurrentTool(n: String) {
+    private fun rememberTool(n: String) {
         currentTool = n
         try { files.write("maszyna.txt", n) } catch (_: Exception) {}
         tick++
