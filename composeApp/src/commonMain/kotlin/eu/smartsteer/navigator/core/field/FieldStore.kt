@@ -32,6 +32,8 @@ data class FieldData(
     val flags: List<Flag> = emptyList(),
     /** Przeszkody wewnątrz pola (oczko wodne, słup, kępa drzew) — sekcje się na nich wyłączają. */
     val obstacles: List<List<Vec2>> = emptyList(),
+    /** Mapa zmiennych dawek (aplikacyjna) wczytana do pola. */
+    val rateMap: RateMap? = null,
 ) {
     fun toJson(): String = buildString {
         append("{\n")
@@ -61,7 +63,16 @@ data class FieldData(
             append("{\"x\": ${n(f.p.x)}, \"y\": ${n(f.p.y)}, \"color\": ${f.color}, \"note\": \"").append(esc(f.note)).append("\"}")
         }
         append("],\n")
-        append("  \"obstacles\": [").append(obstacles.joinToString(", ") { pts(it) }).append("]\n")
+        append("  \"obstacles\": [").append(obstacles.joinToString(", ") { pts(it) }).append("],\n")
+        append("  \"rateMap\": ")
+        val rm = rateMap
+        if (rm == null) append("null") else {
+            append("{\"name\": \"").append(esc(rm.name)).append("\", \"unit\": \"").append(esc(rm.unit)).append("\", \"default\": ").append(rm.defaultRate)
+            append(", \"zones\": [")
+            rm.zones.forEachIndexed { i, z -> if (i > 0) append(", "); append("{\"rate\": ").append(z.rate).append(", \"poly\": ").append(pts(z.poly)).append("}") }
+            append("]}")
+        }
+        append("\n")
         append("}\n")
     }
 
@@ -97,6 +108,15 @@ data class FieldData(
                     Flag(Vec2(x, y), ((f["color"] as? Double) ?: 0.0).toInt(), (f["note"] as? String).orEmpty())
                 },
                 obstacles = (m["obstacles"] as? List<*>).orEmpty().mapNotNull { readPts(it)?.takeIf { p -> p.size >= 3 } },
+                rateMap = (m["rateMap"] as? Map<*, *>)?.let { r ->
+                    val zones = (r["zones"] as? List<*>).orEmpty().mapNotNull { e ->
+                        val z = e as? Map<*, *> ?: return@mapNotNull null
+                        val rate = z["rate"] as? Double ?: return@mapNotNull null
+                        val poly = readPts(z["poly"])?.takeIf { it.size >= 3 } ?: return@mapNotNull null
+                        RateZone(poly, rate)
+                    }
+                    if (zones.isEmpty()) null else RateMap((r["name"] as? String).orEmpty(), (r["unit"] as? String).orEmpty(), zones, (r["default"] as? Double) ?: 0.0)
+                },
             )
         }
 

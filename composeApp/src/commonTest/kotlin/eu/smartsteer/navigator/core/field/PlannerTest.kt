@@ -134,3 +134,39 @@ class CoverageOutlineTest {
         assertTrue(!Polygon.contains(o, Vec2(20.0, 70.0)))
     }
 }
+
+class RateMapTest {
+    private val geo = """{"type":"FeatureCollection","features":[
+      {"type":"Feature","properties":{"id":1,"Dawka":120.5},"geometry":{"type":"Polygon","coordinates":[[[21.0,52.0],[21.001,52.0],[21.001,52.001],[21.0,52.001],[21.0,52.0]]]}},
+      {"type":"Feature","properties":{"id":2,"Dawka":"200"},"geometry":{"type":"MultiPolygon","coordinates":[[[[21.001,52.0],[21.002,52.0],[21.002,52.001],[21.001,52.001]]]]}}]}"""
+
+    @Test
+    fun geoJsonZonesAndRateAt() {
+        val pl = eu.smartsteer.navigator.core.geo.LocalPlane(52.0, 21.0)
+        val m = assertNotNull(RateMapImport.parse(geo, "Saletra", pl))
+        assertEquals(2, m.zones.size)
+        assertEquals("kg/ha", m.unit)
+        assertEquals(120.5, m.rateAt(pl.toLocal(52.0005, 21.0005)))
+        assertEquals(200.0, m.rateAt(pl.toLocal(52.0005, 21.0015)))
+        assertEquals(0.0, m.rateAt(pl.toLocal(52.01, 21.01)))
+        // zapis w polu
+        val f = FieldData("P", 52.0, 21.0, rateMap = m)
+        val back = assertNotNull(FieldData.fromJson(f.toJson()))
+        val rb = assertNotNull(back.rateMap)
+        assertEquals(m.zones.map { it.rate }, rb.zones.map { it.rate })
+        assertEquals(m.unit, rb.unit)
+        // ramka PGN 224
+        val fr = RateMap.frame(120.5, 0, true)
+        assertEquals(0xE0, fr[3].toInt() and 0xFF)
+        assertEquals(1205, (fr[5].toInt() and 0xFF) or ((fr[6].toInt() and 0xFF) shl 8))
+    }
+
+    @Test
+    fun kmlZones() {
+        val kml = "<kml><Document><Placemark><name>Strefa 1</name><ExtendedData><Data name=\"rate\"><value>85</value></Data></ExtendedData>" +
+            "<Polygon><outerBoundaryIs><LinearRing><coordinates>21.0,52.0 21.001,52.0 21.001,52.001 21.0,52.001</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>"
+        val pl = eu.smartsteer.navigator.core.geo.LocalPlane(52.0, 21.0)
+        val m = assertNotNull(RateMapImport.parse(kml, "x", pl))
+        assertEquals(85.0, m.rateAt(pl.toLocal(52.0005, 21.0005)))
+    }
+}

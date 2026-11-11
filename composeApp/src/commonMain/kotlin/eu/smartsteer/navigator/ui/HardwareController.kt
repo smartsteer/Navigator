@@ -1,6 +1,8 @@
 package eu.smartsteer.navigator.ui
 
 import eu.smartsteer.navigator.core.sim.SimReceiver
+import eu.smartsteer.navigator.ui.pl
+import eu.smartsteer.navigator.core.field.RateMapImport
 import eu.smartsteer.navigator.core.hw.AutoTune
 import eu.smartsteer.navigator.core.hw.GuidanceMode
 import eu.smartsteer.navigator.ui.power.PowerPlatform
@@ -219,6 +221,27 @@ class HardwareController {
             l.endsWith(".kml") || l.endsWith(".xml") || importDir.read("$n/TASKDATA.XML") != null || importDir.read("$n/taskdata.xml") != null
         }.sortedBy { it.lowercase() }
     } catch (e: Exception) { emptyList() }
+
+    /** Pliki map dawek w folderze importu: *.geojson, *.json, *.kml. */
+    fun rateMapCandidates(): List<String> = try {
+        importDir.list().filter { n -> val l = n.lowercase(); l.endsWith(".geojson") || l.endsWith(".json") || l.endsWith(".kml") }.sortedBy { it.lowercase() }
+    } catch (e: Exception) { emptyList() }
+
+    /** Wczytuje mapę dawek do otwartego pola. */
+    fun importRateMap(name: String): String {
+        val pl = session.plane ?: return "Najpierw otwórz pole"
+        if (session.fieldName == null) return "Najpierw otwórz pole"
+        val text = importDir.read(name) ?: return "Nie można odczytać „$name”"
+        val m = RateMapImport.parse(text, name.substringBeforeLast('.'), pl) ?: return "W „$name” nie ma stref z dawką (wielokąty z liczbą we właściwościach)"
+        session.rateMap = m
+        saveField()
+        tick++
+        return "Mapa dawek „${m.name}”: ${m.zones.size} stref, ${m.minRate.pl(0)}–${m.maxRate.pl(0)} ${m.unit}"
+    }
+
+    fun clearRateMap() { session.rateMap = null; saveField(); tick++ }
+
+    fun setDefaultRate(v: Double) { session.rateMap = session.rateMap?.copy(defaultRate = v); saveField(); tick++ }
 
     /** Wczytuje pola z pliku do listy pól. Zwraca komunikat dla rolnika. */
     fun importFile(name: String): String {
@@ -1034,7 +1057,8 @@ class HardwareController {
             val machine = session.machineFrame()
             if (l != null) {
                 val s64 = session.sections64Frame()
-                sendError = withContext(Dispatchers.Default) { l.send(frame) ?: l.send(machine) ?: s64?.let { l.send(it) } }
+                val rate = session.rateFrame()
+                sendError = withContext(Dispatchers.Default) { l.send(frame) ?: l.send(machine) ?: s64?.let { l.send(it) } ?: rate?.let { l.send(it) } }
                 if (sendError == null) txCount++
                 if (configDirty && now() - configChangedAt > 1.5) {
                     val f252 = session.steerSettingsFrame()

@@ -188,6 +188,27 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                 }
             }
 
+            SectionTitle("Mapa dawek (zmienne dawkowanie)")
+            run {
+                val rm = s.rateMap
+                if (rm != null) {
+                    Label("„${rm.name}”: ${rm.zones.size} stref, ${rm.minRate.pl(0)}–${rm.maxRate.pl(0)} ${rm.unit} · poza strefami ${rm.defaultRate.pl(0)}", Ss.Accent, 14.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ActionButton(onClick = { hw.setDefaultRate(rm.minRate) }) { ButtonText("Poza strefami: najmniejsza", size = 13.sp) }
+                        ActionButton(onClick = { hw.setDefaultRate(0.0) }) { ButtonText("Poza strefami: 0", size = 13.sp) }
+                        ActionButton(onClick = { hw.clearRateMap(); msg = "Mapa dawek usunięta" }) { ButtonText("Usuń mapę", color = Ss.TextSoft, size = 13.sp) }
+                    }
+                }
+                val cands = remember(hw.tick / 50) { hw.rateMapCandidates() }
+                if (cands.isEmpty()) {
+                    Label("Wrzuć plik mapy (GeoJSON albo KML ze strefami i dawką) do folderu: ${hw.importLocation}", Ss.TextMuted, 13.sp)
+                } else {
+                    Label("Pliki w folderze importu — dotknij, żeby wczytać do otwartego pola:", Ss.TextMuted, 13.sp)
+                    cands.forEach { n -> ActionButton(onClick = { msg = hw.importRateMap(n) }) { ButtonText(n, size = 13.sp) } }
+                }
+                Label("Dawka w miejscu maszyny (z wyprzedzeniem) widać na mapie i idzie do sterownika dawki jako PGN 224 (opis w docs/LACZENIE.md).", Ss.TextMuted, 12.sp)
+            }
+
             SectionTitle("Mapa pola bez internetu")
             run {
                 val src = eu.smartsteer.navigator.core.map.TileSource.entries.getOrElse(eu.smartsteer.navigator.ui.DisplayPrefs.background) { eu.smartsteer.navigator.core.map.TileSource.NONE }

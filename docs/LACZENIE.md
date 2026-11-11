@@ -25,3 +25,21 @@ Ten sam samouczek jest w aplikacji: ekran **Połączenia → Samouczek łączeni
 Połączenia → **Szukaj modułów** pokazuje adres każdego modułu. Jeśli płytka była przestawiona w AgIO na inną sieć:
 - albo **„Ustaw aplikację na sieć modułów”** (i komputerowi nadaj adres z tej sieci, np. `192.168.1.10`),
 - albo wpisz `192.168.5` i **„Przestaw moduły na 192.168.5.x”**, potem wyłącz i włącz płytkę.
+
+## Ramki do modułu maszyny (własne rozszerzenia WAR Navigatora)
+
+Oprócz standardowych PGN AgOpenGPS (254 do modułu skrętu, 239/238 do modułu maszyny) program wysyła na port 8888:
+
+| PGN | Kiedy | Dane (8 bajtów) |
+|-----|-------|-----------------|
+| 229 (0xE5) | więcej niż 16 sekcji | bity sekcji 1–64 (bajt 0 bit 0 = sekcja 1) — jak w AgOpenGPS |
+| 224 (0xE0) | wczytana mapa dawek | bajty 0–1: dawka × 10 (LE, bez znaku), bajt 2: nr strefy + 1 (0 = poza strefami), bajt 3: 1 = sekcje pracują |
+
+PGN 239 bajt 2 (podnośnik): 0 = nieużywany, 1 = opuść, 2 = podnieś. Bajt 3 (ścieżki technologiczne): bit 0 = ślad po prawej, bit 1 = po lewej.
+Moduły, które nie znają danego PGN, po prostu go pomijają.
+
+## Mapy dawek
+
+Plik GeoJSON (Polygon / MultiPolygon) albo KML (Placemark z wielokątem) ze strefami; dawka to liczba we właściwościach strefy
+(nazwa zawierająca np. „dawka”, „rate”, „dose”, „norma” — albo pierwsza liczba). Plik wrzuca się do folderu importu
+(Dokumenty\SmartSteer\Import) i wczytuje na ekranie Pola do otwartego pola.

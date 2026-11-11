@@ -12,6 +12,7 @@ import eu.smartsteer.navigator.core.gps.Gga
 import eu.smartsteer.navigator.core.gps.Nmea
 import eu.smartsteer.navigator.core.field.Coverage
 import eu.smartsteer.navigator.core.field.FieldData
+import eu.smartsteer.navigator.core.field.RateMap
 import eu.smartsteer.navigator.core.field.FieldPlanner
 import eu.smartsteer.navigator.core.field.Flag
 import eu.smartsteer.navigator.core.field.Track
@@ -368,6 +369,24 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             engaged = false
         } else if (i < activeTrack) activeTrack--
         ok("Usunięto „${t.name}”")
+    }
+
+    // ---------------- mapa dawek ----------------
+    var rateMap: RateMap? = null
+
+    /** Dawka docelowa tam, gdzie za chwilę będzie maszyna (wyprzedzenie włączania sekcji) i numer strefy. */
+    fun rateNow(): Pair<Double, Int>? {
+        val m = rateMap ?: return null
+        val tp = sections.toolPos ?: return null
+        val q = tp + Vec2.forward(sections.toolHeading) * (speedKmh / 3.6 * profile.lookAheadOn)
+        for (i in m.zones.indices.reversed()) if (Polygon.contains(m.zones[i].poly, q)) return m.zones[i].rate to i
+        return m.defaultRate to -1
+    }
+
+    /** PGN 224 z dawką (tylko gdy jest mapa dawek). */
+    fun rateFrame(): ByteArray? {
+        val (r, z) = rateNow() ?: return null
+        return RateMap.frame(r, z, sections.anyOn())
     }
 
     // ---------------- linie z granicy ----------------
@@ -963,6 +982,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         }
         flags.addAll(f.flags)
         obstacles.addAll(f.obstacles)
+        rateMap = f.rateMap
         coverage.loadText(coverageText)
         ok("Pole „${f.name}” wczytane")
     }
@@ -973,7 +993,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val pl = plane ?: return null
         return FieldData(
             n, pl.originLat, pl.originLon, boundary, headlandWidth, line, curveRef?.map { it.p }, fieldWarId,
-            tracks.toList(), activeTrack, flags.toList(), obstacles.toList(),
+            tracks.toList(), activeTrack, flags.toList(), obstacles.toList(), rateMap,
         )
     }
 
@@ -984,7 +1004,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         coverage.clear(); sections.reset()
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         contour.clear(); engaged = false; youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null
         ok("Pole zamknięte")
     }
 
@@ -995,7 +1015,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         engaged = false; pathHint = -1; steering.reset(); youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null
     }
 
     fun startBoundary(): Boolean {

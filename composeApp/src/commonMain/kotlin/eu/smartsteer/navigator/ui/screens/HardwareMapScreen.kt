@@ -115,6 +115,7 @@ fun HardwareMapScreen(hw: HardwareController) {
         HwInfo(hw, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 16.dp))
         OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
         HeadlandHint(hw, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
+        RatePill(hw, Modifier.align(Alignment.TopCenter).padding(top = 215.dp))
         TunePendingCard(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp).width(380.dp))
 
         // prawa kolumna: linia, zawrót, sekcje
@@ -327,6 +328,21 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
             color = if (s.gpsAlive(now)) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
         )
     }
+}
+
+/** Dawka z mapy dawek w miejscu maszyny. */
+@Composable
+private fun RatePill(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val s = hw.session
+    val rm = s.rateMap ?: return
+    val (rate, zone) = s.rateNow() ?: return
+    Text(
+        "Dawka ${rate.pl(0)} ${rm.unit}${if (zone < 0) " (poza strefami)" else ""}",
+        modifier.clip(RoundedCornerShape(12.dp)).background(Ss.Bar.copy(alpha = 0.92f)).border(1.dp, Ss.Accent, RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+    )
 }
 
 /** Podpowiedź przy ręcznym podnoszeniu: ile metrów zostało maszynie do uwrocia / do pola. */
@@ -723,6 +739,16 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             }
             s.headland?.let { h ->
                 drawPath(polygonPath(h), Ss.Warning.copy(alpha = 0.8f), style = Stroke(width = 1.5f * px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f * px, 6f * px))))
+            }
+            // mapa dawek: im większa dawka, tym ciemniejsza zieleń
+            s.rateMap?.let { rm ->
+                val lo = rm.minRate; val span = (rm.maxRate - lo).coerceAtLeast(1e-6)
+                for (z in rm.zones) {
+                    val f = ((z.rate - lo) / span).toFloat().coerceIn(0f, 1f)
+                    val c = androidx.compose.ui.graphics.lerp(Color(0xFFF2E86D), Color(0xFF1B7F3B), f)
+                    drawPath(polygonPath(z.poly), c.copy(alpha = 0.35f))
+                    drawPath(polygonPath(z.poly), c.copy(alpha = 0.8f), style = Stroke(width = 1.5f * px))
+                }
             }
             // przeszkody (sekcje się na nich wyłączają)
             for (ob in s.obstacles) {
