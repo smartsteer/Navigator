@@ -288,6 +288,19 @@ class WarController(private val hw: HardwareController, private val files: TextF
         return true
     }
 
+    /** Zdarzenie dla gospodarza w WAR (np. zatrzymanie przez przeszkodę) — paczka „zdarzenie” do skrzynki prac. */
+    fun reportEvent(kind: String, text: String) {
+        if (!configured) return
+        val s = hw.session
+        val g = s.lastGga
+        val id = "ev-${config.machineId}-${nowMillis()}"
+        enqueue(id, Json.obj(
+            "typ" to "zdarzenie", "v" to 1, "id" to id, "rodzaj" to kind, "tekst" to text.take(200), "komputer" to config.machineId,
+            "pojazd" to config.tractorName.ifEmpty { hw.profileName }, "pole" to s.fieldName, "t" to nowIso(),
+            "lat" to g?.latitude, "lon" to g?.longitude, "kmh" to Json.Raw(((s.speedKmh * 10).toInt() / 10.0).toString()),
+        ))
+    }
+
     /** Wysyła bieżące pokrycie pola do WAR (wspólna praca kilku maszyn). */
     fun sendLiveCoverage(warId: String, fieldName: String, g: CoverageGrid) {
         val id = "pk-${config.machineId}-${nowMillis()}"
