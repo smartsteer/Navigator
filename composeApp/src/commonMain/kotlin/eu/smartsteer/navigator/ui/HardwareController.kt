@@ -677,6 +677,8 @@ class HardwareController {
 
     private var stopRequested = false
 
+    private val modeFile = "tryb.cfg"
+
     fun setHardwareMode(on: Boolean) {
         if (on == hardware) return
         if (on) {
@@ -695,11 +697,16 @@ class HardwareController {
             stopRequested = true // pętla wyśle ostatnią ramkę „autoster wyłączony” i zamknie gniazdo
         }
         hardware = on
+        // zapamiętujemy tryb — po ponownym uruchomieniu aplikacja startuje tak, jak ją zostawiono
+        try { files.write(modeFile, if (on) "sprzet" else "symulator") } catch (_: Exception) {}
         tick++
     }
 
     /** Pętla: odbiór pakietów i wysyłka PGN 254 co 100 ms (tylko w trybie Sprzęt). */
     suspend fun run() = coroutineScope {
+        // tryb z poprzedniego uruchomienia (SPRZĘT albo symulacja jazdy)
+        val saved = runCatching { files.read(modeFile)?.trim() }.getOrNull()
+        if (!hardware && (saved == "sprzet" || simulating)) setHardwareMode(true)
         launch { war.loop() }
         launch {
             for (p in inbox) {
