@@ -137,6 +137,10 @@ data class VehicleProfile(
     /** Dawka ustawiona na rozsiewaczu przy prędkości [rateBaseSpeed]; 0 = sterownik dawki (PGN 224), bez podpowiedzi. */
     val rateBase: Double = 0.0,
     val rateBaseSpeed: Double = 10.0,
+    /** Jak podpowiadać dawkę: 0 = prędkością (stałe otwarcie), 1 = krokami w sterowniku rozsiewacza (np. ±10%). */
+    val rateHintMode: Int = 0,
+    /** Krok zmiany dawki w sterowniku, %. */
+    val rateStepPct: Double = 10.0,
 
     // --- Nadzór autosteru (0 = wyłączone) ---
     /** Wyłącz, gdy brak RTK FIX dłużej niż tyle sekund. */
@@ -242,7 +246,7 @@ data class VehicleProfile(
         "hydLowerTime" to hydLowerTime, "machineUser1" to machineUser1, "machineUser2" to machineUser2,
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
         "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "hydAuto" to hydAuto,
-        "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed,
+        "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed, "rateHintMode" to rateHintMode, "rateStepPct" to rateStepPct,
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
@@ -303,6 +307,8 @@ data class VehicleProfile(
                 hydAuto = bool("hydAuto", d.hydAuto),
                 rateBase = num("rateBase", d.rateBase),
                 rateBaseSpeed = num("rateBaseSpeed", d.rateBaseSpeed),
+                rateHintMode = int("rateHintMode", d.rateHintMode),
+                rateStepPct = num("rateStepPct", d.rateStepPct),
                 supRtkLossS = num("supRtkLossS", d.supRtkLossS),
                 supMaxXteM = num("supMaxXteM", d.supMaxXteM),
                 supSteerErrDeg = num("supSteerErrDeg", d.supSteerErrDeg),

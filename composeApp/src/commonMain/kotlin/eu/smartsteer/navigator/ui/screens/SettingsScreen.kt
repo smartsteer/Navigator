@@ -198,11 +198,17 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
         Num("Przesunięcie układu", "O ile przejazdów przesunąć ścieżki względem linii AB", p.tramShift.toDouble(), "", 1.0, -30.0, 30.0, 0) { set(p.copy(tramShift = it.toInt())) }
         Label("Moduł maszyny dostaje bity śladu (PGN 239): wyłącza sekcje nad śladem kół — po prawej albo lewej stronie.", Ss.TextMuted, 12.sp)
     }
-    SectionTitle("Mapa dawek bez sterownika")
-    Num("Dawka ustawiona na rozsiewaczu", "Przy stałym otwarciu dawka zależy od prędkości. 0 = jest sterownik dawki (bez podpowiedzi)", p.rateBase, "", 5.0, 0.0, 2000.0, 0) { set(p.copy(rateBase = it)) }
+    SectionTitle("Mapa dawek — rozsiewacz niepodłączony do Navigatora")
+    Num("Dawka ustawiona (100%)", "0 = rozsiewacz dostaje dawkę z Navigatora (PGN 224), bez podpowiedzi", p.rateBase, "", 5.0, 0.0, 2000.0, 0) { set(p.copy(rateBase = it)) }
     if (p.rateBase > 0) {
-        Num("…przy prędkości", null, p.rateBaseSpeed, "km/h", 0.5, 2.0, 30.0, 1) { set(p.copy(rateBaseSpeed = it)) }
-        Label("Na mapie: jaką prędkością jechać, żeby wyszła dawka z mapy, albo o ile zmienić ustawienie dawki przy obecnej prędkości.", Ss.TextMuted, 12.sp)
+        Choice("Podpowiedź", listOf("Prędkością", "Krokami %"), p.rateHintMode) { set(p.copy(rateHintMode = it)) }
+        if (p.rateHintMode == 0) {
+            Num("…przy prędkości", "Stałe otwarcie (bez sterownika): dawka maleje, gdy jedziesz szybciej", p.rateBaseSpeed, "km/h", 0.5, 2.0, 30.0, 1) { set(p.copy(rateBaseSpeed = it)) }
+            Label("Na mapie: „ZWOLNIJ / PRZYŚPIESZ o X km/h” albo „ustaw na rozsiewaczu Y”.", Ss.TextMuted, 12.sp)
+        } else {
+            Num("Krok zmiany w sterowniku", "Sterownik rozsiewacza sam trzyma dawkę przy każdej prędkości, a przyciskiem zmieniasz ją o krok", p.rateStepPct, "%", 1.0, 1.0, 50.0, 0) { set(p.copy(rateStepPct = it)) }
+            Label("Na mapie: „+10% (1 raz)”, „−20% (2 razy)” względem dawki 100% — naciskasz w sterowniku tyle razy.", Ss.TextMuted, 12.sp)
+        }
     }
     SectionTitle("Przełącznik roboczy")
     Toggle("Sekcje tylko przy włączonym przełączniku", p.useWorkSwitch) { set(p.copy(useWorkSwitch = it)) }

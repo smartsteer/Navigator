@@ -344,8 +344,23 @@ private fun RatePill(hw: HardwareController, modifier: Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("Dawka ${rate.pl(0)} ${rm.unit}${if (zone < 0) " (poza strefami)" else ""}", color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        if (p.rateBase > 0 && rate > 0 && p.rateHintMode == 1) {
+            // sterownik rozsiewacza z przyciskami ±krok%: ile razy nacisnąć względem 100%
+            val pct = (rate / p.rateBase - 1) * 100
+            val n = kotlin.math.round(pct / p.rateStepPct).toInt()
+            val setPct = n * p.rateStepPct
+            Text(
+                when {
+                    n == 0 -> "Sterownik: 100% (bez zmian)"
+                    n > 0 -> "Sterownik: +${setPct.pl(0)}% (${n}× „+”)"
+                    else -> "Sterownik: −${(-setPct).pl(0)}% (${-n}× „−”)"
+                },
+                color = if (n == 0) Ss.Accent else Ss.Warning, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+            )
+            Text("= ${(p.rateBase * (1 + setPct / 100)).pl(0)} ${rm.unit} (mapa: ${rate.pl(0)})", color = Ss.TextSoft, fontSize = 13.sp)
+        }
         // bez sterownika: dawka ∝ 1 / prędkość przy stałym otwarciu rozsiewacza
-        if (p.rateBase > 0 && rate > 0) {
+        if (p.rateBase > 0 && rate > 0 && p.rateHintMode == 0) {
             val vNeed = p.rateBase * p.rateBaseSpeed / rate
             val v = s.speedKmh
             val dv = vNeed - v
