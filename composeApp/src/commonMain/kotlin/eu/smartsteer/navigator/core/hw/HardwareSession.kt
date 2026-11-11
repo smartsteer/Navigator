@@ -227,6 +227,11 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         autosteer?.let { wasCal.sample(pv, headingRad, it.actualAngleDeg, speedKmh) }
         sections.updateTool(pv, headingRad, profile)
         sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles)
+        // mapa wykonania: szerokość pracujących sekcji i dawka z mapy
+        if (sections.anyOn()) {
+            val w = profile.sectionWidthsEffective.withIndex().sumOf { (i, sw) -> if (i < Sections.MAX && sections.on[i]) sw else 0.0 }
+            sections.toolPos?.let { tp -> applied.record(tp, eu.smartsteer.navigator.core.war.nowMillis() / 1000, speedKmh, w, rateNow()?.first) }
+        }
     }
 
     /**
@@ -399,6 +404,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         } else if (i < activeTrack) activeTrack--
         ok("Usunięto „${t.name}”")
     }
+
+    /** Mapa wykonania otwartego pola. */
+    val applied = eu.smartsteer.navigator.core.field.AppliedLog()
 
     // ---------------- mapa dawek ----------------
     var rateMap: RateMap? = null
@@ -1117,7 +1125,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         coverage.clear(); sections.reset()
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         contour.clear(); engaged = false; youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear()
         ok("Pole zamknięte")
     }
 
@@ -1128,7 +1136,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         engaged = false; pathHint = -1; steering.reset(); youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear()
     }
 
     fun startBoundary(): Boolean {

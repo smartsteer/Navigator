@@ -157,6 +157,10 @@ class FieldStore(private val files: TextFiles) {
         return f to (files.read(name + COVERAGE) ?: "")
     }
 
+    /** Dodatkowy plik pola (np. mapa wykonania „.wykonanie.csv”). */
+    fun saveExtra(name: String, suffix: String, text: String) = files.write(Profiles.sanitize(name) + suffix, text)
+    fun loadExtra(name: String, suffix: String): String? = files.read(name + suffix)
+
     /** Samo pole (bez mapy pokrycia) — do szukania, na którym polu stoi ciągnik. */
     fun loadData(name: String): FieldData? = files.read(name + EXT)?.let { FieldData.fromJson(it) }
 

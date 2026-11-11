@@ -67,6 +67,8 @@ import kotlin.time.TimeSource
  * Tryb Sprzęt: sieć UDP + [HardwareSession]. Pakiety z wątku sieci trafiają do kolejki,
  * a całą logikę wykonujemy w jednym miejscu (wątek UI), więc nie ma wyścigów.
  */
+private const val APPLIED = ".wykonanie.csv"
+
 class HardwareController {
     var hardware by mutableStateOf(false)
         private set
@@ -202,6 +204,7 @@ class HardwareController {
         val f = session.fieldData() ?: return "Żadne pole nie jest otwarte"
         return try {
             fieldStore.save(f, session.coverage.toText())
+            fieldStore.saveExtra(f.name, APPLIED, session.applied.toText())
             lastFieldSaveS = now()
             fieldError = null
             refreshFields()
@@ -424,6 +427,20 @@ class HardwareController {
         } catch (e: Exception) { "Nie udało się: ${e.message}" }
     }
 
+    /** Zapisuje wszystko i zamyka program (przycisk „Zamknij”): autoster wyłączony, pole zapisane z raportem. */
+    var exiting by mutableStateOf(false)
+        private set
+    private var exitCountdown = 0
+
+    fun closeApp() {
+        if (exiting) return
+        exiting = true
+        if (session.engaged) session.setEngaged(false, now())
+        if (session.fieldName != null) saveField()
+        if (hardware) setHardwareMode(false) // pętla wyśle „autoster wyłączony” do płytki
+        tick++
+    }
+
     /** Eksport otwartego pola: KML i ISOXML (folder TASKDATA) w folderze raportów. */
     fun exportField(): String {
         val f = session.fieldData() ?: return "Żadne pole nie jest otwarte"
@@ -431,7 +448,9 @@ class HardwareController {
         return try {
             exportDir.write("$base.kml", eu.smartsteer.navigator.core.io.FieldExport.kml(f))
             exportDir.write("$base ISOXML/TASKDATA/TASKDATA.XML", eu.smartsteer.navigator.core.io.FieldExport.isoxml(f))
-            "Zapisano „$base.kml” i „$base ISOXML/TASKDATA” w ${exportDir.location}"
+            val pl = session.plane
+            if (pl != null && session.applied.points.isNotEmpty()) exportDir.write("$base wykonanie.geojson", session.applied.toGeoJson(pl, f.name))
+            "Zapisano „$base.kml”, „$base ISOXML/TASKDATA”${if (session.applied.points.isNotEmpty()) " i mapę wykonania" else ""} w ${exportDir.location}"
         } catch (e: Exception) { "Nie udało się: ${e.message}" }
     }
 
@@ -469,6 +488,7 @@ class HardwareController {
         session.fieldName?.let { saveField(); if (session.coverage.workedM2 > 0) writeReport(); war.onFieldClosed() }
         val (f, cov) = fieldStore.load(name) ?: return "Pole „$name” jest uszkodzone"
         session.openField(f, cov)
+        runCatching { fieldStore.loadExtra(name, APPLIED) }.getOrNull()?.let { session.applied.loadText(it) }
         fieldStartedText = nowText()
         fieldStartedIso = nowIso()
         war.onFieldOpened(f.warId)
@@ -1219,6 +1239,7 @@ class HardwareController {
         while (true) {
             delay(100)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
+            if (exiting) { exitCountdown++; if (exitCountdown >= 8) eu.smartsteer.navigator.ui.power.PowerPlatform.exit(false) }
             powerStep()
             if (hardware) fieldLocatorStep()
             voiceStep()

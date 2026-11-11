@@ -28,7 +28,7 @@ fun main() = application {
     }
     Window(
         icon = icon,
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = { eu.smartsteer.navigator.ui.power.AppExit.onRequest?.invoke() ?: exitApplication() },
         title = "WAR Navigator",
         state = state,
         onPreviewKeyEvent = { e ->

@@ -9,6 +9,11 @@ object PowerState {
     var external by mutableStateOf<Boolean?>(null)
 }
 
+/** Zamknięcie okna (X na Windows) przechodzi przez zapis wszystkiego — ustawia App. */
+object AppExit {
+    var onRequest: (() -> Unit)? = null
+}
+
 /** Funkcje systemu: autostart, obserwacja zasilania, zamknięcie. */
 expect object PowerPlatform {
     /** Czy system pozwala ustawić autostart z programu. */

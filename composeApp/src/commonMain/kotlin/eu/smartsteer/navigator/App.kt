@@ -84,6 +84,8 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
         var screen by remember { mutableStateOf(startScreen) }
         val upd = remember { UpdateController() }
         val hw = remember { hwIn ?: HardwareController() }
+        // X w oknie / przycisk Zamknij: najpierw zapis pola i wyłączenie autosteru
+        LaunchedEffect(hw) { eu.smartsteer.navigator.ui.power.AppExit.onRequest = { hw.closeApp() } }
 
         // sieć modułów (tryb Sprzęt): odbiór i wysyłka PGN 254 co 100 ms
         LaunchedEffect(hw) { hw.run() }
@@ -128,7 +130,7 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
             TopBar(ctrl, hw)
             UpdateBar(upd, ctrl, hw)
             Row(Modifier.fillMaxSize()) {
-                NavRail(screen) { screen = it }
+                NavRail(screen, onClose = { hw.closeApp() }) { screen = it }
                 Box(Modifier.fillMaxSize()) {
                     when (screen) {
                         Screen.Map -> if (hw.hardware) HardwareMapScreen(hw) else MapScreen(ctrl)
@@ -152,6 +154,12 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
 /** Pasek odliczania po zaniku zasilania z ciągnika. */
 @Composable
 private fun PowerBanner(hw: HardwareController) {
+    if (hw.exiting) {
+        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
+            Text("Zapisuję pole i zamykam…", color = androidx.compose.ui.graphics.Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        }
+        return
+    }
     val left = hw.powerCountdown ?: return
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Row(
@@ -387,7 +395,7 @@ private fun LightBar(xteCm: Double, modifier: Modifier) {
 }
 
 @Composable
-private fun NavRail(current: Screen, onSelect: (Screen) -> Unit) {
+private fun NavRail(current: Screen, onClose: () -> Unit, onSelect: (Screen) -> Unit) {
     Column(
         Modifier.width(88.dp).fillMaxHeight().background(Ss.Surface).padding(vertical = 10.dp, horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -410,6 +418,26 @@ private fun NavRail(current: Screen, onSelect: (Screen) -> Unit) {
         RailToggle(if (DisplayPrefs.day) "DZIEŃ" else "NOC", DisplayPrefs.day) { DisplayPrefs.updateDay(!DisplayPrefs.day) }
         RailToggle("TABLET", DisplayPrefs.tablet) { DisplayPrefs.updateTablet(!DisplayPrefs.tablet) }
         if (DisplayPrefs.fullScreenSupported) RailToggle("PEŁNY\nEKRAN", DisplayPrefs.fullScreen) { DisplayPrefs.toggleFullScreen() }
+        CloseButton(onClose)
+    }
+}
+
+/** Zamknięcie programu: pierwsze dotknięcie pyta, drugie (w ciągu 4 s) zapisuje wszystko i zamyka. */
+@Composable
+private fun CloseButton(onClose: () -> Unit) {
+    var armed by remember { mutableStateOf(false) }
+    LaunchedEffect(armed) { if (armed) { delay(4000); armed = false } }
+    Box(
+        Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(10.dp))
+            .background(if (armed) Ss.Danger else Ss.SurfaceHigh)
+            .clickable(role = Role.Button) { if (armed) onClose() else armed = true },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            if (armed) "NA PEWNO?\nDOTKNIJ" else "ZAMKNIJ",
+            color = if (armed) androidx.compose.ui.graphics.Color.White else Ss.Danger, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp,
+        )
     }
 }
 
