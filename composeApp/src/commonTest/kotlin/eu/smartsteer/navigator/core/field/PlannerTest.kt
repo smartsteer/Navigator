@@ -89,4 +89,15 @@ class TramlinesTest {
         // jazda w drugą stronę zamienia strony
         assertEquals(1, Tramlines.bits(2, 6.0, 4, 1.8, 0.5, 0, reversed = true))
     }
+
+    @Test
+    fun pgn229CarriesSectionsAbove16() {
+        val bits = (1L shl 0) or (1L shl 17) or (1L shl 63)
+        val f = Sections.sections64Frame(bits)
+        assertEquals(0xE5, f[3].toInt() and 0xFF)
+        assertEquals(8, f[4].toInt())
+        assertEquals(1, f[5].toInt() and 0xFF)
+        assertEquals(2, f[7].toInt() and 0xFF)   // sekcja 18 = bajt 2, bit 1
+        assertEquals(0x80, f[12].toInt() and 0xFF)
+    }
 }

@@ -1,6 +1,8 @@
 package eu.smartsteer.navigator.ui
 
 import eu.smartsteer.navigator.core.sim.SimReceiver
+import eu.smartsteer.navigator.core.net.SerialLink
+import eu.smartsteer.navigator.core.net.SerialPorts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -638,6 +640,8 @@ class HardwareController {
         if (data.isEmpty()) return
         ntripBytes += data.size
         ntripRateBytes += data.size
+        // odbiornik na USB/COM dostaje poprawki bezpośrednio (jak w AgIO)
+        serial?.let { sl -> withContext(Dispatchers.Default) { sl.write(data) } }
         val link = l ?: return
         // RTCM do płytki AIO jak w AgIO: rozgłoszenie UDP na port 2233, w kawałkach mieszczących się w pakiecie
         withContext(Dispatchers.Default) {
@@ -648,6 +652,43 @@ class HardwareController {
                 i = e
             }
         }
+    }
+
+    // ---------------- odbiornik GPS na USB/COM ----------------
+    private val serialFile = "gps-com.cfg"
+    val serialSupported: Boolean get() = SerialPorts.supported
+    var serialPort by mutableStateOf("")
+        private set
+    var serialBaud by mutableStateOf(115200)
+        private set
+    var serialStatus by mutableStateOf("Wyłączony")
+        private set
+    private var serial: SerialLink? = null
+
+    init {
+        runCatching {
+            val t = files.read(serialFile).orEmpty().lines()
+            serialPort = t.getOrNull(0).orEmpty().trim()
+            serialBaud = t.getOrNull(1)?.trim()?.toIntOrNull() ?: 115200
+        }
+    }
+
+    fun serialPorts(): List<String> = SerialPorts.list()
+
+    /** Otwiera port (pusty = wyłącza). Zdania NMEA idą jak z sieci, poprawki NTRIP także do portu. */
+    fun setSerial(port: String, baud: Int) {
+        serial?.close(); serial = null
+        serialPort = port; serialBaud = baud
+        try { files.write(serialFile, "$port\n$baud\n") } catch (_: Exception) {}
+        if (port.isBlank()) { serialStatus = "Wyłączony"; tick++; return }
+        val link = SerialPorts.create()
+        val err = link.open(port, baud,
+            onLine = { line -> inbox.trySend(Packet((line + "\n").encodeToByteArray(), "COM")) },
+            onClosed = { e -> serialStatus = e ?: "Zamknięty"; serial = null },
+        )
+        if (err == null) { serial = link; serialStatus = "Odbieram z ${port.substringBefore(" — ")} ($baud)" } else serialStatus = err
+        if (err == null && !hardware) setHardwareMode(true)
+        tick++
     }
 
     /** Ręczne „Wyślij do płytki”. */
@@ -727,6 +768,7 @@ class HardwareController {
         // tryb z poprzedniego uruchomienia (SPRZĘT albo symulacja jazdy)
         val saved = runCatching { files.read(modeFile)?.trim() }.getOrNull()
         if (!hardware && (saved == "sprzet" || simulating)) setHardwareMode(true)
+        if (serialPort.isNotBlank() && serial == null) setSerial(serialPort, serialBaud)
         // pole otwarte przy poprzednim uruchomieniu (z pokryciem i liniami)
         val lastField = runCatching { files.read(lastFieldFile)?.trim() }.getOrNull()
         if (!lastField.isNullOrEmpty() && session.fieldName == null && runCatching { fieldStore.exists(lastField) }.getOrDefault(false)) {
@@ -778,7 +820,8 @@ class HardwareController {
             val frame = session.steerFrame()
             val machine = session.machineFrame()
             if (l != null) {
-                sendError = withContext(Dispatchers.Default) { l.send(frame) ?: l.send(machine) }
+                val s64 = session.sections64Frame()
+                sendError = withContext(Dispatchers.Default) { l.send(frame) ?: l.send(machine) ?: s64?.let { l.send(it) } }
                 if (sendError == null) txCount++
                 if (configDirty && now() - configChangedAt > 1.5) {
                     val f252 = session.steerSettingsFrame()

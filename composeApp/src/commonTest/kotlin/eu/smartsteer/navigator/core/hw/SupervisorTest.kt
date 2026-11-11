@@ -104,3 +104,24 @@ class SupervisorTest {
         assertTrue(h.tripLog.last().contains("Przerwa"), h.tripLog.toString())
     }
 }
+
+class WasCalibrationTest {
+    @Test
+    fun circleGivesTrueAngleAndNewCounts() {
+        // rozstaw osi 3 m, prawdziwy skręt 15° → promień 3 / tan 15° = 11,2 m; czujnik pokazuje 20° (za dużo impulsów)
+        val wb = 3.0
+        val r = wb / kotlin.math.tan(15 * kotlin.math.PI / 180)
+        val cal = WasCalibration()
+        cal.start()
+        var a = 0.0
+        while (a < 2 * kotlin.math.PI) {
+            val p = eu.smartsteer.navigator.core.geo.Vec2(r * kotlin.math.cos(a) + 5, r * kotlin.math.sin(a) - 2)
+            cal.sample(p, -a, 20.0, 5.0)
+            a += 0.02
+        }
+        val res = kotlin.test.assertNotNull(cal.result(wb, 100))
+        assertTrue(kotlin.math.abs(res.radiusM - r) < 0.01, "promień ${res.radiusM}")
+        assertTrue(kotlin.math.abs(res.trueDeg - 15.0) < 0.05)
+        assertTrue(res.newCountsPerDeg == 133, "impulsy ${res.newCountsPerDeg}")
+    }
+}

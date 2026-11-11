@@ -1,6 +1,7 @@
 package eu.smartsteer.navigator.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +58,7 @@ fun ConnectionsScreen(@Suppress("UNUSED_PARAMETER") ctrl: DemoController, hw: Ha
         ) {
             ModePanel(hw)
             NetworkPanel(hw)
+            if (hw.serialSupported) SerialPanel(hw)
             SectionTitle("Moduły")
             ModulesStatus(hw)
         }
@@ -99,6 +101,43 @@ private fun ModePanel(hw: HardwareController) {
         }
         hw.linkError?.let { Label(it, Ss.Warning, 14.sp) }
         if (hw.hardware) hw.sendError?.let { Label("Wysyłka: $it", Ss.Warning, 13.sp) }
+    }
+}
+
+/** Odbiornik GPS podłączony kablem USB/COM (bez płytki AIO albo obok niej). */
+@Composable
+private fun SerialPanel(hw: HardwareController) {
+    var ports by remember { mutableStateOf(hw.serialPorts()) }
+    var pick by remember { mutableStateOf(hw.serialPort) }
+    var baud by remember { mutableStateOf(hw.serialBaud) }
+    val bauds = listOf(9600, 38400, 115200, 460800)
+    Panel(Modifier.fillMaxWidth()) {
+        SectionTitle("Odbiornik GPS na USB / COM")
+        Label("Gdy odbiornik (np. F9P) jest podłączony kablem do komputera, a nie do płytki. Poprawki NTRIP idą wtedy do tego portu.", Ss.TextMuted, 13.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionButton(onClick = { ports = hw.serialPorts() }) { ButtonText("Odśwież porty", color = Ss.TextSoft) }
+            if (ports.isEmpty()) Label("Brak portów COM", Ss.Warning, 13.sp)
+        }
+        ports.forEach { name ->
+            val cur = name == pick
+            Text(
+                name,
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (cur) Ss.AccentSoft else Ss.SurfaceHigh)
+                    .clickable { pick = name }.padding(horizontal = 12.dp, vertical = 10.dp),
+                color = if (cur) Ss.Accent else Ss.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Prędkość", color = Ss.Text, fontSize = 15.sp)
+            Segmented(bauds.map { it.toString() }, bauds.indexOf(baud).coerceAtLeast(0), { baud = bauds[it] })
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = { if (pick.isNotBlank()) hw.setSerial(pick, baud) }) {
+                ButtonText("Połącz", color = Ss.OnAccent, weight = FontWeight.Bold)
+            }
+            if (hw.serialPort.isNotBlank()) ActionButton(onClick = { hw.setSerial("", baud) }) { ButtonText("Rozłącz", color = Ss.TextSoft) }
+            Label(hw.serialStatus, if (hw.serialStatus.startsWith("Odbieram")) Ss.Accent else Ss.TextSoft, 13.sp)
+        }
     }
 }
 

@@ -110,7 +110,7 @@ object AgoImport {
         i("setArdSteer_maxPulseCounts")?.let { p = p.copy(maxPulseCounts = it) }
         // szerokości sekcji z pozycji krawędzi (setSection_position1…17, od lewej)
         val pos = (1..17).mapNotNull { k -> s["setSection_position$k"]?.replace(',', '.')?.toDoubleOrNull() }
-        val ns = p.numSections.coerceIn(1, 16)
+        val ns = p.numSections.coerceIn(1, 64)
         if (pos.size > ns) {
             val widths = (0 until ns).map { pos[it + 1] - pos[it] }
             if (widths.all { it > 0.01 }) {

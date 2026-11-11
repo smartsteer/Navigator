@@ -29,6 +29,11 @@ object DisplayPrefs {
 
     fun updateBackground(i: Int) { background = i; save() }
 
+    /** Jasny motyw „dzień” (czytelny w pełnym słońcu). */
+    var day by mutableStateOf(saved["dzien"] == "1")
+        private set
+    fun updateDay(on: Boolean) { day = on; save() }
+
     /** Ustawia okno Windows (main.kt); na Androidzie pełny ekran jest zawsze. */
     var fullScreenSupported = false
 
@@ -37,6 +42,6 @@ object DisplayPrefs {
     fun toggleFullScreen() = updateFullScreen(!fullScreen)
 
     private fun save() {
-        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\n") }
+        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\n") }
     }
 }

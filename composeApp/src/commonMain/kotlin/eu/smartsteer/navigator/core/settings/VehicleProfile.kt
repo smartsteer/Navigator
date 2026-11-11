@@ -177,7 +177,7 @@ data class VehicleProfile(
     /** Szerokości sekcji (równe, gdy nie wpisano własnych albo liczba się nie zgadza). */
     val sectionWidthsEffective: List<Double>
         get() {
-            val n = numSections.coerceIn(1, 16)
+            val n = numSections.coerceIn(1, 64)
             return if (sectionWidths.size == n && sectionWidths.all { it > 0 }) sectionWidths else List(n) { toolWidth / n }
         }
 
@@ -304,7 +304,7 @@ data class VehicleProfile(
                 hitchLength = num("hitchLength", d.hitchLength),
                 toolTrailing = bool("toolTrailing", d.toolTrailing),
                 trailingHitchLength = num("trailingHitchLength", d.trailingHitchLength),
-                numSections = int("numSections", d.numSections).coerceIn(1, 16),
+                numSections = int("numSections", d.numSections).coerceIn(1, 64),
                 lookAheadOn = num("lookAheadOn", d.lookAheadOn),
                 lookAheadOff = num("lookAheadOff", d.lookAheadOff),
                 slowSpeedCutoff = num("slowSpeedCutoff", d.slowSpeedCutoff),

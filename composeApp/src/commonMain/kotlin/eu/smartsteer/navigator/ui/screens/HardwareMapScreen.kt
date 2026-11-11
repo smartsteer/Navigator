@@ -401,8 +401,8 @@ private fun HwSectionsBar(hw: HardwareController, locked: Boolean, modifier: Mod
     hw.tick
     val s = hw.session
     val sec = s.sections
-    val n = s.profile.numSections.coerceIn(1, 16)
-    val w = if (n > 10) 46.dp else if (n > 6) 56.dp else 68.dp
+    val n = s.profile.numSections.coerceIn(1, 64)
+    val w = if (n > 16) maxOf(10f, 880f / n - 4f).dp else if (n > 10) 46.dp else if (n > 6) 56.dp else 68.dp
     Row(
         modifier.clip(RoundedCornerShape(16.dp)).background(Ss.Bar.copy(alpha = 0.94f))
             .border(1.dp, Ss.Border, RoundedCornerShape(16.dp)).padding(6.dp),
@@ -431,8 +431,8 @@ private fun HwSectionsBar(hw: HardwareController, locked: Boolean, modifier: Mod
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text("${i + 1}", color = fg, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(tag, color = fg.copy(alpha = 0.8f), fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                if (w >= 26.dp) Text("${i + 1}", color = fg, fontSize = if (w >= 40.dp) 17.sp else 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                if (w >= 40.dp) Text(tag, color = fg.copy(alpha = 0.8f), fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
     }
@@ -792,7 +792,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 s.pivot?.let { pv -> drawLine(Ss.MapLine, o(pv), o(hitch), 2f * px) }
             }
             val tf = Vec2.forward(s.sections.toolHeading)
-            for (i in 0 until s.profile.numSections.coerceIn(1, 16)) {
+            for (i in 0 until s.profile.numSections.coerceIn(1, 64)) {
                 val (a, b) = s.sections.edges(i, s.profile) ?: break
                 val quad = Path().apply {
                     moveTo(o(a + tf * 0.35).x, o(a + tf * 0.35).y); lineTo(o(b + tf * 0.35).x, o(b + tf * 0.35).y)

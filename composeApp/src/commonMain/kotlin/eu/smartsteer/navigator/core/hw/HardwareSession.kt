@@ -223,6 +223,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             if (r.isEmpty() || r.last().distanceTo(q) >= 1.0) r.add(q)
         }
         recordingObstacle?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= 0.5) r.add(pv) }
+        autosteer?.let { wasCal.sample(pv, headingRad, it.actualAngleDeg, speedKmh) }
         sections.updateTool(pv, headingRad, profile)
         sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS), obstacles)
     }
@@ -746,14 +747,14 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun steerFrame(): ByteArray = if (freeDrive) {
         // Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs
         // („Drive button”): prędkość na sztywno 8 km/h, status włączony, kąt z przycisków.
-        SteerData(speedKmh = 8.0, autosteerOn = true, steerAngleDeg = freeDriveAngle, lineDistanceCm = 0, sections = sections.bits()).toFrame()
+        SteerData(speedKmh = 8.0, autosteerOn = true, steerAngleDeg = freeDriveAngle, lineDistanceCm = 0, sections = (sections.bits() and 0xFFFF).toInt()).toFrame()
     } else {
         SteerData(
             speedKmh = speedKmh,
             autosteerOn = engaged,
             steerAngleDeg = if (engaged) deadZoned(steerSetDeg) else 0.0,
             lineDistanceCm = xteCm.roundToInt(),
-            sections = sections.bits(),
+            sections = (sections.bits() and 0xFFFF).toInt(),
         ).toFrame()
     }
 
@@ -801,6 +802,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     /** Ramka PGN 239 do modułu maszyny (sekcje). */
     fun machineFrame(): ByteArray = Sections.machineFrame(speedKmh, sections.bits(), hydLiftState(), tramBits())
+
+    /** PGN 229 — tylko przy więcej niż 16 sekcjach. */
+    fun sections64Frame(): ByteArray? = if (profile.numSections > 16) Sections.sections64Frame(sections.bits()) else null
 
     /** Podnośnik włączony przyciskiem na mapie (działa, gdy w profilu jest podnośnik i automat). */
     var hydLiftOn = false
@@ -939,6 +943,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     private fun ok(m: String): Boolean { message = m; return true }
     private fun fail(m: String): Boolean { message = m; return false }
+
+    /** Kalibracja czujnika kąta z jazdy po okręgu (Ustawienia → Moduł skrętu). */
+    val wasCal = WasCalibration()
 
     // ---------------- nadzór ----------------
     private val supervisor = Supervisor()

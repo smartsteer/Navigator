@@ -95,6 +95,7 @@ fun SettingsScreen(hw: HardwareController) {
                     Tab.Vehicle -> {
                         Choice("Dźwięki (autoster, alarmy, zawrót, sekcje)", listOf("WŁ.", "WYŁ."), if (hw.soundOn) 0 else 1) { hw.setSound(it == 0) }
                         Choice("Ekran", listOf("Zwykły", "Tablet (powiększony)"), if (DisplayPrefs.tablet) 1 else 0) { DisplayPrefs.updateTablet(it == 1) }
+                        Choice("Kolory", listOf("Noc (ciemne)", "Dzień (jasne)"), if (DisplayPrefs.day) 1 else 0) { DisplayPrefs.updateDay(it == 1) }
                         if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }
                         Choice("Podkład mapy", eu.smartsteer.navigator.core.map.TileSource.entries.map { it.short }, DisplayPrefs.background) { DisplayPrefs.updateBackground(it) }
                         Label("ORTO = ortofotomapa Polski z Geoportalu, SAT = zdjęcia satelitarne Esri. Raz obejrzane kafelki zostają na dysku; całe pole pobierzesz na ekranie Pola.", Ss.TextMuted, 12.sp)
@@ -163,7 +164,7 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
         ) { set(p.copy(trailingHitchLength = -it)) }
     }
     SectionTitle("Sekcje")
-    Num("Liczba sekcji", null, p.numSections.toDouble(), "", 1.0, 1.0, 16.0, 0) {
+    Num("Liczba sekcji", "Powyżej 16 moduł maszyny dostaje też PGN 229 (do 64 sekcji)", p.numSections.toDouble(), "", 1.0, 1.0, 64.0, 0) {
         set(p.copy(numSections = it.toInt(), sectionWidths = emptyList()))
     }
     val custom = p.sectionWidths.size == p.numSections
@@ -298,6 +299,7 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
         }
         zeroMsg?.let { Label(it, Ss.TextSoft, 14.sp) }
     }
+    WasCalibrationPanel(hw, p, set)
     Num("Ackermann", "Korekta różnicy skrętu w lewo i w prawo", p.ackerman.toDouble(), "%", 1.0, 1.0, 200.0, 0) { set(p.copy(ackerman = it.toInt())) }
     SectionTitle("Martwa strefa")
     Num("Martwa strefa kąta", "Poniżej tej różnicy kąta silnik nie poprawia", p.deadZoneDeg, "°", 0.05, 0.0, 2.0, 2) { set(p.copy(deadZoneDeg = it)) }
@@ -307,6 +309,37 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
     Num("Maksymalny PWM", null, p.highPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(highPwm = it.toInt())) }
     Num("Niski PWM", "Moc przy małych korektach", p.lowPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(lowPwm = it.toInt())) }
     Num("Minimalny PWM", "Najmniejsza moc, przy której koła ruszają", p.minPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(minPwm = it.toInt())) }
+}
+
+/** Kalibracja czujnika kąta z jazdy po okręgu. */
+@Composable
+private fun WasCalibrationPanel(hw: HardwareController, p: VehicleProfile, set: (VehicleProfile) -> Unit) {
+    val cal = hw.session.wasCal
+    SectionTitle("Kalibracja z jazdy w kółko")
+    Label(
+        "Najpierw wyzeruj (koła prosto). Potem na równym terenie: skręć kierownicą mniej więcej do połowy, „Start”, " +
+            "jedź wolno (3–6 km/h) pełne kółko, nie ruszając kierownicą. Program policzy prawdziwy kąt z promienia okręgu.",
+        Ss.TextSoft, 13.sp,
+    )
+    val res = cal.result(p.wheelbase, p.countsPerDegree)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        ActionButton(
+            background = if (cal.running) Ss.Warning else Ss.SurfaceHigh, border = if (cal.running) Ss.Warning else Ss.BorderStrong,
+            onClick = { if (cal.running) cal.stop() else cal.start(); hw.touch() },
+        ) { ButtonText(if (cal.running) "Stop" else "Start", color = if (cal.running) Ss.OnWarning else Ss.Text, weight = FontWeight.Bold) }
+        if (cal.running) Label("Przejechano ${cal.turnedDeg.pl(0)}° z 360°", Ss.TextSoft, 14.sp)
+    }
+    if (res != null) {
+        Label(
+            "Promień ${res.radiusM.pl(1)} m (dopasowanie ±${(res.fitErrorM * 100).pl(0)} cm) · prawdziwy kąt ${res.trueDeg.pl(1)}°, czujnik pokazywał ${res.reportedDeg.pl(1)}° " +
+                "→ impulsy na stopień: ${p.countsPerDegree} → ${res.newCountsPerDeg}",
+            Ss.Accent, 14.sp,
+        )
+        ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = { set(p.copy(countsPerDegree = res.newCountsPerDeg)); cal.stop(); hw.touch() }) {
+            ButtonText("Zastosuj ${res.newCountsPerDeg}", color = Ss.OnAccent, weight = FontWeight.Bold)
+        }
+        if (res.fitErrorM > 0.3) Label("Okrąg nierówny (teren, poślizg?) — lepiej powtórzyć.", Ss.Warning, 12.sp)
+    }
 }
 
 /** Nadzór autosteru: progi samoczynnego wyłączenia i dziennik wyłączeń. */

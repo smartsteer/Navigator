@@ -83,7 +83,7 @@ class FieldTest {
         }
         // 7,2 km/h = 2 m/s, wyłączenie 0,5 s = 1 m przed obrobionym pasem
         assertTrue(abs(offAt - 19.0) < 0.5, "wyłączenie przy y = $offAt")
-        assertEquals(0b111, run {
+        assertEquals(0b111L, run {
             val s2 = Sections()
             s2.updateTool(Vec2(0.0, 0.0), 0.0, p)
             s2.update(p, 7.2, Coverage(), null, null, true)

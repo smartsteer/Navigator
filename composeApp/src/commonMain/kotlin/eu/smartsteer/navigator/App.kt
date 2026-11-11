@@ -384,6 +384,7 @@ private fun NavRail(current: Screen, onSelect: (Screen) -> Unit) {
             }
         }
         Box(Modifier.weight(1f))
+        RailToggle(if (DisplayPrefs.day) "DZIEŃ" else "NOC", DisplayPrefs.day) { DisplayPrefs.updateDay(!DisplayPrefs.day) }
         RailToggle("TABLET", DisplayPrefs.tablet) { DisplayPrefs.updateTablet(!DisplayPrefs.tablet) }
         if (DisplayPrefs.fullScreenSupported) RailToggle("PEŁNY\nEKRAN", DisplayPrefs.fullScreen) { DisplayPrefs.toggleFullScreen() }
     }

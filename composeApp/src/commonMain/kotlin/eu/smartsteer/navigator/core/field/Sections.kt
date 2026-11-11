@@ -120,9 +120,10 @@ class Sections {
     }
 
     /** Bity sekcji: bit 0 = sekcja 1. */
-    fun bits(): Int {
-        var b = 0
-        for (i in 0 until MAX) if (on[i]) b = b or (1 shl i)
+    /** Bity sekcji (do 64): bit 0 = sekcja 1. */
+    fun bits(): Long {
+        var b = 0L
+        for (i in 0 until MAX) if (on[i]) b = b or (1L shl i)
         return b
     }
 
@@ -133,7 +134,7 @@ class Sections {
     }
 
     companion object {
-        const val MAX = 16
+        const val MAX = 64
         private const val SAMPLES = 4
         /** Najkrótsze wyprzedzenie — żeby sekcja nie „widziała” pasa, który sama właśnie maluje. */
         private const val MIN_LOOK = 0.4
@@ -157,7 +158,7 @@ class Sections {
          * [hydLift]: 0 = podnośnik nieużywany, 1 = opuść (praca), 2 = podnieś (uwrocie) — jak w AgOpenGPS
          * (Position.designer.cs, p_239.hydLift). [tram]: bit 0 = ślad po prawej, bit 1 = po lewej.
          */
-        fun machineFrame(speedKmh: Double, bits: Int, hydLift: Int = 0, tram: Int = 0): ByteArray {
+        fun machineFrame(speedKmh: Double, bits: Long, hydLift: Int = 0, tram: Int = 0): ByteArray {
             val d = ByteArray(8)
             d[0] = 0 // zawrót
             d[1] = (speedKmh * 10).roundToInt().coerceIn(0, 255).toByte()
@@ -168,6 +169,17 @@ class Sections {
             d[6] = (bits and 0xFF).toByte()
             d[7] = ((bits shr 8) and 0xFF).toByte()
             return AogFrame.build(Pgn.MACHINE_DATA, d)
+        }
+
+        const val PGN_SECTIONS_64 = 0xE5
+
+        /**
+         * PGN 229 — stan do 64 sekcji (8 bajtów, bit 0 bajtu 0 = sekcja 1), wysyłany przy więcej niż 16 sekcjach.
+         * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/PGN.Designer.cs (CPGN_E5).
+         */
+        fun sections64Frame(bits: Long): ByteArray {
+            val d = ByteArray(8) { i -> ((bits ushr (8 * i)) and 0xFF).toByte() }
+            return AogFrame.build(PGN_SECTIONS_64, d)
         }
     }
 }
