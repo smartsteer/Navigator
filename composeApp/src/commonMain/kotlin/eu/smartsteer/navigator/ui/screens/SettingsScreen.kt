@@ -49,6 +49,7 @@ import eu.smartsteer.navigator.core.settings.SteerEnable
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import eu.smartsteer.navigator.core.war.WarProtocol
 import eu.smartsteer.navigator.ui.HardwareController
+import eu.smartsteer.navigator.core.hw.AutoTune
 import eu.smartsteer.navigator.ui.DisplayPrefs
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
@@ -104,7 +105,7 @@ fun SettingsScreen(hw: HardwareController) {
                         VehicleTab(p, set)
                     }
                     Tab.Tool -> ToolTab(p, set)
-                    Tab.Guidance -> GuidanceTab(p, set)
+                    Tab.Guidance -> { AutoTunePanel(hw); GuidanceTab(p, set) }
                     Tab.Imu -> ImuTab(hw, p, set)
                     Tab.Module -> ModuleTab(hw, p, set)
                     Tab.Supervisor -> SupervisorTab(hw, p, set)
@@ -311,6 +312,47 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
     Num("Maksymalny PWM", null, p.highPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(highPwm = it.toInt())) }
     Num("Niski PWM", "Moc przy małych korektach", p.lowPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(lowPwm = it.toInt())) }
     Num("Minimalny PWM", "Najmniejsza moc, przy której koła ruszają", p.minPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(minPwm = it.toInt())) }
+}
+
+/** Samouczenie prowadzenia: tryb, ocena jazdy, propozycje, historia, cofnięcie. */
+@Composable
+private fun ColumnScope.AutoTunePanel(hw: HardwareController) {
+    SectionTitle("Samouczenie (dobiera ustawienia w czasie jazdy)")
+    Label(
+        "Jak adaptacja w LPG: co 30 s spokojnej jazdy na autosterze ocenia odchyłkę i pracę kół i zmienia po trochu wyprzedzenie, " +
+            "człon całkujący, wzmocnienie P i minimalny PWM. PODPOWIEDZI — pyta przed zmianą, AUTOMAT — zmienia sam. Zawsze można cofnąć.",
+        Ss.TextSoft, 13.sp,
+    )
+    Choice("Samouczenie", AutoTune.Mode.entries.map { it.label }, hw.tuneMode.ordinal) { hw.setTuneMode(AutoTune.Mode.entries[it]) }
+    hw.tuneStats?.let { st ->
+        Label(
+            "Ostatnie 30 s: odchyłka średnio ${st.rmsCm.pl(1)} cm (maks. ${st.maxCm.pl(0)} cm), przesunięcie ${st.meanCm.pl(1, plusSign = true)} cm, " +
+                "${st.crossingsPerMin.pl(0)} przejść/min, koła: opóźnienie ${(st.wheelLagS * 1000).pl(0)} ms, siła ${(st.wheelGain * 100).pl(0)}%",
+            if (st.rmsCm < 2.5) Ss.Accent else Ss.TextSoft, 13.sp,
+        )
+    }
+    TunePendingCard(hw, Modifier.fillMaxWidth())
+    hw.tuneHistory.take(5).forEach { Label(it, Ss.TextMuted, 12.sp) }
+    if (hw.tuneBaseline != null) {
+        ActionButton(onClick = { hw.revertTune() }) { ButtonText("Cofnij zmiany samouczenia", color = Ss.Warning) }
+    }
+}
+
+/** Propozycja samouczenia do przyjęcia (też na mapie). */
+@Composable
+fun TunePendingCard(hw: HardwareController, modifier: Modifier) {
+    val prop = hw.tunePending ?: return
+    Column(
+        modifier.clip(RoundedCornerShape(14.dp)).background(Ss.Bar.copy(alpha = 0.96f)).border(2.dp, Ss.Info, RoundedCornerShape(14.dp)).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Label("Samouczenie proponuje:", Ss.Info, 12.sp)
+        prop.reasons.forEach { Text(it, color = Ss.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = { hw.acceptTune() }) { ButtonText("Zastosuj", color = Ss.OnAccent, weight = FontWeight.Bold) }
+            ActionButton(onClick = { hw.dismissTune() }) { ButtonText("Pomiń", color = Ss.TextSoft) }
+        }
+    }
 }
 
 /** Autostart z systemem i zamknięcie po zaniku zasilania z ciągnika. */
@@ -867,6 +909,7 @@ fun HardwareSteerScreen(hw: HardwareController) {
             SectionTitle("Ograniczenia")
             Num("Maksymalny skręt kół", null, p.maxSteerAngle, "°", 1.0, 10.0, 90.0, 0) { set(p.copy(maxSteerAngle = it)) }
             Num("Wyłącz powyżej", "Autoster wyłączy się przy większej prędkości", p.maxSteerSpeed, "km/h", 1.0, 1.0, 40.0, 0) { set(p.copy(maxSteerSpeed = it)) }
+            AutoTunePanel(hw)
             GuidanceTuning(p, set)
             ModuleTab(hw, p, set)
             SupervisorTab(hw, p, set)

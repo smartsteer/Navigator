@@ -112,6 +112,7 @@ fun HardwareMapScreen(hw: HardwareController) {
         HwInfo(hw, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 16.dp))
         OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
         HeadlandHint(hw, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
+        TunePendingCard(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp).width(380.dp))
 
         // prawa kolumna: linia, zawrót, sekcje
         RightTools(hw, sheet, locked, { sheet = !sheet }, Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 12.dp))

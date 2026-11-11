@@ -1,6 +1,8 @@
 package eu.smartsteer.navigator.ui
 
 import eu.smartsteer.navigator.core.sim.SimReceiver
+import eu.smartsteer.navigator.core.hw.AutoTune
+import eu.smartsteer.navigator.core.hw.GuidanceMode
 import eu.smartsteer.navigator.ui.power.PowerPlatform
 import eu.smartsteer.navigator.ui.power.PowerState
 import eu.smartsteer.navigator.core.settings.ToolPresets
@@ -658,6 +660,67 @@ class HardwareController {
         }
     }
 
+    // ---------------- samouczenie prowadzenia ----------------
+    private val tuneFile = "samouczenie.cfg"
+    private val autoTune = AutoTune()
+    var tuneMode by mutableStateOf(
+        runCatching { AutoTune.Mode.valueOf(files.read(tuneFile)?.trim().orEmpty()) }.getOrDefault(AutoTune.Mode.OFF),
+    )
+        private set
+    /** Propozycja czekająca na decyzję (tryb PODPOWIEDZI). */
+    var tunePending by mutableStateOf<AutoTune.Proposal?>(null)
+        private set
+    /** Ustawienia sprzed pierwszej automatycznej zmiany — do „Cofnij”. */
+    var tuneBaseline by mutableStateOf<VehicleProfile?>(null)
+        private set
+    var tuneHistory by mutableStateOf<List<String>>(emptyList())
+        private set
+    val tuneStats: AutoTune.Stats? get() = autoTune.lastStats
+
+    fun setTuneMode(m: AutoTune.Mode) {
+        tuneMode = m
+        try { files.write(tuneFile, m.name) } catch (_: Exception) {}
+        if (m == AutoTune.Mode.OFF) tunePending = null
+        autoTune.reset()
+        tick++
+    }
+
+    private fun applyTune(prop: AutoTune.Proposal) {
+        if (tuneBaseline == null) tuneBaseline = profile
+        updateProfile(prop.profile)
+        val line = "${nowText()}  " + prop.reasons.joinToString("; ")
+        tuneHistory = (listOf(line) + tuneHistory).take(20)
+        logTrip("Samouczenie: " + prop.reasons.joinToString("; "))
+        mapMessage("Samouczenie: " + prop.reasons.first())
+    }
+
+    fun acceptTune() { tunePending?.let { applyTune(it) }; tunePending = null; tick++ }
+    fun dismissTune() { tunePending = null; tick++ }
+
+    /** Przywraca ustawienia sprzed samouczenia. */
+    fun revertTune() {
+        tuneBaseline?.let { updateProfile(it); logTrip("Samouczenie: cofnięto zmiany") }
+        tuneBaseline = null
+        tuneHistory = emptyList()
+        tick++
+    }
+
+    private fun tuneStep() {
+        if (tuneMode == AutoTune.Mode.OFF || !hardware) return
+        val s = session
+        val t = now()
+        val hasLine = (s.mode == GuidanceMode.AB && s.line != null) || (s.mode == GuidanceMode.CURVE && s.curveRef != null)
+        val steady = s.engaged && hasLine && s.youTurnPath == null
+        val act = s.autosteer?.takeIf { s.autosteerAlive(t) }?.actualAngleDeg
+        val prop = autoTune.sample(t, steady, s.xteCm, s.steerSetDeg, act, s.speedKmh, profile) ?: return
+        // propozycja liczona dla profilu z chwili oceny — jeśli w międzyczasie coś zmieniono, pomijamy
+        when (tuneMode) {
+            AutoTune.Mode.AUTO -> applyTune(prop)
+            AutoTune.Mode.SUGGEST -> tunePending = prop
+            AutoTune.Mode.OFF -> {}
+        }
+    }
+
     // ---------------- łączność przez Wi-Fi ----------------
     private val wifiFile = "wifi.cfg"
     /** Tryb Wi-Fi: wysyłka na adresy modułów (z potwierdzeniami Wi-Fi) zamiast rozgłoszeń. */
@@ -962,6 +1025,7 @@ class HardwareController {
             }
             if (simulating) simStep()
             session.update(now())
+            tuneStep()
             recordHistory()
             ntripStep(l)
             // autozapis pola co 30 s

@@ -125,3 +125,49 @@ class WasCalibrationTest {
         assertTrue(res.newCountsPerDeg == 133, "impulsy ${res.newCountsPerDeg}")
     }
 }
+
+class AutoTuneTest {
+    private fun run(p: eu.smartsteer.navigator.core.settings.VehicleProfile, xte: (Double) -> Double, act: (Double) -> Double = { 0.0 }, set: (Double) -> Double = { 0.0 }): AutoTune.Proposal? {
+        val a = AutoTune()
+        var t = 0.0
+        var out: AutoTune.Proposal? = null
+        while (t < 31.0 && out == null) { out = a.sample(t, true, xte(t), set(t), act(t), 8.0, p); t += 0.1 }
+        return out
+    }
+
+    @Test
+    fun oscillationLengthensLookAhead() {
+        val p = eu.smartsteer.navigator.core.settings.VehicleProfile()
+        // kołysanie ±6 cm co 4 s
+        val prop = kotlin.test.assertNotNull(run(p, { 6 * kotlin.math.sin(2 * kotlin.math.PI * it / 4) }))
+        assertTrue(prop.profile.lookAheadHold > p.lookAheadHold, prop.reasons.toString())
+    }
+
+    @Test
+    fun steadyOffsetAddsIntegral() {
+        val p = eu.smartsteer.navigator.core.settings.VehicleProfile(purePursuitIntegral = 0.0)
+        val prop = kotlin.test.assertNotNull(run(p, { 4.0 + 0.5 * kotlin.math.sin(it) }))
+        assertTrue(prop.profile.purePursuitIntegral > 0.0, prop.reasons.toString())
+    }
+
+    @Test
+    fun goodDrivingChangesNothing() {
+        val p = eu.smartsteer.navigator.core.settings.VehicleProfile()
+        assertNull(run(p, { 1.0 * kotlin.math.sin(it / 3) }, set = { 2 * kotlin.math.sin(it) }, act = { 2 * kotlin.math.sin(it - 0.1) }))
+    }
+
+    @Test
+    fun slowWheelsRaiseGainOnSecondWindow() {
+        val p = eu.smartsteer.navigator.core.settings.VehicleProfile()
+        val a = AutoTune()
+        var t = 0.0
+        var out: AutoTune.Proposal? = null
+        // koła za zadanym o 0,8 s i o połowę słabiej; odchyłka mała
+        while (t < 62.0 && out == null) {
+            out = a.sample(t, true, 1.0 * kotlin.math.sin(t / 3), 3 * kotlin.math.sin(t), 1.5 * kotlin.math.sin(t - 0.8), 8.0, p)
+            t += 0.1
+        }
+        val prop = kotlin.test.assertNotNull(out)
+        assertTrue(prop.profile.gainP > p.gainP, prop.reasons.toString())
+    }
+}
