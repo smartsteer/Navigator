@@ -937,7 +937,7 @@ class HardwareController {
             delay(100)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
             powerStep()
-            wifiStep(l)
+            wifiStep(link)
             if (session.fieldName != savedFieldName) {
                 savedFieldName = session.fieldName
                 try { files.write(lastFieldFile, savedFieldName ?: "") } catch (_: Exception) {}
