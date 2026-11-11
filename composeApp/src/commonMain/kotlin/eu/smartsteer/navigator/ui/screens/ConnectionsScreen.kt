@@ -166,12 +166,19 @@ private fun SerialPanel(hw: HardwareController) {
     var pick by remember { mutableStateOf(hw.serialPort) }
     var baud by remember { mutableStateOf(hw.serialBaud) }
     val bauds = listOf(9600, 38400, 115200, 460800)
+    val phoneGps = ports.firstOrNull()?.startsWith("Telefon") == true          // Android: telefon i Bluetooth zamiast COM
     Panel(Modifier.fillMaxWidth()) {
-        SectionTitle("Odbiornik GPS na USB / COM")
-        Label("Gdy odbiornik (np. F9P) jest podłączony kablem do komputera, a nie do płytki. Poprawki NTRIP idą wtedy do tego portu.", Ss.TextMuted, 13.sp)
+        SectionTitle(if (phoneGps) "Odbiornik GPS: telefon, Bluetooth" else "Odbiornik GPS na USB / COM")
+        Label(
+            if (phoneGps) "Bez płytki AIO: „Telefon — GPS wbudowany” (2–5 m — oprysk, rozsiewanie, granice, hektary; nie do autosterowania) " +
+                "albo sparowany odbiornik GNSS na Bluetooth (dokładność odbiornika, z NTRIP — RTK 2 cm). Poprawki NTRIP idą do odbiornika."
+            else "Gdy odbiornik (np. F9P) jest podłączony kablem do komputera, a nie do płytki — także odbiornik na Bluetooth (port COM po sparowaniu). Poprawki NTRIP idą wtedy do tego portu.",
+            Ss.TextMuted, 13.sp,
+        )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ActionButton(onClick = { ports = hw.serialPorts() }) { ButtonText("Odśwież porty", color = Ss.TextSoft) }
             if (ports.isEmpty()) Label("Brak portów COM", Ss.Warning, 13.sp)
+            if (phoneGps) Label("Odbiornik Bluetooth najpierw sparuj w ustawieniach Bluetooth telefonu.", Ss.TextMuted, 12.sp)
         }
         ports.forEach { name ->
             val cur = name == pick
@@ -182,7 +189,7 @@ private fun SerialPanel(hw: HardwareController) {
                 color = if (cur) Ss.Accent else Ss.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (!phoneGps) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Prędkość", color = Ss.Text, fontSize = 15.sp)
             Segmented(bauds.map { it.toString() }, bauds.indexOf(baud).coerceAtLeast(0), { baud = bauds[it] })
         }

@@ -194,6 +194,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
                 vtgCourse = v.courseDeg?.let { it * PI / 180 }
                 vtgTimeS = nowS
             }
+            type == "GST" -> Nmea.parseGstHorizontal(sentence)?.let { gstAccuracyM = it; gstTimeS = nowS }
             type == "HDT" -> Nmea.parseHdt(sentence)?.let { dualHeading = (it.headingDeg + profile.dualHeadingOffset) * PI / 180; dualTimeS = nowS }
         }
     }
@@ -436,6 +437,26 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         return m.defaultRate to -1
     }
 
+    // dokładność pozycji: z GST (odbiornik / telefon), inaczej szacunek z rodzaju poprawki i HDOP
+    private var gstAccuracyM: Double? = null
+    private var gstTimeS = -1e9
+
+    /** Błąd poziomy w metrach i czy to pomiar (GST), czy szacunek; null — brak pozycji. */
+    fun horizontalAccuracy(nowS: Double): Pair<Double, Boolean>? {
+        if (!gpsAlive(nowS)) return null
+        gstAccuracyM?.let { if (nowS - gstTimeS < 3.0) return it to true }
+        val hdop = lastGga?.hdop?.takeIf { it < 50 } ?: 2.0
+        return when (fix) {
+            FixQuality.RTK_FIX -> 0.02
+            FixQuality.RTK_FLOAT -> 0.3
+            FixQuality.DGPS -> 0.7 * hdop
+            else -> 2.5 * hdop
+        } to false
+    }
+
+    /** Gdy ustawione (np. GPS z telefonu, 2–5 m) — autostera nie da się włączyć, a przycisk znika z mapy. */
+    var steerBlockedReason: String? = null
+
     // ---------------- czujnik przeszkód (core/safety, docs/PRZESZKODY.md) ----------------
     val obstacleGuard = eu.smartsteer.navigator.core.safety.ObstacleGuard()
     /** Ostatnia paczka z czujnika (ustawia kontroler po odebraniu). */
@@ -593,6 +614,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         lastUserToggleS = nowS
         if (!on) { engaged = false; return null }
         val why = when {
+            steerBlockedReason != null -> steerBlockedReason
             mode == GuidanceMode.AB && line == null -> "Najpierw utwórz linię AB"
             mode == GuidanceMode.CURVE && curveRef == null -> "Najpierw nagraj krzywą"
             mode == GuidanceMode.CONTOUR && contour.guide.isEmpty() -> "Brak wcześniejszego przejazdu obok — kontur nie ma czego się trzymać"
@@ -619,6 +641,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             profile,
         )?.let { trip(it) }
         obstacleStep(nowS)
+        steerBlockedReason?.let { if (engaged) trip("$it — autoster wyłączony") }
         if (engaged && reversing && kPhase != 2 && kPhase != 3) trip("Jazda do tyłu — autoster wyłączony")
         if (engaged && !gpsAlive(nowS)) trip("Utracono GPS — autoster wyłączony")
         if (engaged && !autosteerAlive(nowS)) trip("Moduł autosterowania nie odpowiada — autoster wyłączony")
