@@ -27,6 +27,7 @@ class ToolPresets(private val files: TextFiles) {
             machineInvertRelays = tool.machineInvertRelays, hydEnabled = tool.hydEnabled, hydAuto = tool.hydAuto,
             hydRaiseTime = tool.hydRaiseTime, hydLowerTime = tool.hydLowerTime,
             machineUser1 = tool.machineUser1, machineUser2 = tool.machineUser2, machineUser3 = tool.machineUser3, machineUser4 = tool.machineUser4,
+            rateBase = tool.rateBase, rateBaseSpeed = tool.rateBaseSpeed,
             tramEvery = tool.tramEvery, tramTrack = tool.tramTrack, tramWheel = tool.tramWheel, tramShift = tool.tramShift,
         )
     }

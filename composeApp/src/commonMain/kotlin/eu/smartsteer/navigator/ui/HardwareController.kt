@@ -354,6 +354,17 @@ class HardwareController {
     }
 
     /** Raport zabiegu (GeoJSON) do folderu raportów — do wczytania w WAR. */
+    /** Eksport otwartego pola: KML i ISOXML (folder TASKDATA) w folderze raportów. */
+    fun exportField(): String {
+        val f = session.fieldData() ?: return "Żadne pole nie jest otwarte"
+        val base = Profiles.sanitize(f.name).ifEmpty { "Pole" }
+        return try {
+            exportDir.write("$base.kml", eu.smartsteer.navigator.core.io.FieldExport.kml(f))
+            exportDir.write("$base ISOXML/TASKDATA/TASKDATA.XML", eu.smartsteer.navigator.core.io.FieldExport.isoxml(f))
+            "Zapisano „$base.kml” i „$base ISOXML/TASKDATA” w ${exportDir.location}"
+        } catch (e: Exception) { "Nie udało się: ${e.message}" }
+    }
+
     fun writeReport(): String? {
         val f = session.fieldData() ?: return "Żadne pole nie jest otwarte"
         val end = nowText()

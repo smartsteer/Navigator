@@ -53,10 +53,10 @@ internal class DirFiles(private val dir: File) : TextFiles {
     override fun list(): List<String> = dir.list()?.toList().orEmpty()
     override fun read(name: String): String? = File(dir, name).takeIf { it.isFile }?.readText(Charsets.UTF_8)
     override fun write(name: String, text: String) {
-        dir.mkdirs()
-        val tmp = File(dir, "$name.tmp")
-        tmp.writeText(text, Charsets.UTF_8)
         val target = File(dir, name)
+        target.parentFile?.mkdirs()
+        val tmp = File(target.parentFile, target.name + ".tmp")
+        tmp.writeText(text, Charsets.UTF_8)
         if (!tmp.renameTo(target)) { target.delete(); tmp.renameTo(target) }
     }
     override fun delete(name: String) { File(dir, name).delete() }

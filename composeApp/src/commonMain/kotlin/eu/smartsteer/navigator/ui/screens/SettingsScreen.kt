@@ -198,6 +198,12 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
         Num("Przesunięcie układu", "O ile przejazdów przesunąć ścieżki względem linii AB", p.tramShift.toDouble(), "", 1.0, -30.0, 30.0, 0) { set(p.copy(tramShift = it.toInt())) }
         Label("Moduł maszyny dostaje bity śladu (PGN 239): wyłącza sekcje nad śladem kół — po prawej albo lewej stronie.", Ss.TextMuted, 12.sp)
     }
+    SectionTitle("Mapa dawek bez sterownika")
+    Num("Dawka ustawiona na rozsiewaczu", "Przy stałym otwarciu dawka zależy od prędkości. 0 = jest sterownik dawki (bez podpowiedzi)", p.rateBase, "", 5.0, 0.0, 2000.0, 0) { set(p.copy(rateBase = it)) }
+    if (p.rateBase > 0) {
+        Num("…przy prędkości", null, p.rateBaseSpeed, "km/h", 0.5, 2.0, 30.0, 1) { set(p.copy(rateBaseSpeed = it)) }
+        Label("Na mapie: jaką prędkością jechać, żeby wyszła dawka z mapy, albo o ile zmienić ustawienie dawki przy obecnej prędkości.", Ss.TextMuted, 12.sp)
+    }
     SectionTitle("Przełącznik roboczy")
     Toggle("Sekcje tylko przy włączonym przełączniku", p.useWorkSwitch) { set(p.copy(useWorkSwitch = it)) }
     if (p.useWorkSwitch) {

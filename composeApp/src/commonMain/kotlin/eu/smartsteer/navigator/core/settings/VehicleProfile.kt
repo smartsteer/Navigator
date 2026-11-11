@@ -133,6 +133,11 @@ data class VehicleProfile(
     /** Automatyczny podnośnik na uwrociu (gdy włączony podnośnik w module maszyny). */
     val hydAuto: Boolean = true,
 
+    // --- Zmienne dawkowanie bez sterownika (rozsiewacz z dawką zależną od prędkości) ---
+    /** Dawka ustawiona na rozsiewaczu przy prędkości [rateBaseSpeed]; 0 = sterownik dawki (PGN 224), bez podpowiedzi. */
+    val rateBase: Double = 0.0,
+    val rateBaseSpeed: Double = 10.0,
+
     // --- Nadzór autosteru (0 = wyłączone) ---
     /** Wyłącz, gdy brak RTK FIX dłużej niż tyle sekund. */
     val supRtkLossS: Double = 5.0,
@@ -237,6 +242,7 @@ data class VehicleProfile(
         "hydLowerTime" to hydLowerTime, "machineUser1" to machineUser1, "machineUser2" to machineUser2,
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
         "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "hydAuto" to hydAuto,
+        "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed,
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
@@ -295,6 +301,8 @@ data class VehicleProfile(
                 tramWheel = num("tramWheel", d.tramWheel),
                 tramShift = int("tramShift", d.tramShift),
                 hydAuto = bool("hydAuto", d.hydAuto),
+                rateBase = num("rateBase", d.rateBase),
+                rateBaseSpeed = num("rateBaseSpeed", d.rateBaseSpeed),
                 supRtkLossS = num("supRtkLossS", d.supRtkLossS),
                 supMaxXteM = num("supMaxXteM", d.supMaxXteM),
                 supSteerErrDeg = num("supSteerErrDeg", d.supSteerErrDeg),

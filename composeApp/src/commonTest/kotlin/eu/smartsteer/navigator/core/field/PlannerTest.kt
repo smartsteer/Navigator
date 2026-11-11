@@ -169,4 +169,22 @@ class RateMapTest {
         val m = assertNotNull(RateMapImport.parse(kml, "x", pl))
         assertEquals(85.0, m.rateAt(pl.toLocal(52.0005, 21.0005)))
     }
+
+    @Test
+    fun exportRoundTrip() {
+        val f = FieldData(
+            "Za stodołą", 52.0, 21.0, listOf(Vec2(0.0, 0.0), Vec2(100.0, 0.0), Vec2(100.0, 80.0), Vec2(0.0, 80.0)), 0.0,
+            tracks = listOf(Track("AB 1", AbLine(Vec2(5.0, 0.0), Vec2(5.0, 80.0)))),
+            obstacles = listOf(listOf(Vec2(40.0, 40.0), Vec2(45.0, 40.0), Vec2(45.0, 45.0))),
+        )
+        val k = eu.smartsteer.navigator.core.io.FieldImport.parseKml(eu.smartsteer.navigator.core.io.FieldExport.kml(f), "x").single()
+        assertEquals("Za stodołą", k.name)
+        assertEquals(4, k.boundary!!.size)
+        assertNotNull(k.ab)
+        val i = eu.smartsteer.navigator.core.io.FieldImport.parseIsoxml(eu.smartsteer.navigator.core.io.FieldExport.isoxml(f)).single()
+        assertEquals(4, i.boundary!!.size)
+        assertNotNull(i.ab)
+        val back = assertNotNull(eu.smartsteer.navigator.core.io.FieldExchange.toFieldData(i))
+        assertTrue(abs(Polygon.area(back.boundary!!) - 8000.0) < 5.0)
+    }
 }

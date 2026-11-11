@@ -337,12 +337,39 @@ private fun RatePill(hw: HardwareController, modifier: Modifier) {
     val s = hw.session
     val rm = s.rateMap ?: return
     val (rate, zone) = s.rateNow() ?: return
-    Text(
-        "Dawka ${rate.pl(0)} ${rm.unit}${if (zone < 0) " (poza strefami)" else ""}",
+    val p = s.profile
+    Column(
         modifier.clip(RoundedCornerShape(12.dp)).background(Ss.Bar.copy(alpha = 0.92f)).border(1.dp, Ss.Accent, RoundedCornerShape(12.dp))
             .padding(horizontal = 14.dp, vertical = 6.dp),
-        color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold,
-    )
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("Dawka ${rate.pl(0)} ${rm.unit}${if (zone < 0) " (poza strefami)" else ""}", color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        // bez sterownika: dawka ∝ 1 / prędkość przy stałym otwarciu rozsiewacza
+        if (p.rateBase > 0 && rate > 0) {
+            val vNeed = p.rateBase * p.rateBaseSpeed / rate
+            val v = s.speedKmh
+            val dv = vNeed - v
+            val ok = v > 0.5 && kotlin.math.abs(dv) / vNeed < 0.05
+            Text(
+                when {
+                    v < 0.5 -> "Jedź ${vNeed.pl(1)} km/h"
+                    ok -> "Prędkość dobra (${vNeed.pl(1)} km/h)"
+                    dv < 0 -> "ZWOLNIJ o ${(-dv).pl(1)} km/h → ${vNeed.pl(1)} km/h"
+                    else -> "PRZYŚPIESZ o ${dv.pl(1)} km/h → ${vNeed.pl(1)} km/h"
+                },
+                color = if (ok) Ss.Accent else Ss.Warning, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+            )
+            if (v > 0.5) {
+                // albo przy tej prędkości: ustawienie dawki na rozsiewaczu
+                val setting = rate * v / p.rateBaseSpeed
+                val d = setting - p.rateBase
+                Text(
+                    "albo ustaw na rozsiewaczu ${setting.pl(0)} (${if (d >= 0) "+" else "−"}${kotlin.math.abs(d).pl(0)})",
+                    color = Ss.TextSoft, fontSize = 13.sp,
+                )
+            }
+        }
+    }
 }
 
 /** Podpowiedź przy ręcznym podnoszeniu: ile metrów zostało maszynie do uwrocia / do pola. */

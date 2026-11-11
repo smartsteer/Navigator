@@ -188,6 +188,12 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                 }
             }
 
+            SectionTitle("Eksport pola")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ActionButton(onClick = { msg = hw.exportField() }) { ButtonText("Eksportuj pole (KML + ISOXML)") }
+            }
+            Label("Granica, przeszkody, linie i znaczniki — do Google Earth, WAR, terminali ISOBUS i innych programów.", Ss.TextMuted, 12.sp)
+
             SectionTitle("Mapa dawek (zmienne dawkowanie)")
             run {
                 val rm = s.rateMap
@@ -206,7 +212,11 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                     Label("Pliki w folderze importu — dotknij, żeby wczytać do otwartego pola:", Ss.TextMuted, 13.sp)
                     cands.forEach { n -> ActionButton(onClick = { msg = hw.importRateMap(n) }) { ButtonText(n, size = 13.sp) } }
                 }
-                Label("Dawka w miejscu maszyny (z wyprzedzeniem) widać na mapie i idzie do sterownika dawki jako PGN 224 (opis w docs/LACZENIE.md).", Ss.TextMuted, 12.sp)
+                Label(
+                    "Dawka w miejscu maszyny (z wyprzedzeniem) widać na mapie i idzie do sterownika dawki jako PGN 224. " +
+                        "Bez sterownika: w Ustawienia → Maszyna wpisz dawkę ustawioną na rozsiewaczu i prędkość — mapa podpowie, jak jechać.",
+                    Ss.TextMuted, 12.sp,
+                )
             }
 
             SectionTitle("Mapa pola bez internetu")
