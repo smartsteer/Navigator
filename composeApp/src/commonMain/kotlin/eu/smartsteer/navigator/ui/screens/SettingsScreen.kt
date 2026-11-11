@@ -101,6 +101,15 @@ fun SettingsScreen(hw: HardwareController) {
                         if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }
                         Choice("Podkład mapy", eu.smartsteer.navigator.core.map.TileSource.entries.map { it.short }, DisplayPrefs.background) { DisplayPrefs.updateBackground(it) }
                         Label("ORTO = ortofotomapa Polski z Geoportalu, SAT = zdjęcia satelitarne Esri. Raz obejrzane kafelki zostają na dysku; całe pole pobierzesz na ekranie Pola.", Ss.TextMuted, 12.sp)
+                        Choice("Komunikaty głosowe (uwrocie, zawrót, RTK, dawka)", listOf("WYŁ.", "WŁ."), if (hw.voiceOn) 1 else 0) { hw.setVoice(it == 1) }
+                        if (hw.voiceOn) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            val sp = eu.smartsteer.navigator.ui.voice.Speech
+                            Label(
+                                if (sp.available()) "Głos: ${sp.voiceName()}" else "Brak polskiego głosu w systemie — Windows: Ustawienia → Czas i język → Mowa → Dodaj głosy → polski; Android: ustawienia syntezatora mowy",
+                                if (sp.available()) Ss.TextMuted else Ss.Warning, 12.sp,
+                            )
+                            ActionButton(onClick = { sp.say("Uwrocie za dwadzieścia metrów") }) { ButtonText("Posłuchaj", size = 13.sp) }
+                        }
                         PowerSettings(hw)
                         VehicleTab(p, set)
                     }

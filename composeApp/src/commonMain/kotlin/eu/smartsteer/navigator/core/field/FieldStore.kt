@@ -157,6 +157,9 @@ class FieldStore(private val files: TextFiles) {
         return f to (files.read(name + COVERAGE) ?: "")
     }
 
+    /** Samo pole (bez mapy pokrycia) — do szukania, na którym polu stoi ciągnik. */
+    fun loadData(name: String): FieldData? = files.read(name + EXT)?.let { FieldData.fromJson(it) }
+
     fun save(field: FieldData, coverageText: String) {
         val name = Profiles.sanitize(field.name)
         require(name.isNotEmpty()) { "Pusta nazwa pola" }

@@ -114,6 +114,7 @@ fun HardwareMapScreen(hw: HardwareController) {
 
         HwInfo(hw, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 16.dp))
         OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
+        FieldSuggestion(hw, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
         HeadlandHint(hw, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
         KTurnBanner(hw, Modifier.align(Alignment.Center).padding(bottom = 160.dp))
         RatePill(hw, Modifier.align(Alignment.TopCenter).padding(top = 215.dp))
@@ -328,6 +329,22 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
             if (s.gpsAlive(now)) "${if (s.fix.label.startsWith("GPS")) s.fix.label else "GPS " + s.fix.label} · kurs $course° (${s.headingSource.label})" else "GPS: brak pozycji",
             color = if (s.gpsAlive(now)) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
         )
+    }
+}
+
+/** Ciągnik wjechał na znane pole, a żadne nie jest otwarte. */
+@Composable
+private fun FieldSuggestion(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val n = hw.fieldSuggestion ?: return
+    Row(
+        modifier.clip(RoundedCornerShape(14.dp)).background(Ss.Bar.copy(alpha = 0.96f)).border(2.dp, Ss.Accent, RoundedCornerShape(14.dp)).padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text("Jesteś na polu „$n”", color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp))
+        ActionButton(background = Ss.Accent, border = Ss.Accent, onClick = { hw.acceptFieldSuggestion() }) { ButtonText("Otwórz", color = Ss.OnAccent, weight = FontWeight.Bold) }
+        ActionButton(onClick = { hw.dismissFieldSuggestion() }) { ButtonText("Nie", color = Ss.TextSoft) }
     }
 }
 

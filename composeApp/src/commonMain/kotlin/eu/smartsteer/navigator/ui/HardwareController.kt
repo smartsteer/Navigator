@@ -33,6 +33,8 @@ import eu.smartsteer.navigator.core.sound.SoundKind
 import eu.smartsteer.navigator.core.sound.SoundPlayer
 import eu.smartsteer.navigator.core.field.FieldStore
 import eu.smartsteer.navigator.core.geo.LocalPlane
+import eu.smartsteer.navigator.core.geo.Vec2
+import eu.smartsteer.navigator.core.field.Polygon
 import eu.smartsteer.navigator.core.settings.warFiles
 import eu.smartsteer.navigator.core.update.platformUpdater
 import eu.smartsteer.navigator.core.war.WarField
@@ -763,6 +765,120 @@ class HardwareController {
         }
     }
 
+    // ---------------- komunikaty głosowe ----------------
+    private val voiceFile = "glos.cfg"
+    var voiceOn by mutableStateOf(runCatching { files.read(voiceFile)?.trim() == "1" }.getOrDefault(false))
+        private set
+    private val lastSaid = HashMap<String, Double>()
+    private var vHeadlandStage = 0
+    private var vTurn = false
+    private var vKPhase = 0
+    private var vRtk: Boolean? = null
+    private var vRateKey = ""
+
+    fun setVoice(on: Boolean) {
+        voiceOn = on
+        try { files.write(voiceFile, if (on) "1" else "0") } catch (_: Exception) {}
+        if (on) eu.smartsteer.navigator.ui.voice.Speech.say("Komunikaty głosowe włączone")
+        tick++
+    }
+
+    /** Mówi zdanie (to samo nie częściej niż co 8 s). */
+    fun say(text: String) {
+        if (!voiceOn) return
+        val t = now()
+        if ((lastSaid[text] ?: -100.0) > t - 8.0) return
+        lastSaid[text] = t
+        eu.smartsteer.navigator.ui.voice.Speech.say(text)
+    }
+
+    private fun num(v: Double): String = v.pl(if (v < 10 && v % 1.0 != 0.0) 1 else 0).replace(".", ",")
+
+    /** Co 100 ms: zdarzenia → zdania (uwrocie, zawrót, RTK, dawka). Wyłączenia autosteru mówi logTrip. */
+    private fun voiceStep() {
+        if (!voiceOn || !hardware) return
+        val s = session
+        // uwrocie przed maszyną
+        val hh = if (s.speedKmh > 2.0) s.toolToHeadland() else null
+        if (hh == null || hh.first > 40.0) vHeadlandStage = 0
+        else {
+            val (d, toHeadland) = hh
+            if (toHeadland) {
+                if (d < 30 && vHeadlandStage < 1) { vHeadlandStage = 1; say("Uwrocie za ${(d / 5).toInt() * 5} metrów") }
+                if (d < 1.5 && vHeadlandStage < 2) { vHeadlandStage = 2; say(if (s.profile.hydEnabled && s.profile.hydAuto && s.hydLiftOn) "Uwrocie" else "Uwrocie. Podnieś") }
+            } else if (d < 1.5 && vHeadlandStage < 3) { vHeadlandStage = 3; say(if (s.profile.hydEnabled && s.profile.hydAuto && s.hydLiftOn) "Pole" else "Pole. Opuść") }
+        }
+        // zawroty
+        val turning = s.youTurnPath != null
+        if (turning && !vTurn) say(if (s.kPhase != 0) "Zawrót z cofaniem ${if (s.uTurnRight) "w prawo" else "w lewo"}" else "Zawracam ${if (s.uTurnRight) "w prawo" else "w lewo"}")
+        vTurn = turning
+        if (s.kPhase != vKPhase) {
+            when (s.kPhase) { 2 -> say("Stop. Wsteczny"); 3 -> say("Stop. Naprzód") }
+            vKPhase = s.kPhase
+        }
+        // RTK (gdy jest pozycja)
+        if (s.gpsAlive(now())) {
+            val rtk = s.fix == eu.smartsteer.navigator.core.gps.FixQuality.RTK_FIX
+            if (vRtk == true && !rtk) say("Utracono RTK")
+            if (vRtk == false && rtk) say("RTK fix")
+            vRtk = rtk
+        }
+        // dawka z mapy
+        val rn = s.rateNow()
+        if (rn != null && s.sections.anyOn()) {
+            val (rate, _) = rn
+            val p = s.profile
+            val text = when {
+                p.rateBase > 0 && p.rateHintMode == 1 -> {
+                    val n = kotlin.math.round(((rate / p.rateBase - 1) * 100) / p.rateStepPct).toInt()
+                    if (n == 0) "Sterownik sto procent" else "Sterownik ${if (n > 0) "plus" else "minus"} ${num(kotlin.math.abs(n * p.rateStepPct))} procent"
+                }
+                p.rateBase > 0 && rate > 0 -> "Jedź ${num(p.rateBase * p.rateBaseSpeed / rate)} kilometrów na godzinę"
+                else -> "Dawka ${num(rate)}"
+            }
+            if (text != vRateKey) { vRateKey = text; say(text) }
+        }
+    }
+
+    // ---------------- pole samo się podpowiada po wjeździe ----------------
+    private class KnownField(val name: String, val plane: LocalPlane, val boundary: List<Vec2>)
+    private var knownFields: List<KnownField>? = null
+    private var knownFieldsFor: List<String> = emptyList()
+    private var lastFieldCheckS = 0.0
+    private val dismissedFields = HashSet<String>()
+    /** Pole, na którym stoi ciągnik (gdy żadne nie jest otwarte) — propozycja otwarcia. */
+    var fieldSuggestion by mutableStateOf<String?>(null)
+        private set
+
+    private fun fieldLocatorStep() {
+        val t = now()
+        if (t - lastFieldCheckS < 5.0) return
+        lastFieldCheckS = t
+        val g = session.lastGga
+        if (session.fieldName != null || g == null || !session.gpsAlive(t)) { fieldSuggestion = null; return }
+        if (knownFields == null || knownFieldsFor != fieldNames) {
+            knownFieldsFor = fieldNames
+            knownFields = fieldNames.mapNotNull { n ->
+                val f = runCatching { fieldStore.loadData(n) }.getOrNull() ?: return@mapNotNull null
+                val b = f.boundary?.takeIf { it.size >= 3 } ?: return@mapNotNull null
+                KnownField(n, LocalPlane(f.originLat, f.originLon), b)
+            }
+        }
+        val hit = knownFields.orEmpty().firstOrNull { k -> Polygon.contains(k.boundary, k.plane.toLocal(g.latitude, g.longitude)) }?.name
+        val sug = hit?.takeIf { it !in dismissedFields }
+        if (sug != null && sug != fieldSuggestion) say("Jesteś na polu $sug")
+        fieldSuggestion = sug
+    }
+
+    fun acceptFieldSuggestion() {
+        val n = fieldSuggestion ?: return
+        fieldSuggestion = null
+        mapMessage(openField(n) ?: "Otwarto pole „$n”")
+        say("Otwarto pole $n")
+    }
+
+    fun dismissFieldSuggestion() { fieldSuggestion?.let { dismissedFields.add(it) }; fieldSuggestion = null; tick++ }
+
     // ---------------- samouczenie prowadzenia ----------------
     private val tuneFile = "samouczenie.cfg"
     private val autoTune = AutoTune()
@@ -1039,6 +1155,7 @@ class HardwareController {
     val tripLogLocation: String get() = profilesLocation + " → " + tripFile
 
     private fun logTrip(msg: String) {
+        if (!msg.startsWith("Samouczenie")) say(msg.substringBefore(" — ").let { if (msg.contains("autoster wyłączony")) "Autoster wyłączony. $it" else it })
         val line = "${nowText()}  $msg"
         recentTrips = (listOf(line) + recentTrips).take(20)
         try {
@@ -1103,6 +1220,8 @@ class HardwareController {
             delay(100)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
             powerStep()
+            if (hardware) fieldLocatorStep()
+            voiceStep()
             wifiStep(link)
             if (session.fieldName != savedFieldName) {
                 savedFieldName = session.fieldName
