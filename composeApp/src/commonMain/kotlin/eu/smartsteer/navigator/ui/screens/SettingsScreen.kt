@@ -49,6 +49,7 @@ import eu.smartsteer.navigator.core.settings.SteerEnable
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import eu.smartsteer.navigator.core.war.WarProtocol
 import eu.smartsteer.navigator.ui.HardwareController
+import eu.smartsteer.navigator.core.field.HeadlandSequence
 import eu.smartsteer.navigator.core.hw.AutoTune
 import eu.smartsteer.navigator.ui.DisplayPrefs
 import eu.smartsteer.navigator.ui.components.ActionButton
@@ -414,9 +415,8 @@ private fun ColumnScope.PowerSettings(hw: HardwareController) {
 /** Edycja sekwencji na uwrociu: kroki przy wjeździe i wyjeździe, w odległości maszyny od linii uwrocia. */
 @Composable
 private fun ColumnScope.HeadlandSeqEditor(p: VehicleProfile, set: (VehicleProfile) -> Unit) {
-    val HS = eu.smartsteer.navigator.core.field.HeadlandSequence
-    val steps = HS.parse(p.headlandSeq)
-    fun save(l: List<eu.smartsteer.navigator.core.field.HeadlandSequence.Step>) = set(p.copy(headlandSeq = HS.format(l)))
+    val steps = HeadlandSequence.parse(p.headlandSeq)
+    fun save(l: List<eu.smartsteer.navigator.core.field.HeadlandSequence.Step>) = set(p.copy(headlandSeq = HeadlandSequence.format(l)))
     SectionTitle("Sekwencja na uwrociu")
     Label(
         "Kroki wykonywane same przy wjeździe na uwrocie i przy wjeździe w pole (liczone od miejsca maszyny). " +
@@ -433,17 +433,17 @@ private fun ColumnScope.HeadlandSeqEditor(p: VehicleProfile, set: (VehicleProfil
                 Box(Modifier.weight(1f))
                 ActionButton(onClick = { save(steps.filterIndexed { k, _ -> k != i }) }) { ButtonText("✕", color = Ss.TextMuted) }
             }
-            Segmented(HS.Kind.entries.map { it.label }, st.kind.ordinal, { save(steps.toMutableList().also { l -> l[i] = st.copy(kind = HS.Kind.entries[it]) }) })
+            Segmented(HeadlandSequence.Kind.entries.map { it.label }, st.kind.ordinal, { save(steps.toMutableList().also { l -> l[i] = st.copy(kind = HeadlandSequence.Kind.entries[it]) }) })
             Num("Odległość od linii uwrocia", "0 = na linii; więcej = wcześniej", st.distM, "m", 1.0, 0.0, 50.0, 0) { v -> save(steps.toMutableList().also { l -> l[i] = st.copy(distM = v) }) }
-            if (st.kind == HS.Kind.MESSAGE) {
+            if (st.kind == HeadlandSequence.Kind.MESSAGE) {
                 TextInput(st.text, { t -> save(steps.toMutableList().also { l -> l[i] = st.copy(text = t) }) }, title = "Treść komunikatu", modifier = Modifier.fillMaxWidth(), hint = "np. Wyłącz WOM", maxLength = 40)
             }
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ActionButton(onClick = { save(steps + HS.Step(true, HS.Kind.MESSAGE, 5.0, "")) }) { ButtonText("+ krok przy wjeździe na uwrocie", size = 13.sp) }
-        ActionButton(onClick = { save(steps + HS.Step(false, HS.Kind.MESSAGE, 0.0, "")) }) { ButtonText("+ krok przy wjeździe w pole", size = 13.sp) }
-        if (steps.isEmpty()) ActionButton(onClick = { set(p.copy(headlandSeq = HS.EXAMPLE)) }) { ButtonText("Wstaw przykład", size = 13.sp) }
+        ActionButton(onClick = { save(steps + HeadlandSequence.Step(true, HeadlandSequence.Kind.MESSAGE, 5.0, "")) }) { ButtonText("+ krok przy wjeździe na uwrocie", size = 13.sp) }
+        ActionButton(onClick = { save(steps + HeadlandSequence.Step(false, HeadlandSequence.Kind.MESSAGE, 0.0, "")) }) { ButtonText("+ krok przy wjeździe w pole", size = 13.sp) }
+        if (steps.isEmpty()) ActionButton(onClick = { set(p.copy(headlandSeq = HeadlandSequence.EXAMPLE)) }) { ButtonText("Wstaw przykład", size = 13.sp) }
     }
 }
 
