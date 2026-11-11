@@ -136,6 +136,17 @@ narzędzia (rolnik raz wybiera na telefonie: „Siewnik 3 m” = siew itd.), wi�
   Siatka: lewy dolny róg `e0, n0` (m), bok komórki `k` (m, ok. 2), `w × h` komórek; bit nr `y·w + x` (bajt `>>3`, bit `&7`, LSB pierwszy)
   = komórka obrobiona.
 
+**`zabieg`** (tylko WAR Navigator, opcjonalnie) — odpowiedź na pytanie „Co robiłeś na polu?” przy zamknięciu pola
+(Ustawienia → WAR, domyślnie włączone; bez odpowiedzi przez 12 h praca idzie bez `zabieg`):
+
+```json
+"zabieg": {"rodzaj": "oprysk", "produkt": "Mospilan 20 SP", "nr": "R-12/2020", "dawka": 0.2, "jedn": "kg/ha"}
+```
+
+`rodzaj`: oprysk, nawoz, dolistny, siew, uprawa, inne; przy siewie `produkt` = odmiana i `uprawa`; przy mapie dawek
+z WAR `zmienna_dawka: true` (`dawka` = strefa typowa). WAR wypełnia tym wpis do ewidencji zabiegów albo karty pola
+(rolnik zatwierdza na telefonie); rodzaj z `zabieg` wystarcza, gdy narzędzie nie ma jeszcze przypisanego rodzaju.
+
 ### 3.6 Navigator → WAR: pozycja na żywo
 
 Co 5 s w pracy, co 30 s na postoju, tylko przy żywym GPS (i gdy rolnik nie wyłączył „Pokazuj na mapie WAR”):
@@ -148,7 +159,21 @@ Co 5 s w pracy, co 30 s na postoju, tylko przy żywym GPS (i gdy rolnik nie wył
 `fix`: jakość GGA (1 GPS, 2 DGPS, 4 RTK FIX, 5 RTK FLOAT). `pracuje` = autoster albo sekcje włączone. WAR pokazuje maszynę
 na mapie „Na żywo” (Gospodarstwo → Maszyny) pod nazwą `komputer`.
 
-### 3.7 WAR → Navigator: mapa zmiennych dawek (`mapa_dawek`) — ze skrzynki Navigatora
+### 3.7 WAR → Navigator: produkty gospodarstwa (`produkty_war`) — ze skrzynki Navigatora
+
+Podpowiedzi do pytania „Co robiłeś?”: środki (ewidencja z 2 lat i magazyn), nawozy, odmiany — najpierw ostatnio używane,
+do 200 w każdej liście. Wysyłane, gdy się zmienią.
+
+```json
+{"typ": "produkty_war", "v": 1, "skrot": "…", "t": "…",
+ "srodki": [{"n": "Mospilan 20 SP", "nr": "R-12/2020", "d": 0.2, "j": "kg/ha", "r": "sor"}],
+ "nawozy": [{"n": "Saletra amonowa 34", "d": 150, "j": "kg/ha", "r": "nawoz"}],
+ "odmiany": [{"n": "Adrenalina", "u": "pszenica ozima", "d": 180, "j": "kg/ha"}]}
+```
+
+`n` nazwa, `nr` nr zezwolenia, `d` ostatnia dawka, `j` jednostka, `r` rodzaj (sor, dolistny, mikro, nawoz), `u` uprawa.
+
+### 3.8 WAR → Navigator: mapa zmiennych dawek (`mapa_dawek`) — ze skrzynki Navigatora
 
 Telefon: pole → NDVI → Strefy → dawki dla trzech stref → **„Wyślij do nawigacji (WAR Navigator)”**. Strefy ze zdjęcia
 Sentinel-2 jako siatka oczek ~10 m (ta sama co w pliku ISO-XML dla terminali ISOBUS):

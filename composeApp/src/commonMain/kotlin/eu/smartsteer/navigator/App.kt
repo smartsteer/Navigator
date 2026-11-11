@@ -46,6 +46,7 @@ import eu.smartsteer.navigator.ui.brandImage
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.UpdateBanner
 import eu.smartsteer.navigator.ui.components.KeypadHost
+import eu.smartsteer.navigator.ui.TreatmentDialog
 import eu.smartsteer.navigator.ui.UpdateController
 import eu.smartsteer.navigator.ui.components.IconKind
 import eu.smartsteer.navigator.ui.components.NavIcon
@@ -144,6 +145,8 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
             }
         }
         PowerBanner(hw)
+        // po zamknięciu pola z WAR: „co robiłeś?” (pod klawiaturą, która otwiera się nad oknem)
+        if (hw.hardware) TreatmentDialog(hw.war)
         // klawiatura na ekranie (liczby; tekst na Windows) — nad wszystkim
         KeypadHost()
             }

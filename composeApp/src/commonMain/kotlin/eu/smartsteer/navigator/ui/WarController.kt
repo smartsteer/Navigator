@@ -17,7 +17,9 @@ import eu.smartsteer.navigator.core.war.WarCrypto
 import eu.smartsteer.navigator.core.war.WarField
 import eu.smartsteer.navigator.core.war.WarOrder
 import eu.smartsteer.navigator.core.war.WarProtocol
+import eu.smartsteer.navigator.core.war.WarProducts
 import eu.smartsteer.navigator.core.war.WarRateMap
+import eu.smartsteer.navigator.core.war.WarTreatment
 import eu.smartsteer.navigator.core.war.httpJson
 import eu.smartsteer.navigator.core.war.nowIso
 import eu.smartsteer.navigator.core.war.nowMillis
@@ -49,6 +51,15 @@ class WarController(private val hw: HardwareController, private val files: TextF
         private set
     var lastSentText by mutableStateOf<String?>(null)
         private set
+    /** Środki, nawozy i odmiany gospodarstwa z WAR (podpowiedzi przy pytaniu o zabieg). */
+    var products by mutableStateOf(loadProducts())
+        private set
+    /** Praca czeka na odpowiedź „co robiłeś?” (okno po zamknięciu pola). */
+    var pendingAsk by mutableStateOf<PendingAsk?>(null)
+        private set
+
+    /** Praca wstrzymana do odpowiedzi: plik h_<id>.json, podpowiedź ze zlecenia / mapy dawek / ostatniego zabiegu. */
+    data class PendingAsk(val id: String, val fieldName: String, val ha: Double, val tool: String, val suggestion: WarTreatment?)
     /** Zlecenie przyjęte do bieżącego pola (wraca w paczce pracy, po zamknięciu pola = zrobione). */
     var activeOrderId: String? = null
         private set
@@ -72,6 +83,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
             save()
         }
         queueSize = queueNames().size
+        pendingAsk = loadPending()
     }
 
     val configured: Boolean get() = WarProtocol.isValidCode(config.code)
@@ -120,6 +132,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
         if (!configured) return
         if (!ensureKey()) return
         val now = nowMillis()
+        releaseOldHeld(now)
         if (now < backoffUntilMs) return
         // test kodu: po wpisaniu i co 10 min
         if (now >= nextTestMs) {
@@ -252,6 +265,10 @@ class WarController(private val hw: HardwareController, private val files: TextF
                 saveOrders()
                 hw.touch()
             }
+            "produkty_war" -> {
+                try { files.write(PRODUCTS, json) } catch (_: Exception) { return false }
+                products = WarProducts.parse(m)
+            }
             "mapa_dawek" -> {
                 val rm = WarRateMap.parse(m) ?: return true
                 val old = rateMapFor(rm.warId)
@@ -261,6 +278,69 @@ class WarController(private val hw: HardwareController, private val files: TextF
             }
         }
         return true
+    }
+
+    private fun loadProducts(): WarProducts = try {
+        files.read(PRODUCTS)?.let { WarProtocol.parse(it)?.second }?.let { WarProducts.parse(it) } ?: WarProducts()
+    } catch (_: Exception) { WarProducts() }
+
+    // ---------------- „co robiłeś?” po zamknięciu pola ----------------
+
+    private fun heldNames() = try { files.list().filter { it.startsWith("h_") && it.endsWith(".json") }.sorted() } catch (_: Exception) { emptyList() }
+
+    private fun loadPending(): PendingAsk? {
+        for (name in heldNames()) {
+            val m = files.read(name)?.let { MiniJson.parse(it) as? Map<*, *> } ?: run { files.delete(name); null } ?: continue
+            val id = m["id"] as? String ?: run { files.delete(name); continue }
+            val sug = (m["podpowiedz"] as? Map<*, *>)?.let { parseTreatment(it) }
+            return PendingAsk(id, m["pole"] as? String ?: "", (m["ha"] as? Number)?.toDouble() ?: 0.0, m["narzedzie"] as? String ?: "", sug)
+        }
+        return null
+    }
+
+    /** Odpowiedź (albo null = pomiń): praca idzie do kolejki z polem „zabieg”. */
+    fun answer(id: String, t: WarTreatment?) {
+        val name = "h_$id.json"
+        val m = files.read(name)?.let { MiniJson.parse(it) as? Map<*, *> }
+        val plain = m?.get("plain") as? String
+        if (plain != null) {
+            val full = if (t != null && plain.endsWith("}")) plain.dropLast(1) + ",\"zabieg\":" + t.toJson() + "}" else plain
+            enqueue(id, full)
+            if (t != null) try { files.write(LAST_TREATMENT, Json.obj("narzedzie" to (m["narzedzie"] as? String ?: ""), "zabieg" to Json.Raw(t.toJson()))) } catch (_: Exception) {}
+        }
+        files.delete(name)
+        pendingAsk = loadPending()
+    }
+
+    /** Wstrzymane prace bez odpowiedzi przez 12 h idą bez szczegółów — WAR i tak zapyta rolnika na telefonie. */
+    private fun releaseOldHeld(now: Long) {
+        for (name in heldNames()) {
+            val m = files.read(name)?.let { MiniJson.parse(it) as? Map<*, *> } ?: continue
+            val t = (m["t"] as? Number)?.toLong() ?: 0L
+            if (now - t > 12 * 60 * 60 * 1000L) (m["id"] as? String)?.let { answer(it, null) }
+        }
+    }
+
+    private fun suggestion(order: WarOrder?, warId: String?, tool: String): WarTreatment? {
+        if (order != null && order.kind in WarTreatment.KINDS.map { it.first }) {
+            return WarTreatment(order.kind, order.product, products.sprays.firstOrNull { it.name.equals(order.product, true) }?.permit.orEmpty(), order.dose, order.unit)
+        }
+        rateMapFor(warId)?.let { rm ->
+            val k = rm.kindName.lowercase()
+            val kind = when { k.startsWith("siew") -> "siew"; k.startsWith("oprysk") -> "oprysk"; else -> "nawoz" }
+            return WarTreatment(kind, rm.product, dose = rm.rates[2], unit = rm.unit, variableRate = true)
+        }
+        val last = files.read(LAST_TREATMENT)?.let { MiniJson.parse(it) as? Map<*, *> } ?: return null
+        if ((last["narzedzie"] as? String) != tool) return null
+        return (last["zabieg"] as? Map<*, *>)?.let { parseTreatment(it) }
+    }
+
+    private fun parseTreatment(m: Map<*, *>): WarTreatment? {
+        val kind = m["rodzaj"] as? String ?: return null
+        return WarTreatment(
+            kind, m["produkt"] as? String ?: "", m["nr"] as? String ?: "", (m["dawka"] as? Number)?.toDouble(),
+            m["jedn"] as? String ?: "", m["uprawa"] as? String ?: "", m["zmienna_dawka"] == true,
+        )
     }
 
     /** Ostatnia mapa dawek przysłana z WAR dla pola o tym id (albo null). */
@@ -336,7 +416,17 @@ class WarController(private val hw: HardwareController, private val files: TextF
             pointLat = center.first, pointLon = center.second, boundary = boundary,
             orderId = activeOrderId, version = version, grid = CoverageGrid.from(s.coverage, plane),
         )
-        enqueue(id, WarProtocol.work(work, config))
+        val plain = WarProtocol.work(work, config)
+        if (config.askTreatment) {
+            val sug = suggestion(orders.firstOrNull { it.id == activeOrderId }, f.warId, tool)
+            try {
+                files.write("h_$id.json", Json.obj(
+                    "id" to id, "plain" to plain, "t" to nowMillis(), "pole" to f.name, "ha" to s.coverage.workedM2 / 10_000,
+                    "narzedzie" to tool, "podpowiedz" to sug?.let { Json.Raw(it.toJson()) },
+                ))
+                pendingAsk = loadPending()
+            } catch (_: Exception) { enqueue(id, plain) }
+        } else enqueue(id, plain)
         activeOrderId?.let { oid ->
             enqueue("st-$oid-${nowMillis()}", WarProtocol.orderStatus(oid, "zrobione", config, nowIso()))
             setLocal(oid, "zrobione")
@@ -365,6 +455,8 @@ class WarController(private val hw: HardwareController, private val files: TextF
     companion object {
         private const val CONFIG = "war.cfg"
         private const val FIELDS = "pola_war.json"
+        private const val PRODUCTS = "produkty_war.json"
+        private const val LAST_TREATMENT = "zabieg_ostatni.json"
         private const val ORDERS = "zlecenia.json"
         private const val DAY = 24L * 60 * 60 * 1000
     }
