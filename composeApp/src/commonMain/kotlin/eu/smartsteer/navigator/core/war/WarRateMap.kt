@@ -5,7 +5,7 @@ import eu.smartsteer.navigator.core.field.RateZone
 import eu.smartsteer.navigator.core.geo.LocalPlane
 
 /**
- * Mapa zmiennych dawek z WAR (paczka `mapa_dawek`, docs/WAR.md 3.7): strefy ze zdjęcia NDVI jako siatka oczek ~10 m.
+ * Mapa zmiennych dawek z WAR (paczka `mapa_dawek`, docs/WAR.md 3.8): strefy ze zdjęcia NDVI jako siatka oczek ~10 m.
  * Wiersze od południa, w napisie kod strefy w każdym oczku: 0 poza polem, 1 słabsza, 2 typowa, 3 mocniejsza;
  * [rates] = dawka dla kodu. Siatka jest zwięzła (pole 50 ha to kilka KB); na pole zamieniamy ją w prostokąty
  * (oczka tej samej strefy w wierszu, a potem takie same odcinki w kolejnych wierszach — jeden prostokąt).

@@ -700,6 +700,7 @@ private fun ColumnScope.WarTab(hw: HardwareController) {
     Label("WAR przypisuje rodzaj zabiegu do nazwy narzędzia (np. „Siewnik 3 m” = siew) — nie zmieniaj jej co dzień.", Ss.TextMuted, 12.sp)
     Field("Kto jedzie", who, "np. Marek") { who = it.take(40) }
     Toggle("Pokazuj na mapie WAR (pozycja na żywo)", c.live) { w.update(w.config.copy(live = it)) }
+    Toggle("Po zamknięciu pola pytaj, co robiłeś (środek, nawóz, odmiana, dawka — do ewidencji w WAR)", c.askTreatment) { w.update(w.config.copy(askTreatment = it)) }
     Field("Serwer", server, "https://www.agro.smartsteer.eu") { server = it.trim() }
     ActionButton(onClick = {
         w.update(w.config.copy(tractorName = tractor.trim(), toolName = tool.trim(), operator = who.trim(), server = server.ifEmpty { "https://www.agro.smartsteer.eu" }))
