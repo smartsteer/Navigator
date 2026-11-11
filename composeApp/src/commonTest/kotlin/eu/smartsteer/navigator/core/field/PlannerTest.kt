@@ -59,6 +59,20 @@ class PlannerTest {
     }
 
     @Test
+    fun headlandLoopHalfWidthInside() {
+        val h = HardwareSession(VehicleProfile(toolWidth = 6.0))
+        h.restoreFieldForTest(listOf(Vec2(0.0, 0.0), Vec2(200.0, 0.0), Vec2(200.0, 100.0), Vec2(0.0, 100.0)))
+        assertTrue(h.headlandTrack())
+        val c = assertNotNull(h.curveRef)
+        assertEquals(1, h.tracks.size)
+        // wszystkie punkty 3 m od granicy (± zaokrąglenie narożników)
+        for (q in c) {
+            val d = minOf(q.p.x, 200 - q.p.x, q.p.y, 100 - q.p.y)
+            assertTrue(d in 2.5..3.5, "punkt $q d=$d")
+        }
+    }
+
+    @Test
     fun fieldJsonKeepsTracksFlagsObstacles() {
         val f = FieldData(
             "P", 52.0, 21.0, null, 0.0, null, null, null,

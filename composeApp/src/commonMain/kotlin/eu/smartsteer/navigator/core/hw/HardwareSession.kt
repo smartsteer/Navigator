@@ -370,6 +370,68 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         ok("Usunięto „${t.name}”")
     }
 
+    // ---------------- linie z granicy ----------------
+    /**
+     * Linia AB wzdłuż najbliższego boku pola (dłuższego niż 20 m), odsunięta do środka o pół szerokości maszyny —
+     * pierwszy przejazd idzie tuż przy granicy.
+     */
+    fun abFromBoundary(): Boolean {
+        val b = boundary ?: return fail("Najpierw granica pola")
+        val p = pivot ?: return fail("Brak pozycji GPS")
+        val half = profile.passSpacing / 2
+        var best: Pair<Vec2, Vec2>? = null
+        var bestD = Double.MAX_VALUE
+        for (i in b.indices) {
+            val a = b[i]; val c = b[(i + 1) % b.size]
+            if (a.distanceTo(c) < 20.0) continue
+            val d = distToSegment(p, a, c)
+            if (d < bestD) { bestD = d; best = a to c }
+        }
+        val (a, c) = best ?: return fail("Granica nie ma boku dłuższego niż 20 m")
+        val dir = c - a
+        val h = atan2(dir.x, dir.y)
+        var n = Vec2.right(h) * half
+        val mid = (a + c) * 0.5
+        if (!Polygon.contains(b, mid + n)) n = n * -1.0
+        val l = AbLine(a + n, c + n)
+        engaged = false
+        mode = GuidanceMode.AB
+        restoreLine(l)
+        val deg = ((h * 180 / PI) % 360 + 360) % 360
+        addTrack(Track("Bok pola ${deg.roundToInt()}°", l, null))
+        pathHint = -1; steering.reset()
+        return ok("Linia wzdłuż boku pola (${a.distanceTo(c).roundToInt()} m)")
+    }
+
+    /**
+     * Uwrocie: zamknięta krzywa dookoła pola pół szerokości od granicy. Kolejne przejazdy uwrocia (do środka)
+     * to kolejne przejazdy tej krzywej — jak „Headland” w AgOpenGPS.
+     */
+    fun headlandTrack(): Boolean {
+        val b = boundary ?: return fail("Najpierw granica pola")
+        val inner = Polygon.inset(b, profile.passSpacing / 2)
+        if (inner.size < 3) return fail("Pole za małe na uwrocie tą maszyną")
+        // zamknięcie pętli: dokładamy początek, żeby prowadzenie nie kończyło się w rogu startu
+        val loop = ArrayList(inner)
+        var acc = 0.0
+        var i = 0
+        loop.add(inner[0])
+        while (acc < 20.0 && i < inner.size - 1) { acc += inner[i].distanceTo(inner[i + 1]); loop.add(inner[i + 1]); i++ }
+        val dense = Curves.densify(loop, 1.0)
+        engaged = false
+        mode = GuidanceMode.CURVE
+        restoreCurve(Curves.headings(dense))
+        addTrack(Track("Uwrocie dookoła", null, dense))
+        return ok("Uwrocie: jedź dookoła pola, kolejne okrążenia do środka")
+    }
+
+    private fun distToSegment(p: Vec2, a: Vec2, b: Vec2): Double {
+        val ab = b - a
+        val l2 = ab dot ab
+        val t = if (l2 < 1e-9) 0.0 else (((p - a) dot ab) / l2).coerceIn(0.0, 1.0)
+        return p.distanceTo(a + ab * t)
+    }
+
     // ---------------- plan przejazdów ----------------
     /** Kierunki przejazdów z najmniejszą liczbą przejazdów (wnętrze pola bez uwrocia). */
     fun planPasses(): List<FieldPlanner.Plan> {

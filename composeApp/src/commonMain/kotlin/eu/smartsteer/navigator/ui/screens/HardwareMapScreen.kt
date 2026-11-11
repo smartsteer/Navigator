@@ -65,6 +65,9 @@ import eu.smartsteer.navigator.ui.components.BigValue
 import eu.smartsteer.navigator.ui.components.ButtonText
 import eu.smartsteer.navigator.ui.components.IconKind
 import eu.smartsteer.navigator.ui.components.Label
+import eu.smartsteer.navigator.ui.components.Keypad
+import eu.smartsteer.navigator.ui.components.KeypadMode
+import eu.smartsteer.navigator.ui.components.KeypadRequest
 import eu.smartsteer.navigator.ui.components.NavIcon
 import eu.smartsteer.navigator.ui.components.Segmented
 import eu.smartsteer.navigator.ui.components.Stat
@@ -505,6 +508,18 @@ private fun AbControls(hw: HardwareController) {
                     ButtonText("z kursu", size = 11.sp, color = Ss.TextMuted)
                 }
             }
+            ActionButton(Modifier.weight(1f), onClick = {
+                Keypad.open(
+                    KeypadRequest("Kurs linii A+ (0–359°, 0 = północ)", "", KeypadMode.Number, hint = "np. 87") { t ->
+                        t.replace(',', '.').toDoubleOrNull()?.let { s.markAPlus(((it % 360) + 360) % 360); hw.touch() }
+                    },
+                )
+            }) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ButtonText("A+ °", size = 17.sp, weight = FontWeight.Bold)
+                    ButtonText("wpisz kurs", size = 11.sp, color = Ss.TextMuted)
+                }
+            }
             ActionButton(Modifier.weight(1f), onClick = { s.snapToTractor(); hw.touch() }) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     ButtonText("Do ciągnika", size = 14.sp, weight = FontWeight.Bold)
@@ -546,8 +561,22 @@ private fun PlanControls(hw: HardwareController) {
     val s = hw.session
     var plans by remember { mutableStateOf<List<eu.smartsteer.navigator.core.field.FieldPlanner.Plan>>(emptyList()) }
     if (s.boundary == null) {
-        Label("Plan przejazdów: najpierw granica pola (ekran Pola).", Ss.TextMuted, 12.sp)
+        Label("Plan przejazdów, linie z granicy i uwrocie: najpierw granica pola (ekran Pola).", Ss.TextMuted, 12.sp)
         return
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActionButton(Modifier.weight(1f), onClick = { s.abFromBoundary(); hw.touch() }) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                ButtonText("Wzdłuż boku", size = 14.sp, weight = FontWeight.Bold)
+                ButtonText("najbliższy bok pola", size = 11.sp, color = Ss.TextMuted)
+            }
+        }
+        ActionButton(Modifier.weight(1f), onClick = { s.headlandTrack(); hw.touch() }) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                ButtonText("Uwrocie", size = 14.sp, weight = FontWeight.Bold)
+                ButtonText("dookoła pola", size = 11.sp, color = Ss.TextMuted)
+            }
+        }
     }
     ActionButton(Modifier.fillMaxWidth(), background = Ss.AccentSoft, border = Ss.Accent, onClick = { plans = s.planPasses(); hw.touch() }) {
         ButtonText("Zaplanuj przejazdy (najmniej)", color = Ss.Accent, weight = FontWeight.Bold)
