@@ -478,6 +478,47 @@ private fun WasCalibrationPanel(hw: HardwareController, p: VehicleProfile, set: 
     }
 }
 
+/** Czujnik przeszkód (kamera z pomiarem odległości) — docs/PRZESZKODY.md. */
+@Composable
+private fun ColumnScope.ObstacleSection(hw: HardwareController) {
+    val c = hw.obstacleConfig
+    val set = { n: eu.smartsteer.navigator.core.safety.ObstacleConfig -> hw.updateObstacleConfig(n) }
+    SectionTitle("Czujnik przeszkód (kamera z pomiarem odległości)")
+    Label(
+        "Kamera (np. OAK-D) przez program pośredni wysyła listę przeszkód przed maszyną. Gdy coś jest w strefie stopu — autoster się wyłącza, " +
+            "alarm i ramka STOP (PGN 225) dla modułu bezpieczeństwa. Gdy czujnik nie nadaje — autostera nie da się włączyć. " +
+            "Uwaga: autoster tylko skręca — do zatrzymania ciągnika potrzebny jest moduł z przekaźnikiem stopu.",
+        Ss.TextSoft, 13.sp,
+    )
+    Toggle("Czujnik przeszkód włączony", c.enabled) { set(c.copy(enabled = it)) }
+    if (c.enabled) {
+        hw.tick
+        val v = hw.session.obstacleVerdict
+        val stan = when {
+            hw.obstacleError != null -> hw.obstacleError!!
+            v == null -> "Włącz tryb SPRZĘT, żeby sprawdzić czujnik"
+            !v.sensorAlive -> v.message ?: "Czujnik nie nadaje"
+            v.level == 2 -> v.message ?: "STOP"
+            v.level == 1 -> v.message ?: "Uwaga"
+            else -> "Czujnik nadaje · strefa stopu ${v.stopLengthM.pl(1)} m × ${(v.halfWidthM * 2).pl(1)} m · odebrano ${hw.obstacleRx}"
+        }
+        Label(stan, if (v == null || !v.sensorAlive || v.level == 2) Ss.Warning else Ss.Accent, 14.sp)
+        Label("Odbiór: UDP port ${c.port} (wszystkie karty sieciowe). Program pośredni i protokół: docs/PRZESZKODY.md w repozytorium.", Ss.TextMuted, 12.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ActionButton(onClick = { hw.testObstacle(3.0) }) { ButtonText("Próba: przeszkoda 3 m", size = 13.sp) }
+            ActionButton(onClick = { hw.testObstacle(30.0) }) { ButtonText("Próba: 30 m (czysto)", size = 13.sp) }
+        }
+        Label("Próba trwa ok. 1 s — bez kamery potem pojawi się „czujnik nie nadaje” (tak ma być).", Ss.TextMuted, 12.sp)
+        Num("Najkrótsza strefa stopu", "Także na postoju i przy małej prędkości", c.minStopM, "m", 0.5, 1.0, 30.0, 1) { set(c.copy(minStopM = it)) }
+        Num("Czas reakcji", "Od wykrycia do zadziałania stopu (kamera + program + przekaźnik + hamulec)", c.reactionS, "s", 0.1, 0.1, 5.0, 1) { set(c.copy(reactionS = it)) }
+        Num("Hamowanie", "Opóźnienie przy hamowaniu; mniej = dłuższa strefa (mokro, przyczepa)", c.decelMps2, "m/s²", 0.25, 0.5, 8.0, 2) { set(c.copy(decelMps2 = it)) }
+        Num("Zapas z boku", "Doliczany z każdej strony do szerokości maszyny (szersze z ciągnika i narzędzia)", c.sideMarginM, "m", 0.1, 0.0, 5.0, 1) { set(c.copy(sideMarginM = it)) }
+        Num("Pewność wykrycia od", "Słabsze wykrycia są pomijane (mniej fałszywych alarmów, ale ryzyko przeoczenia)", c.minConfidence * 100, "%", 5.0, 5.0, 100.0, 0) { set(c.copy(minConfidence = it / 100)) }
+        Num("Czujnik martwy po", "Bez danych dłużej — STOP i blokada autosteru", c.sensorTimeoutS, "s", 0.1, 0.2, 10.0, 1) { set(c.copy(sensorTimeoutS = it)) }
+        Num("Port UDP", null, c.port.toDouble(), "", 1.0, 1024.0, 65535.0, 0) { set(c.copy(port = it.toInt())) }
+    }
+}
+
 /** Nadzór autosteru: progi samoczynnego wyłączenia i dziennik wyłączeń. */
 @Composable
 private fun ColumnScope.SupervisorTab(hw: HardwareController, p: VehicleProfile, set: (VehicleProfile) -> Unit) {
@@ -493,6 +534,7 @@ private fun ColumnScope.SupervisorTab(hw: HardwareController, p: VehicleProfile,
     Num("Koła nie słuchają: różnica kąta", "Zadany a rzeczywisty kąt kół (awaria silnika, zaworu, czujnika)", p.supSteerErrDeg, "°", 1.0, 0.0, 30.0, 0) { set(p.copy(supSteerErrDeg = it)) }
     Num("…przez", null, p.supSteerErrS, "s", 0.5, 0.5, 10.0, 1) { set(p.copy(supSteerErrS = it)) }
     Num("Przerwa w pracy programu", "Watchdog: gdy program nie liczył prowadzenia dłużej (zawieszenie komputera)", p.supLoopGapS, "s", 0.1, 0.0, 3.0, 1) { set(p.copy(supLoopGapS = it)) }
+    ObstacleSection(hw)
     SectionTitle("Ostatnie wyłączenia")
     if (hw.recentTrips.isEmpty()) Label("Brak — autoster nie wyłączył się sam.", Ss.TextMuted, 13.sp)
     hw.recentTrips.take(10).forEach { Label(it, Ss.TextSoft, 13.sp) }

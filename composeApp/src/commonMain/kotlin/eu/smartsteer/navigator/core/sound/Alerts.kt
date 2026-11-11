@@ -12,6 +12,8 @@ data class AlertState(
     val anySection: Boolean,
     val newOrders: Int,
     val nowS: Double,
+    /** Czujnik przeszkód: 0 czysto / brak czujnika, 1 uwaga, 2 STOP (przeszkoda albo martwy czujnik). */
+    val obstacle: Int = 0,
 )
 
 /** Zamienia zmiany stanu na dźwięki. Czysta logika — testowalna. */
@@ -37,6 +39,8 @@ class AlertTracker {
             out.add(if (cur.anySection) SoundKind.SECTION_ON else SoundKind.SECTION_OFF)
         }
         if (cur.newOrders > p.newOrders) out.add(SoundKind.ORDER)
+        if (cur.obstacle == 2 && p.obstacle < 2 && SoundKind.ALARM !in out) out.add(0, SoundKind.ALARM)
+        else if (cur.obstacle == 1 && p.obstacle == 0) out.add(0, SoundKind.WARNING)
         return out
     }
 }

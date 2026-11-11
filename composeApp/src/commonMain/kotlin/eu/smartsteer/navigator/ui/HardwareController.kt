@@ -515,6 +515,59 @@ class HardwareController {
     }
 
     // ---------------- sieć modułów ----------------
+    // ---------------- czujnik przeszkód (core/safety, docs/PRZESZKODY.md) ----------------
+    private val obstacleFile = "przeszkody.cfg"
+    var obstacleConfig by mutableStateOf(
+        runCatching { files.read(obstacleFile)?.let { eu.smartsteer.navigator.core.safety.ObstacleConfig.fromJson(it) } }.getOrNull()
+            ?: eu.smartsteer.navigator.core.safety.ObstacleConfig(),
+    )
+        private set
+    var obstacleError by mutableStateOf<String?>(null)
+        private set
+    /** Ile paczek przyszło z czujnika (do ekranu Połączenia / Ustawień). */
+    var obstacleRx by mutableStateOf(0)
+        private set
+    private var obstacleReceiver: eu.smartsteer.navigator.core.safety.ObstacleReceiver? = null
+    private var obstaclePort = 0
+    private val obstacleInbox = Channel<String>(Channel.CONFLATED)
+    private var obstacleLevelPrev = 0
+
+    fun updateObstacleConfig(c: eu.smartsteer.navigator.core.safety.ObstacleConfig) {
+        obstacleConfig = c
+        session.obstacleGuard.config = c
+        try { files.write(obstacleFile, c.toJson()) } catch (_: Exception) {}
+        applyObstacleReceiver()
+        tick++
+    }
+
+    private fun applyObstacleReceiver() {
+        val c = obstacleConfig
+        if (!c.enabled) { obstacleReceiver?.stop(); obstacleReceiver = null; obstaclePort = 0; obstacleError = null; session.obstacleFrame = null; return }
+        if (obstacleReceiver != null && obstaclePort == c.port) return
+        obstacleReceiver?.stop()
+        val r = eu.smartsteer.navigator.core.safety.createObstacleReceiver()
+        obstacleError = r.start(c.port) { txt -> obstacleInbox.trySend(txt) }
+        obstacleReceiver = if (obstacleError == null) r else null
+        obstaclePort = if (obstacleError == null) c.port else 0
+    }
+
+    /** Próba bez kamery: przeszkoda [distM] przed maszyną przez chwilę (do sprawdzenia alarmu i zatrzymania). */
+    fun testObstacle(distM: Double) {
+        session.obstacleFrame = eu.smartsteer.navigator.core.safety.ObstacleFrame(now(), listOf(eu.smartsteer.navigator.core.safety.Obstacle(distM, 0.0, "test", 1.0)), true, "test")
+        tick++
+    }
+
+    /** Po kroku prowadzenia: nowy STOP przez przeszkodę — komunikat na mapie i zdarzenie do WAR. */
+    private fun obstacleEventStep() {
+        val v = session.obstacleVerdict
+        val lvl = if (hardware) v?.level ?: 0 else 0
+        if (lvl == 2 && obstacleLevelPrev < 2 && v != null) {
+            mapMessage(v.message ?: "Czujnik przeszkód")
+            if (v.nearest != null && v.nearest.kind != "test") war.reportEvent("przeszkoda", v.message ?: "przeszkoda")
+        }
+        obstacleLevelPrev = lvl
+    }
+
     private val netFile = "siec.cfg"
     /** Sieć modułów: trzy pierwsze liczby adresu (domyślnie 192.168.5, jak w AgOpenGPS). */
     var subnet by mutableStateOf(
@@ -1322,6 +1375,13 @@ class HardwareController {
         }
         savedFieldName = session.fieldName
         launch { war.loop() }
+        session.obstacleGuard.config = obstacleConfig
+        applyObstacleReceiver()
+        launch {
+            for (txt in obstacleInbox) {
+                eu.smartsteer.navigator.core.safety.ObstacleProtocol.parse(txt, now())?.let { session.obstacleFrame = it; obstacleRx++ }
+            }
+        }
         launch {
             for (p in inbox) {
                 if (!hardware) continue
@@ -1370,6 +1430,7 @@ class HardwareController {
             }
             if (simulating) simStep()
             session.update(now())
+            obstacleEventStep()
             tuneStep()
             recordHistory()
             ntripStep(l)
@@ -1380,7 +1441,8 @@ class HardwareController {
             if (l != null) {
                 val s64 = session.sections64Frame()
                 val rate = session.rateFrame()
-                sendError = withContext(Dispatchers.Default) { l.send(frame) ?: l.send(machine) ?: s64?.let { l.send(it) } ?: rate?.let { l.send(it) } }
+                val safety = session.safetyFrame()
+                sendError = withContext(Dispatchers.Default) { l.send(frame) ?: l.send(machine) ?: s64?.let { l.send(it) } ?: rate?.let { l.send(it) } ?: safety?.let { l.send(it) } }
                 if (sendError == null) txCount++
                 if (configDirty && now() - configChangedAt > 1.5) {
                     val f252 = session.steerSettingsFrame()
@@ -1455,6 +1517,7 @@ class HardwareController {
                 hardware = hardware, engaged = s.engaged, userToggleS = s.lastUserToggleS,
                 gpsOk = hardware && s.gpsAlive(n), rtkFix = s.fix == FixQuality.RTK_FIX, turning = s.youTurnPath != null,
                 anySection = s.sections.anyOn(), newOrders = war.newOrders.size, nowS = n,
+                obstacle = if (hardware) s.obstacleVerdict?.level ?: 0 else 0,
             ),
         )
         if (soundOn) ev.firstOrNull()?.let { SoundPlayer.play(it) }

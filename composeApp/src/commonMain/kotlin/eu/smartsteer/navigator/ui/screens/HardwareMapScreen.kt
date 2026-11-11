@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -118,6 +119,7 @@ fun HardwareMapScreen(hw: HardwareController) {
 
         HwInfo(hw, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 16.dp))
         OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
+        ObstacleBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
         FieldSuggestion(hw, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
         HeadlandHint(hw, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
         KTurnBanner(hw, Modifier.align(Alignment.Center).padding(bottom = 160.dp))
@@ -518,6 +520,21 @@ private fun TurnControls(hw: HardwareController) {
         }
     } else if (s.autoUturn && !hasBoundary) {
         Label("Auto-zawrót potrzebuje granicy pola (ekran Pola).", Ss.Warning, 12.sp)
+    }
+}
+
+/** Czujnik przeszkód: czerwony pas przy STOP (przeszkoda albo martwy czujnik), pomarańczowy przy „Uwaga”. */
+@Composable
+private fun ObstacleBanner(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val v = hw.session.obstacleVerdict ?: return
+    if (v.level == 0) return
+    val c = if (v.level == 2) Ss.Danger else Ss.Warning
+    Box(
+        modifier.widthIn(min = 360.dp).clip(RoundedCornerShape(14.dp)).background(c).padding(horizontal = 22.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(v.message ?: if (v.level == 2) "STOP" else "Uwaga", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     }
 }
 

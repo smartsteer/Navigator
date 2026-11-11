@@ -436,6 +436,24 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         return m.defaultRate to -1
     }
 
+    // ---------------- czujnik przeszkód (core/safety, docs/PRZESZKODY.md) ----------------
+    val obstacleGuard = eu.smartsteer.navigator.core.safety.ObstacleGuard()
+    /** Ostatnia paczka z czujnika (ustawia kontroler po odebraniu). */
+    var obstacleFrame: eu.smartsteer.navigator.core.safety.ObstacleFrame? = null
+    var obstacleVerdict: eu.smartsteer.navigator.core.safety.ObstacleVerdict? = null; private set
+    /** Szerokość pasa, który maszyna zajmuje: szersze z ciągnika (rozstaw kół + opony) i narzędzia. */
+    val machineWidthM: Double get() = kotlin.math.max(profile.trackWidth + 0.5, profile.toolWidth)
+
+    private fun obstacleStep(nowS: Double) {
+        if (!obstacleGuard.config.enabled) { obstacleVerdict = null; return }
+        val v = obstacleGuard.check(obstacleFrame, nowS, speedKmh, machineWidthM)
+        obstacleVerdict = v
+        if (v.level == 2 && engaged) trip("${v.message} — autoster wyłączony")
+    }
+
+    /** PGN 225 dla modułu bezpieczeństwa (gdy czujnik włączony). */
+    fun safetyFrame(): ByteArray? = obstacleVerdict?.let { eu.smartsteer.navigator.core.safety.ObstacleGuard.frame(it) }
+
     /** PGN 224 z dawką (tylko gdy jest mapa dawek). */
     fun rateFrame(): ByteArray? {
         val (r, z) = rateNow() ?: return null
@@ -580,6 +598,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             mode == GuidanceMode.CONTOUR && contour.guide.isEmpty() -> "Brak wcześniejszego przejazdu obok — kontur nie ma czego się trzymać"
             !gpsAlive(nowS) -> "Brak pozycji GPS"
             !autosteerAlive(nowS) -> "Brak odpowiedzi modułu autosterowania (PGN 253)"
+            obstacleGuard.config.enabled && obstacleGuard.check(obstacleFrame, nowS, speedKmh, machineWidthM).level == 2 ->
+                obstacleGuard.check(obstacleFrame, nowS, speedKmh, machineWidthM).message ?: "Czujnik przeszkód"
             else -> null
         }
         engaged = why == null
@@ -598,6 +618,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             ),
             profile,
         )?.let { trip(it) }
+        obstacleStep(nowS)
         if (engaged && reversing && kPhase != 2 && kPhase != 3) trip("Jazda do tyłu — autoster wyłączony")
         if (engaged && !gpsAlive(nowS)) trip("Utracono GPS — autoster wyłączony")
         if (engaged && !autosteerAlive(nowS)) trip("Moduł autosterowania nie odpowiada — autoster wyłączony")
