@@ -25,7 +25,7 @@ enum class TileSource(val label: String, val short: String, val maxZoom: Int, va
 
     companion object {
         /** WMTS Geoportalu w układzie EPSG:3857 (KVP). */
-        var ORTO_URL = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/HighResolution?SERVICE=WMTS&REQUEST=GetTile" +
+        var ORTO_URL = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?SERVICE=WMTS&REQUEST=GetTile" +
             "&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857" +
             "&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}"
     }
