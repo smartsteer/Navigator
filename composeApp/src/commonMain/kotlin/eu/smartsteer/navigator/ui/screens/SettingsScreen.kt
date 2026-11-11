@@ -438,6 +438,12 @@ private fun ColumnScope.SupervisorTab(hw: HardwareController, p: VehicleProfile,
     if (hw.recentTrips.isEmpty()) Label("Brak — autoster nie wyłączył się sam.", Ss.TextMuted, 13.sp)
     hw.recentTrips.take(10).forEach { Label(it, Ss.TextSoft, 13.sp) }
     Label("Pełny dziennik: ${hw.tripLogLocation}", Ss.TextMuted, 12.sp)
+    var diag by remember { mutableStateOf<String?>(null) }
+    SectionTitle("Diagnostyka")
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        ActionButton(onClick = { diag = hw.saveDiagnostics() }) { ButtonText("Zapisz plik diagnostyki") }
+    }
+    Label(diag ?: "Jeden plik ze stanem łączy, profilem, dziennikiem i ostatnimi pakietami (bez haseł) — do wysłania przy kłopotach.", if (diag != null) Ss.Accent else Ss.TextMuted, 12.sp)
 }
 
 @Composable

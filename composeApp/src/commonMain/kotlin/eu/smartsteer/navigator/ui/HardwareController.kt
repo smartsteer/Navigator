@@ -44,6 +44,7 @@ import eu.smartsteer.navigator.core.io.FieldImport
 import eu.smartsteer.navigator.core.settings.exportFiles
 import eu.smartsteer.navigator.core.settings.importFiles
 import eu.smartsteer.navigator.core.settings.nowText
+import eu.smartsteer.navigator.core.settings.openFolder
 import eu.smartsteer.navigator.core.settings.Profiles
 import eu.smartsteer.navigator.core.settings.fieldFiles
 import eu.smartsteer.navigator.core.settings.VehicleProfile
@@ -354,6 +355,45 @@ class HardwareController {
     }
 
     /** Raport zabiegu (GeoJSON) do folderu raportów — do wczytania w WAR. */
+    /**
+     * Paczka diagnostyczna do wysłania (e-mail, komunikator): wersja, stan łączy, profil, dziennik nadzoru,
+     * historia samouczenia i ostatnie pakiety. Hasła (NTRIP, kod WAR) są pomijane.
+     */
+    fun saveDiagnostics(): String {
+        val n = now()
+        val s = session
+        val text = buildString {
+            appendLine("WAR Navigator — diagnostyka ${nowText()}")
+            appendLine("Wersja: ${runCatching { platformUpdater().currentVersion }.getOrDefault("?")}")
+            appendLine("Tryb: ${if (hardware) "SPRZĘT" else "SYMULATOR"}${if (simulating) " (symulacja jazdy)" else ""}${if (wifiMode) " · Wi-Fi" else ""}")
+            appendLine("Sieć modułów: $subnetText.x · odebrano $rxCount · wysłano $txCount · błąd wysyłki: ${sendError ?: "—"}")
+            appendLine("Moduły: ${foundModules.joinToString { "${it.source}@${it.ip}" }.ifEmpty { "—" }} · adresy: ${moduleSeen.keys.joinToString()}")
+            appendLine("Łącze z modułem skrętu: straty ${linkLossPct ?: "—"}% · najdłuższa przerwa ${linkMaxGapMs ?: "—"} ms")
+            appendLine("GPS: ${s.fix.label} · żywy ${s.gpsAlive(n)} · sat ${s.lastGga?.satellites ?: "—"} · HDOP ${s.lastGga?.hdop ?: "—"} · wiek poprawek ${s.lastGga?.correctionAge ?: "—"} · kurs z ${s.headingSource.label}")
+            appendLine("Moduł skrętu: ${s.autosteer?.let { "kąt ${it.actualAngleDeg}° przełącznik ${it.steerSwitch} PWM ${it.pwm}" } ?: "brak"} · żywy ${s.autosteerAlive(n)}")
+            appendLine("NTRIP: $ntripStatus · ${ntripConfig.host}:${ntripConfig.port}/${ntripConfig.mount} · ${ntripRate.toInt()} B/s")
+            appendLine("COM: $serialStatus")
+            appendLine("Autoster: ${if (s.engaged) "WŁ." else "wył."} · tryb ${s.mode.label} · odchyłka ${s.xteCm} cm · zadany ${s.steerSetDeg}° · prędkość ${s.speedKmh} km/h")
+            appendLine("Pole: ${s.fieldName ?: "—"} · linii ${s.tracks.size} · obrobiono ${s.coverage.workedM2.toInt()} m²")
+            appendLine("Samouczenie: ${tuneMode.label} · ${tuneStats?.let { "RMS ${it.rmsCm} cm, maks ${it.maxCm}, przejścia ${it.crossingsPerMin}/min, koła ${it.wheelLagS}s ${it.wheelGain}" } ?: "—"}")
+            appendLine()
+            appendLine("--- Profil „$profileName” ---")
+            appendLine(profile.toJson())
+            appendLine("--- Ostatnie wyłączenia / zmiany (dziennik nadzoru) ---")
+            runCatching { files.read("dziennik-nadzoru.txt").orEmpty().lines().takeLast(100) }.getOrDefault(emptyList()).forEach { appendLine(it) }
+            appendLine("--- Historia samouczenia ---")
+            tuneHistory.forEach { appendLine(it) }
+            appendLine("--- Ostatnie pakiety ---")
+            log.forEach { appendLine(it) }
+        }
+        val name = "diagnostyka ${nowText().replace(":", "")}.txt"
+        return try {
+            exportDir.write(name, text)
+            runCatching { openFolder(exportDir.location) }
+            "Zapisano „$name” w ${exportDir.location} — wyślij ten plik (e-mail, komunikator)"
+        } catch (e: Exception) { "Nie udało się: ${e.message}" }
+    }
+
     /** Eksport otwartego pola: KML i ISOXML (folder TASKDATA) w folderze raportów. */
     fun exportField(): String {
         val f = session.fieldData() ?: return "Żadne pole nie jest otwarte"
