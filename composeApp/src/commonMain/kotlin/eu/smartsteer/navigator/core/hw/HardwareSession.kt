@@ -398,8 +398,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         lastTurnTryS = nowS
         if (!Polygon.contains(tl, p)) {
             // ciągnik już za linią zawrotu, a zawrotu nie ma — zatrzymujemy autoster zamiast wyjechać z pola
-            engaged = false
-            fail("Koniec pola — autoster wyłączony (zawrót się nie zmieścił)")
+            trip("Koniec pola — autoster wyłączony (zawrót się nie zmieścił)")
             return
         }
         val guide = currentGuide(p) ?: return
