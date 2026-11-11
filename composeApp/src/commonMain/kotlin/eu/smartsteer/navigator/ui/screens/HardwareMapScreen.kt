@@ -97,6 +97,10 @@ fun HardwareMapScreen(hw: HardwareController) {
             MapTool(IconKind.Follow, headingUp, enabled = !locked, label = if (headingUp) "KURS" else "N") { headingUp = !headingUp }
             MapTool(null, tilt, enabled = !locked, label = "3D") { tilt = !tilt }
             MapTool(if (locked) IconKind.Lock else IconKind.Unlock, locked, enabled = true, label = null) { locked = !locked }
+            if (hw.cameraUrl.isNotBlank()) {
+                val cam = eu.smartsteer.navigator.ui.camera.Camera
+                MapTool(null, cam.running, enabled = true, label = "KAM") { if (cam.running) cam.stop() else cam.start(hw.cameraUrl) }
+            }
             val bg = TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }
             MapTool(null, bg != TileSource.NONE, enabled = !locked, label = bg.short) {
                 DisplayPrefs.updateBackground((DisplayPrefs.background + 1) % TileSource.entries.size)
@@ -131,6 +135,7 @@ fun HardwareMapScreen(hw: HardwareController) {
         HwSectionsBar(hw, locked, Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
         HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))
         SteerButton(hw, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))
+        CameraView(Modifier.align(Alignment.BottomEnd).padding(end = 130.dp, bottom = 100.dp))
         TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }.takeIf { it != TileSource.NONE }?.let {
             Text(it.attribution, Modifier.align(Alignment.BottomEnd).padding(end = 130.dp, bottom = 4.dp), color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
         }
@@ -345,6 +350,24 @@ private fun WeatherChip(hw: HardwareController, modifier: Modifier) {
         modifier.clip(RoundedCornerShape(10.dp)).background(if (bad) Ss.Danger else Ss.Bar.copy(alpha = 0.9f)).padding(horizontal = 10.dp, vertical = 6.dp),
         color = if (bad) androidx.compose.ui.graphics.Color.White else Ss.TextSoft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
     )
+}
+
+/** Podgląd z kamery: dotknięcie powiększa / zmniejsza. */
+@Composable
+private fun CameraView(modifier: Modifier) {
+    val cam = eu.smartsteer.navigator.ui.camera.Camera
+    if (!cam.running) return
+    var big by remember { mutableStateOf(false) }
+    val w = if (big) 640.dp else 320.dp
+    Box(
+        modifier.width(w).height(w * 9 / 16).clip(RoundedCornerShape(12.dp)).background(Color.Black)
+            .border(2.dp, Ss.Border, RoundedCornerShape(12.dp)).clickable { big = !big },
+        contentAlignment = Alignment.Center,
+    ) {
+        val f = cam.frame
+        if (f != null) androidx.compose.foundation.Image(f, contentDescription = "Kamera", modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
+        else Text(cam.status, color = Color.White, fontSize = 13.sp)
+    }
 }
 
 /** Ciągnik wjechał na znane pole, a żadne nie jest otwarte. */
@@ -758,6 +781,7 @@ private fun HwStats(hw: HardwareController) {
 private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, tilt: Boolean, locked: Boolean, modifier: Modifier) {
     // pasy pokrycia zamieniamy na Path raz (otwarty pas — gdy przybędzie punktów)
     val stripCache = remember { HashMap<Coverage.Strip, Pair<Int, Path>>() }
+    val othersCache = remember { mutableStateOf<Pair<Int, Path>?>(null) }
     val density = LocalDensity.current.density
     val tm = rememberTextMeasurer()
     Canvas(
@@ -878,6 +902,17 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                     close()
                 }.also { stripCache[st] = n to it }
                 drawPath(path, coverColor)
+            }
+
+            // praca innych maszyn na tym polu (wspólna praca przez WAR)
+            if (s.othersCells.isNotEmpty()) {
+                val cached = othersCache.value
+                val path = if (cached != null && cached.first == s.othersVersion) cached.second else Path().apply {
+                    for (quads in s.othersCells.values) for (q in quads) {
+                        moveTo(q[0].x.toFloat(), q[0].y.toFloat()); for (i in 1 until q.size) lineTo(q[i].x.toFloat(), q[i].y.toFloat()); close()
+                    }
+                }.also { othersCache.value = s.othersVersion to it }
+                drawPath(path, Ss.Info.copy(alpha = 0.3f))
             }
 
             // ślad jazdy

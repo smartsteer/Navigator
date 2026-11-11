@@ -76,6 +76,8 @@ class Sections {
         p: VehicleProfile, speedKmh: Double, coverage: Coverage,
         boundary: List<Vec2>?, inner: List<Vec2>?, workOn: Boolean,
         obstacles: List<List<Vec2>> = emptyList(),
+        /** Pokrycie innych maszyn na tym polu (wspólna praca przez WAR) — tam też nie trzeba pracować. */
+        others: Coverage? = null,
     ) {
         val n = p.sectionWidthsEffective.size
         val fwd = Vec2.forward(toolHeading)
@@ -91,7 +93,7 @@ class Sections {
                 if (boundary != null && p.sectionOffWhenOut && !Polygon.contains(boundary, q)) continue
                 if (inner != null && p.sectionOffInHeadland && inner.size >= 3 && !Polygon.contains(inner, q)) continue
                 if (p.sectionOffWhenOut && obstacles.any { Polygon.contains(it, q) }) continue
-                if (!coverage.isCovered(q)) return true
+                if (!coverage.isCovered(q) && others?.isCovered(q) != true) return true
             }
             return false
         }

@@ -169,6 +169,33 @@ object WarProtocol {
         )
     }
 
+    /**
+     * Wspólna praca kilku maszyn (propozycja, docs/WAR.md 3.8): bieżące pokrycie tej maszyny na polu z WAR,
+     * wysyłane co minutę do skrzynki prac; WAR przekazuje je innym Navigatorom gospodarstwa jako `pokrycie_innych`.
+     */
+    fun liveCoverage(c: WarConfig, id: String, warId: String, fieldName: String, tractor: String, g: CoverageGrid, t: String): String = Json.obj(
+        "typ" to "pokrycie_na_zywo", "v" to 1, "id" to id, "komputer" to c.machineId, "pojazd" to tractor,
+        "pole" to Json.Raw(Json.obj("war_id" to warId, "nazwa" to fieldName)), "t" to t,
+        "pokrycie" to Json.Raw(gridJson(g)),
+    )
+
+    fun gridJson(g: CoverageGrid): String = Json.obj(
+        "lat0" to Json.Raw(r(g.lat0, 7)), "lon0" to Json.Raw(r(g.lon0, 7)), "e0" to g.e0, "n0" to g.n0,
+        "k" to g.k, "w" to g.w, "h" to g.h, "b" to Ntrip.base64(g.bits),
+    )
+
+    /** Siatka pokrycia z paczki („pokrycie”: lat0, lon0, e0, n0, k, w, h, b). */
+    fun parseGrid(m: Map<*, *>?): CoverageGrid? {
+        m ?: return null
+        val lat0 = m["lat0"] as? Double ?: return null
+        val lon0 = m["lon0"] as? Double ?: return null
+        val w = (m["w"] as? Double)?.toInt() ?: return null
+        val h = (m["h"] as? Double)?.toInt() ?: return null
+        val bits = Ntrip.unbase64(m["b"] as? String ?: return null)
+        if (w <= 0 || h <= 0 || bits.size * 8 < w * h) return null
+        return CoverageGrid(lat0, lon0, (m["e0"] as? Double) ?: 0.0, (m["n0"] as? Double) ?: 0.0, (m["k"] as? Double) ?: 2.0, w, h, bits)
+    }
+
     // ---------------- paczki WAR → Navigator ----------------
 
     /** Typ paczki („pola_war”, „zlecenie”, …) i jej treść. */
@@ -271,6 +298,26 @@ class CoverageGrid(
     fun isSet(x: Int, y: Int): Boolean {
         val i = y * w + x
         return (bits[i shr 3].toInt() shr (i and 7)) and 1 == 1
+    }
+
+    /** Zamalowuje komórki siatki w mapie pokrycia pola (płaszczyzna [plane]); zwraca narożniki komórek (do rysowania). */
+    fun paintInto(cov: Coverage, plane: LocalPlane): List<List<eu.smartsteer.navigator.core.geo.Vec2>> {
+        val quads = ArrayList<List<eu.smartsteer.navigator.core.geo.Vec2>>()
+        val mLat0 = mLat(lat0)
+        for (y in 0 until h) for (x in 0 until w) {
+            if (!isSet(x, y)) continue
+            val n = n0 + y * k
+            val e = e0 + x * k
+            val lat = lat0 + n / mLat0
+            fun pt(ee: Double, nn: Double): eu.smartsteer.navigator.core.geo.Vec2 {
+                val la = lat0 + nn / mLat0
+                return plane.toLocal(la, lon0 + ee / mLon(lat))
+            }
+            val q = listOf(pt(e, n), pt(e + k, n), pt(e + k, n + k), pt(e, n + k))
+            cov.paintQuad(q[0], q[1], q[2], q[3])
+            quads.add(q)
+        }
+        return quads
     }
 
     companion object {

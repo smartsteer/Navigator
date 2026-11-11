@@ -169,6 +169,27 @@ Sentinel-2 jako siatka oczek ~10 m (ta sama co w pliku ISO-XML dla terminali ISO
   od razu, gdy pole jest otwarte, inaczej przy otwarciu. Mapy z pliku (GeoJSON/KML) nie nadpisuje — wtedy przycisk
   „Wczytaj mapę z WAR” w Pola → Mapa dawek. Poza oczkami (brzeg pola) — dawka typowa.
 
+### 3.8 Wspólna praca kilku maszyn (PROPOZYCJA — po stronie WAR do zrobienia)
+
+Navigator (opcja „Wspólna praca kilku maszyn na polu” w Ustawienia → WAR, domyślnie wyłączona) co minutę, gdy otwarte
+jest pole z `war_id` i przybyło pokrycia, wysyła do skrzynki prac:
+
+```json
+{"typ": "pokrycie_na_zywo", "v": 1, "id": "pk-<komputer>-<ms>", "komputer": "tab-7f3k2", "pojazd": "Renault 133.14",
+ "pole": {"war_id": "p1", "nazwa": "Za stodołą"}, "t": "2026-11-11T10:20:00+01:00",
+ "pokrycie": {"lat0": …, "lon0": …, "e0": …, "n0": …, "k": 2.0, "w": …, "h": …, "b": "<base64>"}}
+```
+
+(`pokrycie` jak w 3.5 — całe dotychczasowe pokrycie tej maszyny na polu). WAR przekazuje najnowszą taką paczkę każdej maszyny
+pozostałym Navigatorom gospodarstwa (do ich skrzynek), jako:
+
+```json
+{"typ": "pokrycie_innych", "v": 1, "komputer": "tab-7f3k2", "pojazd": "Renault 133.14", "pole": {"war_id": "p1"}, "pokrycie": {…}}
+```
+
+Navigator z otwartym polem o tym `war_id` rysuje pracę innej maszyny na niebiesko, a sekcje omijają ją jak własne pokrycie.
+Paczki z własnym `komputer` są pomijane.
+
 ## 4. Pliki (bez internetu)
 
 ### Z WAR do Navigatora: pola, granice, linie

@@ -184,6 +184,20 @@ object Ntrip {
 
     private const val B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
+    /** Odwrotność [base64] (pomija znaki spoza alfabetu). */
+    fun unbase64(s: String): ByteArray {
+        val alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        val out = ArrayList<Byte>(s.length * 3 / 4)
+        var buf = 0; var bits = 0
+        for (ch in s) {
+            val v = alpha.indexOf(ch)
+            if (v < 0) continue
+            buf = (buf shl 6) or v; bits += 6
+            if (bits >= 8) { bits -= 8; out.add(((buf shr bits) and 0xFF).toByte()) }
+        }
+        return out.toByteArray()
+    }
+
     fun base64(b: ByteArray): String {
         val sb = StringBuilder()
         var i = 0

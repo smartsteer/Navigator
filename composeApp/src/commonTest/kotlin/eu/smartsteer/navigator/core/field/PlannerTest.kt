@@ -212,3 +212,25 @@ class HeadlandSeqTest {
         assertEquals("Zredukuj \"obroty\"", HeadlandSequence.parse(back.headlandSeq).last().text)
     }
 }
+
+class SharedCoverageTest {
+    @Test
+    fun gridRoundTripAndPaint() {
+        val bytes = ByteArray(37) { (it * 37 + 11).toByte() }
+        assertTrue(bytes.contentEquals(eu.smartsteer.navigator.core.ntrip.Ntrip.unbase64(eu.smartsteer.navigator.core.ntrip.Ntrip.base64(bytes))))
+        val pl = eu.smartsteer.navigator.core.geo.LocalPlane(52.0, 21.0)
+        val c = Coverage()
+        val st = c.newStrip()
+        var y = 0.0
+        while (y <= 10.0) { c.extend(st, Vec2(0.0, y), Vec2(20.0, y)); y += 0.5 }
+        val g = assertNotNull(eu.smartsteer.navigator.core.war.CoverageGrid.from(c, pl))
+        val json = eu.smartsteer.navigator.core.war.WarProtocol.gridJson(g)
+        val g2 = assertNotNull(eu.smartsteer.navigator.core.war.WarProtocol.parseGrid(eu.smartsteer.navigator.core.update.MiniJson.parse(json) as Map<*, *>))
+        val other = Coverage()
+        val quads = g2.paintInto(other, pl)
+        assertTrue(quads.isNotEmpty())
+        assertTrue(other.isCovered(Vec2(10.0, 5.0)))
+        assertTrue(!other.isCovered(Vec2(40.0, 5.0)))
+        assertTrue(abs(other.workedM2 - 200.0) < 60.0, "pole ${other.workedM2}")
+    }
+}

@@ -60,6 +60,7 @@ fun ConnectionsScreen(@Suppress("UNUSED_PARAMETER") ctrl: DemoController, hw: Ha
             NetworkPanel(hw)
             if (hw.serialSupported) SerialPanel(hw)
             WifiPanel(hw)
+            CameraPanel(hw)
             SectionTitle("Moduły")
             ModulesStatus(hw)
         }
@@ -102,6 +103,23 @@ private fun ModePanel(hw: HardwareController) {
         }
         hw.linkError?.let { Label(it, Ss.Warning, 14.sp) }
         if (hw.hardware) hw.sendError?.let { Label("Wysyłka: $it", Ss.Warning, 13.sp) }
+    }
+}
+
+/** Kamera IP (MJPEG albo zdjęcie JPEG) — podgląd na mapie. */
+@Composable
+private fun CameraPanel(hw: HardwareController) {
+    var url by remember { mutableStateOf(hw.cameraUrl) }
+    val cam = eu.smartsteer.navigator.ui.camera.Camera
+    Panel(Modifier.fillMaxWidth()) {
+        SectionTitle("Kamera IP")
+        Label("Adres obrazu MJPEG albo zdjęcia JPEG z kamery w sieci (np. http://192.168.5.50/video.mjpg). Podgląd włączasz przyciskiem KAM na mapie.", Ss.TextMuted, 13.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            eu.smartsteer.navigator.ui.components.TextInput(url, { url = it }, title = "Adres kamery", modifier = Modifier.weight(1f), hint = "http://…", maxLength = 200)
+            ActionButton(onClick = { hw.setCamera(url); cam.start(url) }) { ButtonText("Zapisz i sprawdź") }
+            if (cam.running) ActionButton(onClick = { cam.stop() }) { ButtonText("Stop", color = Ss.TextSoft) }
+        }
+        Label("Stan: ${cam.status}", Ss.TextSoft, 13.sp)
     }
 }
 

@@ -252,6 +252,14 @@ class WarController(private val hw: HardwareController, private val files: TextF
                 saveOrders()
                 hw.touch()
             }
+            "pokrycie_innych" -> {
+                // wspólna praca: pokrycie innej maszyny gospodarstwa na tym samym polu
+                val who = (m["komputer"] as? String).orEmpty()
+                if (who == config.machineId) return true
+                val warId = (m["pole"] as? Map<*, *>)?.get("war_id") as? String ?: return true
+                val g = WarProtocol.parseGrid(m["pokrycie"] as? Map<*, *>) ?: return true
+                hw.onOthersCoverage(warId, who, (m["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g)
+            }
             "mapa_dawek" -> {
                 val rm = WarRateMap.parse(m) ?: return true
                 val old = rateMapFor(rm.warId)
@@ -261,6 +269,12 @@ class WarController(private val hw: HardwareController, private val files: TextF
             }
         }
         return true
+    }
+
+    /** Wysyła bieżące pokrycie pola do WAR (wspólna praca kilku maszyn). */
+    fun sendLiveCoverage(warId: String, fieldName: String, g: CoverageGrid) {
+        val id = "pk-${config.machineId}-${nowMillis()}"
+        enqueue(id, WarProtocol.liveCoverage(config, id, warId, fieldName, config.tractorName.ifEmpty { hw.profileName }, g, nowIso()))
     }
 
     /** Ostatnia mapa dawek przysłana z WAR dla pola o tym id (albo null). */

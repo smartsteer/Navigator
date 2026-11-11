@@ -226,7 +226,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         recordingObstacle?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= 0.5) r.add(pv) }
         autosteer?.let { wasCal.sample(pv, headingRad, it.actualAngleDeg, speedKmh) }
         sections.updateTool(pv, headingRad, profile)
-        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles)
+        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles, othersCoverage.takeIf { othersMachines.isNotEmpty() })
         // mapa wykonania: szerokość pracujących sekcji i dawka z mapy
         if (sections.anyOn()) {
             val w = profile.sectionWidthsEffective.withIndex().sumOf { (i, sw) -> if (i < Sections.MAX && sections.on[i]) sw else 0.0 }
@@ -403,6 +403,22 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             engaged = false
         } else if (i < activeTrack) activeTrack--
         ok("Usunięto „${t.name}”")
+    }
+
+    /** Pokrycie innych maszyn na otwartym polu (z WAR) i ich nazwy. */
+    val othersCoverage = Coverage()
+    var othersMachines: Map<String, String> = emptyMap()
+    /** Komórki pracy innych maszyn do rysowania (narożniki) i licznik zmian. */
+    var othersCells: Map<String, List<List<Vec2>>> = emptyMap()
+    var othersVersion = 0; private set
+
+    /** Pokrycie innej maszyny z WAR (cała jej dotychczasowa praca na tym polu). */
+    fun addOthersCoverage(machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid) {
+        val pl = plane ?: return
+        val quads = g.paintInto(othersCoverage, pl)
+        othersMachines = othersMachines + (machine to name)
+        othersCells = othersCells + (machine to quads)
+        othersVersion++
     }
 
     /** Mapa wykonania otwartego pola. */
@@ -1129,7 +1145,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         coverage.clear(); sections.reset()
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         contour.clear(); engaged = false; youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear()
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersMachines = emptyMap(); othersCells = emptyMap()
         ok("Pole zamknięte")
     }
 
@@ -1140,7 +1156,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         engaged = false; pathHint = -1; steering.reset(); youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear()
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersMachines = emptyMap(); othersCells = emptyMap()
     }
 
     fun startBoundary(): Boolean {

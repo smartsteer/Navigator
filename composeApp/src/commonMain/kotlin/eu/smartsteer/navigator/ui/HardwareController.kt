@@ -785,6 +785,50 @@ class HardwareController {
         }
     }
 
+    // ---------------- wspólna praca kilku maszyn (przez WAR) ----------------
+    var shareCoverage by mutableStateOf(runCatching { files.read("wspolna.cfg")?.trim() == "1" }.getOrDefault(false))
+        private set
+    private var shareSentS = -1e9
+    private var shareSentCells = -1L
+
+    fun setShareCoverage(on: Boolean) {
+        shareCoverage = on
+        try { files.write("wspolna.cfg", if (on) "1" else "0") } catch (_: Exception) {}
+        tick++
+    }
+
+    /** Pokrycie innej maszyny z WAR — tylko gdy otwarte jest to samo pole. */
+    fun onOthersCoverage(warId: String, machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid) {
+        if (!shareCoverage || session.fieldWarId != warId) return
+        val first = machine !in session.othersMachines
+        session.addOthersCoverage(machine, name, g)
+        if (first) { mapMessage("Na tym polu pracuje też: $name"); say("Na polu pracuje też $name") }
+        tick++
+    }
+
+    private fun shareStep() {
+        if (!shareCoverage) return
+        val t = now()
+        if (t - shareSentS < 60.0) return
+        val warId = session.fieldWarId ?: return
+        val pl = session.plane ?: return
+        if (session.coverage.cellCount == shareSentCells) return
+        val g = eu.smartsteer.navigator.core.war.CoverageGrid.from(session.coverage, pl) ?: return
+        shareSentS = t
+        shareSentCells = session.coverage.cellCount
+        war.sendLiveCoverage(warId, session.fieldName.orEmpty(), g)
+    }
+
+    // ---------------- kamera IP ----------------
+    var cameraUrl by mutableStateOf(runCatching { files.read("kamera.cfg")?.trim().orEmpty() }.getOrDefault(""))
+        private set
+
+    fun setCamera(url: String) {
+        cameraUrl = url.trim()
+        try { files.write("kamera.cfg", cameraUrl) } catch (_: Exception) {}
+        tick++
+    }
+
     // ---------------- sekwencja na uwrociu ----------------
     private val seqFired = HashSet<Int>()
     private var seqLastDir: Boolean? = null
@@ -1300,7 +1344,7 @@ class HardwareController {
             powerStep()
             if (hardware) fieldLocatorStep()
             voiceStep()
-            if (hardware) { weatherStep(); windWarnStep(); headlandSeqStep() }
+            if (hardware) { weatherStep(); windWarnStep(); headlandSeqStep(); shareStep() }
             wifiStep(link)
             if (session.fieldName != savedFieldName) {
                 savedFieldName = session.fieldName
