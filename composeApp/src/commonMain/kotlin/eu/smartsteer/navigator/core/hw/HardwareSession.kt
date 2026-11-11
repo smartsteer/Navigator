@@ -144,7 +144,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     /** Ostatnie przesunięcie anteny przez przechył, m (+ = w prawo) — do podglądu. */
     var rollCorrectionM = 0.0; private set
 
-    fun gpsAlive(nowS: Double) = nowS - lastFixTimeS <= GPS_TIMEOUT_S && fix != FixQuality.NONE
+    /** Po ilu sekundach bez pozycji GPS uznajemy za utracony: 1 s (płytka/RTK, 10 Hz); GPS telefonu (1 Hz) — 3 s. */
+    var gpsTimeoutS = GPS_TIMEOUT_S
+    fun gpsAlive(nowS: Double) = nowS - lastFixTimeS <= gpsTimeoutS && fix != FixQuality.NONE
     fun autosteerAlive(nowS: Double) = nowS - lastAutosteerTimeS <= 1.0
 
     // ---------------- wejście ----------------

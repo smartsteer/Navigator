@@ -119,6 +119,16 @@ class HardwareSessionTest {
     }
 
     @Test
+    fun phoneGpsLongerTimeout() {
+        val h = HardwareSession()
+        val t = driveNorth(h, 0.0, 0.0, 5.0, 0.0)
+        assertFalse(h.gpsAlive(t + 1.8), "płytka/RTK: po 1 s bez pozycji — brak GPS")
+        h.gpsTimeoutS = 3.0                                        // GPS telefonu, 1 Hz z opóźnieniami
+        assertTrue(h.gpsAlive(t + 1.8))
+        assertFalse(h.gpsAlive(t + 3.5))
+    }
+
+    @Test
     fun phoneGpsBlocksAutosteer() {
         val h = HardwareSession()
         h.restoreLine(AbLine(Vec2(0.0, 0.0), Vec2(0.0, 50.0)))

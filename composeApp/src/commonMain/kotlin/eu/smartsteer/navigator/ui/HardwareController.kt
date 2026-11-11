@@ -1276,6 +1276,7 @@ class HardwareController {
     val phoneGps: Boolean get() = serialPort.startsWith("Telefon")
 
     private fun applySteerBlock() {
+        session.gpsTimeoutS = if (phoneGps) 3.0 else eu.smartsteer.navigator.core.hw.HardwareSession.GPS_TIMEOUT_S
         session.steerBlockedReason = if (phoneGps) "GPS z telefonu (2–5 m) — tylko prowadzenie ręczne; do autosteru potrzebny RTK (płytka AIO albo odbiornik na Bluetooth/USB)" else null
     }
 

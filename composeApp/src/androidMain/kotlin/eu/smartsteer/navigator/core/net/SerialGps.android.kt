@@ -84,7 +84,12 @@ actual object SerialPorts {
                 val n = OnNmeaMessageListener { msg, _ ->
                     if (closed) return@OnNmeaMessageListener
                     val s = msg.trim()
-                    if (s.length > 6 && s.substring(3, 6) == "GGA") lastGgaMs = System.currentTimeMillis()
+                    if (s.length > 6 && s.substring(3, 6) == "GGA") {
+                        // część telefonów co jakiś czas podaje GGA bez fixa (puste pola, jakość 0) — pomijamy, pozycja z Androida
+                        val f = s.split(',')
+                        if (f.size < 7 || f[2].isEmpty() || f[6].isEmpty() || f[6] == "0") return@OnNmeaMessageListener
+                        lastGgaMs = System.currentTimeMillis()
+                    }
                     onLine(s)
                 }
                 // pozycja co 0,1–1 s (to też trzyma odbiornik włączony); gdy telefon nie podaje NMEA — GGA/VTG z pozycji
@@ -92,7 +97,7 @@ actual object SerialPorts {
                     override fun onLocationChanged(p: Location) {
                         if (closed) return
                         gst(p)?.let(onLine)                                      // dokładność telefonu (±m) na górnym pasku
-                        if (System.currentTimeMillis() - lastGgaMs < 2500) return
+                        if (System.currentTimeMillis() - lastGgaMs < 1500) return
                         gga(p)?.let(onLine); vtg(p)?.let(onLine)
                     }
                     @Deprecated("Android < 29") override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
