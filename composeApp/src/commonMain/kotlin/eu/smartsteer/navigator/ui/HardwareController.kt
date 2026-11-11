@@ -791,7 +791,7 @@ class HardwareController {
     private var shareSentS = -1e9
     private var shareSentCells = -1L
 
-    fun setShareCoverage(on: Boolean) {
+    fun changeShareCoverage(on: Boolean) {
         shareCoverage = on
         try { files.write("wspolna.cfg", if (on) "1" else "0") } catch (_: Exception) {}
         tick++

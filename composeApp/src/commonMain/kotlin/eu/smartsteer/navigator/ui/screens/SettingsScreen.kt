@@ -668,7 +668,7 @@ private fun ColumnScope.WarTab(hw: HardwareController) {
     var who by remember { mutableStateOf(c.operator) }
     var server by remember { mutableStateOf(c.server) }
     var msg by remember { mutableStateOf<String?>(null) }
-    Choice("Wspólna praca kilku maszyn na polu", listOf("WYŁ.", "WŁ."), if (hw.shareCoverage) 1 else 0) { hw.setShareCoverage(it == 1) }
+    Choice("Wspólna praca kilku maszyn na polu", listOf("WYŁ.", "WŁ."), if (hw.shareCoverage) 1 else 0) { hw.changeShareCoverage(it == 1) }
     if (hw.shareCoverage) Label(
         "Co minutę wysyła do WAR pokrycie pola z WAR i pokazuje pracę innych maszyn gospodarstwa (na niebiesko) — sekcje omijają to, co już zrobiły. " +
             "Wymaga obsługi po stronie WAR (paczki pokrycie_na_zywo / pokrycie_innych, docs/WAR.md 3.8).",
