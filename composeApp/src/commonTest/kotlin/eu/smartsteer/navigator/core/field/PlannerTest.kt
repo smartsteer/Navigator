@@ -188,3 +188,14 @@ class RateMapTest {
         assertTrue(abs(Polygon.area(back.boundary!!) - 8000.0) < 5.0)
     }
 }
+
+class WeatherTest {
+    @Test
+    fun parseOpenMeteo() {
+        val j = """{"latitude":52.2,"current":{"time":"2026-11-11T10:00","temperature_2m":8.4,"relative_humidity_2m":81,"wind_speed_10m":4.7,"wind_gusts_10m":9.1,"wind_direction_10m":265,"precipitation":0.0}}"""
+        val w = assertNotNull(eu.smartsteer.navigator.core.weather.Weather.parse(j))
+        assertEquals(4.7, w.windMs)
+        assertEquals("zachodni", w.windFrom)
+        assertTrue(w.windMs > eu.smartsteer.navigator.core.weather.Weather.SPRAY_MAX_WIND)
+    }
+}

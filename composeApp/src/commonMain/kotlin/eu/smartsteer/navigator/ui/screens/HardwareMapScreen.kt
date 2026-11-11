@@ -118,7 +118,8 @@ fun HardwareMapScreen(hw: HardwareController) {
         HeadlandHint(hw, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
         KTurnBanner(hw, Modifier.align(Alignment.Center).padding(bottom = 160.dp))
         RatePill(hw, Modifier.align(Alignment.TopCenter).padding(top = 215.dp))
-        TunePendingCard(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp).width(380.dp))
+        WeatherChip(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp))
+        TunePendingCard(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 60.dp).width(380.dp))
 
         // prawa kolumna: linia, zawrót, sekcje
         RightTools(hw, sheet, locked, { sheet = !sheet }, Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 12.dp))
@@ -330,6 +331,20 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
             color = if (s.gpsAlive(now)) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
         )
     }
+}
+
+/** Pogoda w miejscu ciągnika: wiatr (na czerwono przy oprysku, gdy za silny), temperatura. */
+@Composable
+private fun WeatherChip(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val w = hw.weather ?: return
+    val bad = hw.profile.isSprayer && w.windMs > eu.smartsteer.navigator.core.weather.Weather.SPRAY_MAX_WIND
+    Text(
+        "Wiatr ${w.windMs.pl(1)} m/s${w.gustMs?.let { " (porywy ${it.pl(0)})" } ?: ""} ${w.windFrom}" +
+            (w.tempC?.let { " · ${it.pl(0)}°C" } ?: "") + (w.humidity?.let { " · ${it.pl(0)}%" } ?: ""),
+        modifier.clip(RoundedCornerShape(10.dp)).background(if (bad) Ss.Danger else Ss.Bar.copy(alpha = 0.9f)).padding(horizontal = 10.dp, vertical = 6.dp),
+        color = if (bad) androidx.compose.ui.graphics.Color.White else Ss.TextSoft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+    )
 }
 
 /** Ciągnik wjechał na znane pole, a żadne nie jest otwarte. */

@@ -142,6 +142,9 @@ data class VehicleProfile(
     /** Krok zmiany dawki w sterowniku, %. */
     val rateStepPct: Double = 10.0,
 
+    /** Maszyna to opryskiwacz — ostrzeżenia o wietrze (pogoda z internetu). */
+    val isSprayer: Boolean = false,
+
     /** Kształt zawrotu: 0 = U / omega (sam dobiera), 1 = K z cofaniem (gdy przejazd węższy niż 2 promienie). */
     val youTurnStyle: Int = 0,
 
@@ -250,7 +253,7 @@ data class VehicleProfile(
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
         "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "hydAuto" to hydAuto,
         "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed, "rateHintMode" to rateHintMode, "rateStepPct" to rateStepPct,
-        "youTurnStyle" to youTurnStyle,
+        "youTurnStyle" to youTurnStyle, "isSprayer" to isSprayer,
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
@@ -314,6 +317,7 @@ data class VehicleProfile(
                 rateHintMode = int("rateHintMode", d.rateHintMode),
                 rateStepPct = num("rateStepPct", d.rateStepPct),
                 youTurnStyle = int("youTurnStyle", d.youTurnStyle),
+                isSprayer = bool("isSprayer", d.isSprayer),
                 supRtkLossS = num("supRtkLossS", d.supRtkLossS),
                 supMaxXteM = num("supMaxXteM", d.supMaxXteM),
                 supSteerErrDeg = num("supSteerErrDeg", d.supSteerErrDeg),

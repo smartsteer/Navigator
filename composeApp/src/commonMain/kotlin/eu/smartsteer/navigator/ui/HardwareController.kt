@@ -785,6 +785,39 @@ class HardwareController {
         }
     }
 
+    // ---------------- pogoda (wiatr do oprysku) ----------------
+    var weather by mutableStateOf<eu.smartsteer.navigator.core.weather.Weather?>(null)
+        private set
+    var weatherAgeText by mutableStateOf("")
+        private set
+    private var weatherAtS = -1e9
+    private var weatherTryS = -1e9
+    private var windWarnS = -1e9
+
+    private suspend fun weatherStep() {
+        val t = now()
+        val g = session.lastGga ?: return
+        if (!session.gpsAlive(t)) return
+        if (t - weatherAtS < 900 && weather != null) return
+        if (t - weatherTryS < 120) return
+        weatherTryS = t
+        val res = withContext(Dispatchers.Default) {
+            runCatching { eu.smartsteer.navigator.core.war.httpJson("GET", eu.smartsteer.navigator.core.weather.Weather.url(g.latitude, g.longitude), null, "WAR-Navigator") }.getOrNull()
+        } ?: return
+        if (res.code == 200) eu.smartsteer.navigator.core.weather.Weather.parse(res.body)?.let { weather = it; weatherAtS = t; weatherAgeText = nowText().takeLast(5) }
+    }
+
+    private fun windWarnStep() {
+        val w = weather ?: return
+        if (!profile.isSprayer || !session.sections.anyOn()) return
+        val t = now()
+        if (w.windMs > eu.smartsteer.navigator.core.weather.Weather.SPRAY_MAX_WIND && t - windWarnS > 300) {
+            windWarnS = t
+            mapMessage("Wiatr ${w.windMs.pl(1)} m/s — za silny do oprysku (do ${eu.smartsteer.navigator.core.weather.Weather.SPRAY_MAX_WIND.pl(0)} m/s)")
+            say("Za silny wiatr do oprysku")
+        }
+    }
+
     // ---------------- komunikaty głosowe ----------------
     private val voiceFile = "glos.cfg"
     var voiceOn by mutableStateOf(runCatching { files.read(voiceFile)?.trim() == "1" }.getOrDefault(false))
@@ -1243,6 +1276,7 @@ class HardwareController {
             powerStep()
             if (hardware) fieldLocatorStep()
             voiceStep()
+            if (hardware) { weatherStep(); windWarnStep() }
             wifiStep(link)
             if (session.fieldName != savedFieldName) {
                 savedFieldName = session.fieldName

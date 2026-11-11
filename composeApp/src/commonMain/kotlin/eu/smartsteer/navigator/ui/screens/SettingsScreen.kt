@@ -199,6 +199,7 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
     Num("Sekcje stoją poniżej", null, p.slowSpeedCutoff, "km/h", 0.1, 0.0, 5.0, 1) { set(p.copy(slowSpeedCutoff = it)) }
     Toggle("Wyłączaj poza granicą pola", p.sectionOffWhenOut) { set(p.copy(sectionOffWhenOut = it)) }
     Toggle("Wyłączaj na uwrociu", p.sectionOffInHeadland) { set(p.copy(sectionOffInHeadland = it)) }
+    Toggle("To jest opryskiwacz (ostrzeżenia o wietrze)", p.isSprayer) { set(p.copy(isSprayer = it)) }
     SectionTitle("Ścieżki technologiczne")
     Num("Przejazdów siewnika na opryskiwacz", "Szerokość opryskiwacza ÷ szerokość siewnika (np. 18 m / 3 m = 6); 0 = wyłączone", p.tramEvery.toDouble(), "", 1.0, 0.0, 30.0, 0) { set(p.copy(tramEvery = it.toInt())) }
     if (p.tramEvery > 0) {
