@@ -141,9 +141,32 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
                 }
             }
         }
+        PowerBanner(hw)
         // klawiatura na ekranie (liczby; tekst na Windows) — nad wszystkim
         KeypadHost()
             }
+        }
+    }
+}
+
+/** Pasek odliczania po zaniku zasilania z ciągnika. */
+@Composable
+private fun PowerBanner(hw: HardwareController) {
+    val left = hw.powerCountdown ?: return
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Row(
+            Modifier.padding(top = 80.dp).clip(RoundedCornerShape(16.dp)).background(Ss.Danger).padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                "Brak zasilania z ciągnika — ${if (hw.powerShutdownPc) "wyłączenie komputera" else "zamknięcie programu"} za $left s",
+                color = androidx.compose.ui.graphics.Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+            )
+            Box(
+                Modifier.clip(RoundedCornerShape(10.dp)).background(androidx.compose.ui.graphics.Color.White)
+                    .clickable(role = Role.Button) { hw.cancelPowerExit() }.padding(horizontal = 16.dp, vertical = 10.dp),
+            ) { Text("Anuluj", color = Ss.Danger, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         }
     }
 }

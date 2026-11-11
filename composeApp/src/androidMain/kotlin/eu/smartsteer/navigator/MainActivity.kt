@@ -24,6 +24,7 @@ class MainActivity : ComponentActivity() {
             ?.apply { setReferenceCounted(false); acquire() }
         eu.smartsteer.navigator.core.settings.AndroidStorage.filesDir = filesDir
         eu.smartsteer.navigator.core.settings.AndroidStorage.resources = resources
+        eu.smartsteer.navigator.ui.power.PowerPlatform.activity = java.lang.ref.WeakReference(this)
         setContent { App() }
         hideSystemBars()
     }

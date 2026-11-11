@@ -111,6 +111,7 @@ fun HardwareMapScreen(hw: HardwareController) {
 
         HwInfo(hw, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 16.dp))
         OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
+        HeadlandHint(hw, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
 
         // prawa kolumna: linia, zawrót, sekcje
         RightTools(hw, sheet, locked, { sheet = !sheet }, Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 12.dp))
@@ -322,6 +323,25 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
             color = if (s.gpsAlive(now)) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
         )
     }
+}
+
+/** Podpowiedź przy ręcznym podnoszeniu: ile metrów zostało maszynie do uwrocia / do pola. */
+@Composable
+private fun HeadlandHint(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val s = hw.session
+    if (s.speedKmh < 1.0) return
+    val (d, toHeadland) = s.toolToHeadland() ?: return
+    val now = d < 1.5
+    val text = when {
+        toHeadland && now -> "UWROCIE — PODNIEŚ"
+        toHeadland -> "Uwrocie za ${d.pl(0)} m"
+        now -> "POLE — OPUŚĆ"
+        else -> "Pole za ${d.pl(0)} m"
+    }
+    val bg = if (now) (if (toHeadland) Ss.Warning else Ss.Accent) else Ss.Bar.copy(alpha = 0.9f)
+    val fg = if (now) (if (toHeadland) Ss.OnWarning else Ss.OnAccent) else Ss.Text
+    Text(text, modifier.clip(RoundedCornerShape(12.dp)).background(bg).padding(horizontal = 16.dp, vertical = 8.dp), color = fg, fontSize = 18.sp, fontWeight = FontWeight.Bold)
 }
 
 @Composable

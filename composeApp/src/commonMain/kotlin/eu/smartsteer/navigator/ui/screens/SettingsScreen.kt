@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -99,6 +100,7 @@ fun SettingsScreen(hw: HardwareController) {
                         if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }
                         Choice("Podkład mapy", eu.smartsteer.navigator.core.map.TileSource.entries.map { it.short }, DisplayPrefs.background) { DisplayPrefs.updateBackground(it) }
                         Label("ORTO = ortofotomapa Polski z Geoportalu, SAT = zdjęcia satelitarne Esri. Raz obejrzane kafelki zostają na dysku; całe pole pobierzesz na ekranie Pola.", Ss.TextMuted, 12.sp)
+                        PowerSettings(hw)
                         VehicleTab(p, set)
                     }
                     Tab.Tool -> ToolTab(p, set)
@@ -309,6 +311,33 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
     Num("Maksymalny PWM", null, p.highPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(highPwm = it.toInt())) }
     Num("Niski PWM", "Moc przy małych korektach", p.lowPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(lowPwm = it.toInt())) }
     Num("Minimalny PWM", "Najmniejsza moc, przy której koła ruszają", p.minPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(minPwm = it.toInt())) }
+}
+
+/** Autostart z systemem i zamknięcie po zaniku zasilania z ciągnika. */
+@Composable
+private fun ColumnScope.PowerSettings(hw: HardwareController) {
+    val pp = eu.smartsteer.navigator.ui.power.PowerPlatform
+    var auto by remember { mutableStateOf(runCatching { pp.isAutostart() }.getOrDefault(false)) }
+    var msg by remember { mutableStateOf<String?>(null) }
+    SectionTitle("Zasilanie")
+    val ext = eu.smartsteer.navigator.ui.power.PowerState.external
+    Label(
+        when (ext) { true -> "Teraz: zasilanie z ciągnika (zasilacz) jest"; false -> "Teraz: praca na baterii — brak zasilania z ciągnika"; null -> "Teraz: stan zasilania nieznany (komputer bez baterii?)" },
+        if (ext == false) Ss.Warning else Ss.TextMuted, 13.sp,
+    )
+    if (pp.autostartSupported) {
+        Toggle("Uruchamiaj program razem z Windows", auto) { on -> msg = pp.setAutostart(on); auto = runCatching { pp.isAutostart() }.getOrDefault(on) }
+        Label("Żeby komputer sam się włączał po podaniu zasilania, w BIOS-ie ustaw „AC Power Recovery / Power On after AC loss” = On.", Ss.TextMuted, 12.sp)
+    } else {
+        Label("Autostart: ${pp.setAutostart(true) ?: "—"}", Ss.TextMuted, 12.sp)
+    }
+    msg?.let { Label(it, Ss.Warning, 12.sp) }
+    Toggle("Zamknij po zaniku zasilania", hw.powerAutoClose) { hw.setPowerOptions(autoClose = it) }
+    if (hw.powerAutoClose) {
+        Num("Po ilu sekundach", "Krótkie przerwy (rozruch silnika) nie zamykają programu", hw.powerDelayS.toDouble(), "s", 1.0, 3.0, 600.0, 0) { hw.setPowerOptions(delayS = it.toInt()) }
+        if (pp.canShutdownSystem) Toggle("Wyłącz też komputer", hw.powerShutdownPc) { hw.setPowerOptions(shutdownPc = it) }
+        Label("Przed zamknięciem: autoster wyłączony, pole zapisane. Na pasku odliczania można anulować.", Ss.TextMuted, 12.sp)
+    }
 }
 
 /** Kalibracja czujnika kąta z jazdy po okręgu. */
@@ -870,6 +899,7 @@ fun HardwareImplementScreen(hw: HardwareController) {
                     selectedColor = { when (SectionMode.entries[it]) { SectionMode.AUTO -> Ss.Accent; SectionMode.MANUAL -> Ss.Warning; SectionMode.OFF -> Ss.TextMuted } },
                 )
             }
+            ToolPicker(hw)
             RigDrawing(hw, Modifier.weight(1f).fillMaxWidth())
             Text(
                 "Szerokość robocza ${p.toolWidth.pl(2)} m · ${p.numSections} sekcji · odstęp przejazdów ${p.passSpacing.pl(2)} m",
@@ -888,6 +918,36 @@ fun HardwareImplementScreen(hw: HardwareController) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) { ToolTab(p, set) }
     }
+}
+
+/** Szybka zmiana maszyny: zapisane maszyny (dotknięcie = podepnij), zapis bieżącej pod nazwą. */
+@Composable
+private fun ToolPicker(hw: HardwareController) {
+    var newName by remember { mutableStateOf("") }
+    var msg by remember { mutableStateOf<String?>(null) }
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Label("Maszyna:", Ss.TextMuted, 13.sp)
+        hw.toolNames.forEach { n ->
+            val cur = n == hw.currentTool
+            Row(
+                Modifier.clip(RoundedCornerShape(10.dp)).background(if (cur) Ss.AccentSoft else Ss.SurfaceHigh)
+                    .border(1.dp, if (cur) Ss.Accent else Ss.Border, RoundedCornerShape(10.dp))
+                    .clickable { msg = hw.loadTool(n) ?: "Podpięto „$n”" }.padding(start = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(n, color = if (cur) Ss.Accent else Ss.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Box(Modifier.padding(horizontal = 6.dp).clickable { hw.deleteTool(n) }.padding(8.dp)) { Text("✕", color = Ss.TextMuted, fontSize = 12.sp) }
+            }
+        }
+        TextInput(newName, { newName = it }, title = "Nazwa maszyny", modifier = Modifier.width(200.dp), hint = "np. Talerzówka 3 m", maxLength = 40, fontSize = 14.sp)
+        ActionButton(onClick = { val e = hw.saveToolAs(newName); msg = e ?: "Zapisano maszynę"; if (e == null) newName = "" }) { ButtonText("Zapisz maszynę") }
+    }
+    msg?.let { Label(it, Ss.TextSoft, 12.sp) }
+    Label("Odległość od tylnej osi do maszyny (zaczep + dyszel) ustawiasz po prawej — od niej zależy, gdzie maszyna maluje pokrycie i kiedy włączają się sekcje i podnośnik.", Ss.TextMuted, 12.sp)
 }
 
 /** Widok z góry: ciągnik, antena, zaczep, maszyna i sekcje (zielona = pracuje). Wymiary z profilu, w skali. */

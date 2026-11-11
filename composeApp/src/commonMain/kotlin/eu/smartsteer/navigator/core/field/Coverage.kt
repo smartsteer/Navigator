@@ -121,6 +121,112 @@ class Coverage {
         return if (r == r.toLong().toDouble()) r.toLong().toString() else r.toString()
     }
 
+    /**
+     * Zewnętrzny obrys obrobionej powierzchni — „granica z pracy” (np. po objechaniu pola z rozsiewaczem).
+     * Siatka [grid] m, domknięcie przerw do ok. 2·[close] m, wypełnienie dziur, największy spójny kawałek,
+     * obrys po krawędziach komórek i wygładzenie. Null, gdy obrobiono za mało.
+     */
+    fun outline(grid: Double = 1.0, close: Int = 2): List<Vec2>? {
+        if (cellCount == 0L) return null
+        val occ = HashSet<Long>()
+        fun k(x: Int, y: Int) = (x.toLong() shl 32) xor (y.toLong() and 0xFFFFFFFFL)
+        for ((key, rows) in chunks) {
+            val kx = key shr 32
+            val ky = (key and 0xFFFFFFFFL).toInt().toLong()
+            for (ly in 0 until 64) {
+                val row = rows[ly]
+                if (row == 0L) continue
+                for (lx in 0 until 64) if ((row ushr lx) and 1L == 1L) {
+                    val x = ((kx * 64 + lx) + 0.5) * CELL
+                    val y = ((ky * 64 + ly) + 0.5) * CELL
+                    occ.add(k(floor(x / grid).toInt(), floor(y / grid).toInt()))
+                }
+            }
+        }
+        if (occ.size < 20) return null
+        var minX = Int.MAX_VALUE; var maxX = Int.MIN_VALUE; var minY = Int.MAX_VALUE; var maxY = Int.MIN_VALUE
+        for (v in occ) { val x = (v shr 32).toInt(); val y = v.toInt(); minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y) }
+        val pad = close + 2
+        val x0 = minX - pad; val y0 = minY - pad
+        val w = maxX - minX + 1 + 2 * pad; val h = maxY - minY + 1 + 2 * pad
+        if (w.toLong() * h > 6_000_000L) return null
+        var g = BooleanArray(w * h)
+        for (v in occ) g[((v.toInt()) - y0) * w + ((v shr 32).toInt() - x0)] = true
+        fun morph(src: BooleanArray, dilate: Boolean): BooleanArray {
+            val out = BooleanArray(w * h)
+            for (y in 0 until h) for (x in 0 until w) {
+                var any = false; var all = true
+                for (dy in -1..1) for (dx in -1..1) {
+                    val xx = x + dx; val yy = y + dy
+                    val v = xx in 0 until w && yy in 0 until h && src[yy * w + xx]
+                    if (v) any = true else all = false
+                }
+                out[y * w + x] = if (dilate) any else all
+            }
+            return out
+        }
+        repeat(close) { g = morph(g, true) }
+        repeat(close) { g = morph(g, false) }
+        // dziury w środku (np. nieobrobiona kępa) też należą do pola
+        val outside = BooleanArray(w * h)
+        val stack = ArrayDeque<Int>()
+        for (x in 0 until w) { stack.add(x); stack.add((h - 1) * w + x) }
+        for (y in 0 until h) { stack.add(y * w); stack.add(y * w + w - 1) }
+        while (stack.isNotEmpty()) {
+            val i = stack.removeAt(stack.size - 1)
+            if (outside[i] || g[i]) continue
+            outside[i] = true
+            val x = i % w; val y = i / w
+            if (x > 0) stack.add(i - 1); if (x < w - 1) stack.add(i + 1)
+            if (y > 0) stack.add(i - w); if (y < h - 1) stack.add(i + w)
+        }
+        for (i in g.indices) if (!outside[i]) g[i] = true
+        // największy spójny kawałek
+        val label = IntArray(w * h)
+        var best = 0; var bestSize = 0; var next = 0
+        for (i in g.indices) {
+            if (!g[i] || label[i] != 0) continue
+            next++
+            var size = 0
+            stack.add(i)
+            while (stack.isNotEmpty()) {
+                val j = stack.removeAt(stack.size - 1)
+                if (!g[j] || label[j] != 0) continue
+                label[j] = next; size++
+                val x = j % w; val y = j / w
+                if (x > 0) stack.add(j - 1); if (x < w - 1) stack.add(j + 1)
+                if (y > 0) stack.add(j - w); if (y < h - 1) stack.add(j + w)
+            }
+            if (size > bestSize) { bestSize = size; best = next }
+        }
+        fun inside(x: Int, y: Int) = x in 0 until w && y in 0 until h && label[y * w + x] == best
+        // obrys: krawędzie komórek z wnętrzem po lewej (przeciwnie do wskazówek zegara), łączone w pętlę
+        val edges = HashMap<Long, ArrayList<Long>>()
+        fun vk(x: Int, y: Int) = (x.toLong() shl 32) xor (y.toLong() and 0xFFFFFFFFL)
+        fun add(ax: Int, ay: Int, bx: Int, by: Int) { edges.getOrPut(vk(ax, ay)) { ArrayList(2) }.add(vk(bx, by)) }
+        for (y in 0 until h) for (x in 0 until w) {
+            if (!inside(x, y)) continue
+            if (!inside(x, y - 1)) add(x, y, x + 1, y)
+            if (!inside(x + 1, y)) add(x + 1, y, x + 1, y + 1)
+            if (!inside(x, y + 1)) add(x + 1, y + 1, x, y + 1)
+            if (!inside(x - 1, y)) add(x, y + 1, x, y)
+        }
+        if (edges.isEmpty()) return null
+        val start = edges.keys.minWith(compareBy<Long>({ (it.toInt()) }, { (it shr 32).toInt() }))
+        val loop = ArrayList<Vec2>()
+        var cur = start
+        var guard = 0
+        do {
+            loop.add(Vec2(((cur shr 32).toInt() + x0) * grid, ((cur.toInt()) + y0) * grid))
+            val outs = edges[cur] ?: break
+            val nxt = outs.removeAt(outs.size - 1)
+            if (outs.isEmpty()) edges.remove(cur)
+            cur = nxt
+        } while (cur != start && ++guard < 1_000_000)
+        if (loop.size < 4) return null
+        return Polygon.simplify(loop, minSpacing = grid, tolerance = grid * 0.6).takeIf { it.size >= 3 }
+    }
+
     companion object {
         const val CELL = 0.25
         const val MIN_STEP = 0.3

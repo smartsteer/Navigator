@@ -184,6 +184,7 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                         ButtonText(if (b == null) "Nagraj granicę" else "Nagraj od nowa", color = Ss.Accent, weight = FontWeight.Bold)
                     }
                     if (b != null) ActionButton(onClick = { s.clearBoundary(); msg = s.message; hw.saveField() }) { ButtonText("Usuń granicę", color = Ss.TextSoft) }
+                    if (s.coverage.workedM2 > 100) ActionButton(onClick = { s.boundaryFromCoverage(); msg = s.message; hw.saveField() }) { ButtonText("Granica z obrobionej powierzchni") }
                 }
             }
 

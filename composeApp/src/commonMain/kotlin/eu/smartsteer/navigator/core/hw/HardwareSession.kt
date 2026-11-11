@@ -824,6 +824,31 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         return if (Polygon.contains(inner, q)) 1 else 2
     }
 
+    /**
+     * Ile metrów ma maszyna (jej rzeczywiste położenie za ciągnikiem) do linii uwrocia, jadąc prosto:
+     * first = odległość, second = true gdy maszyna wjedzie na uwrocie (podnieś), false gdy zjedzie z uwrocia w pole (opuść).
+     * Null, gdy brak uwrocia albo linia jest dalej niż 60 m.
+     */
+    fun toolToHeadland(): Pair<Double, Boolean>? {
+        val inner = headland ?: return null
+        val tp = sections.toolPos ?: return null
+        val dir = Vec2.forward(sections.toolHeading)
+        val inside = Polygon.contains(inner, tp)
+        var best = Double.MAX_VALUE
+        for (i in inner.indices) {
+            val a = inner[i]; val b = inner[(i + 1) % inner.size]
+            val e = b - a
+            val den = dir.x * e.y - dir.y * e.x
+            if (abs(den) < 1e-9) continue
+            val w = a - tp
+            val t = (w.x * e.y - w.y * e.x) / den
+            val u = (w.x * dir.y - w.y * dir.x) / den
+            if (t > 0 && u in 0.0..1.0 && t < best) best = t
+        }
+        if (best > 60.0) return null
+        return best to inside
+    }
+
     /** Bity ścieżek technologicznych dla bieżącego przejazdu (AB albo krzywa). */
     fun tramBits(): Int {
         val p = profile
@@ -926,6 +951,16 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         boundary = poly
         setHeadlandWidth(headlandWidth)
         return ok("Granica zapisana: ${(area / 10_000).let { kotlin.math.round(it * 100) / 100 }} ha")
+    }
+
+    /** Granica z obrobionej powierzchni (zewnętrzny obrys pokrycia) — np. po objechaniu pola z rozsiewaczem. */
+    fun boundaryFromCoverage(): Boolean {
+        val o = coverage.outline() ?: return fail("Za mało obrobionej powierzchni — najpierw przejedź pole (sekcje AUTO)")
+        val area = Polygon.area(o)
+        if (area < 100.0) return fail("Za mała obrobiona powierzchnia")
+        boundary = o
+        setHeadlandWidth(headlandWidth)
+        return ok("Granica z pracy: ${(area / 10_000).let { kotlin.math.round(it * 100) / 100 }} ha")
     }
 
     fun cancelBoundary() { recordingBoundary = null; ok("Nagrywanie granicy przerwane") }

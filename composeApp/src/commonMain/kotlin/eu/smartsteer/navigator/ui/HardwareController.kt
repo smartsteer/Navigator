@@ -1,6 +1,9 @@
 package eu.smartsteer.navigator.ui
 
 import eu.smartsteer.navigator.core.sim.SimReceiver
+import eu.smartsteer.navigator.ui.power.PowerPlatform
+import eu.smartsteer.navigator.ui.power.PowerState
+import eu.smartsteer.navigator.core.settings.ToolPresets
 import eu.smartsteer.navigator.core.net.SerialLink
 import eu.smartsteer.navigator.core.net.SerialPorts
 import androidx.compose.runtime.getValue
@@ -654,6 +657,93 @@ class HardwareController {
         }
     }
 
+    // ---------------- zasilanie: zamknięcie po zaniku ----------------
+    private val powerFile = "zasilanie.cfg"
+    private val powerCfg = runCatching { files.read(powerFile).orEmpty().lines() }.getOrDefault(emptyList())
+    var powerAutoClose by mutableStateOf(powerCfg.getOrNull(0)?.trim() == "1")
+        private set
+    var powerDelayS by mutableStateOf(powerCfg.getOrNull(1)?.trim()?.toIntOrNull() ?: 10)
+        private set
+    var powerShutdownPc by mutableStateOf(powerCfg.getOrNull(2)?.trim() == "1")
+        private set
+    /** Sekundy do zamknięcia po zaniku zasilania (null = nic się nie dzieje). */
+    var powerCountdown by mutableStateOf<Int?>(null)
+        private set
+    private var powerLostAt = Double.NaN
+    private var powerCancelled = false
+    private var exitAt = Double.NaN
+
+    fun setPowerOptions(autoClose: Boolean = powerAutoClose, delayS: Int = powerDelayS, shutdownPc: Boolean = powerShutdownPc) {
+        powerAutoClose = autoClose; powerDelayS = delayS.coerceIn(3, 600); powerShutdownPc = shutdownPc
+        try { files.write(powerFile, "${if (autoClose) 1 else 0}\n$powerDelayS\n${if (shutdownPc) 1 else 0}\n") } catch (_: Exception) {}
+        tick++
+    }
+
+    /** „Anuluj” na pasku odliczania — do ponownego podłączenia zasilania. */
+    fun cancelPowerExit() { powerCancelled = true; powerCountdown = null; tick++ }
+
+    private fun powerStep() {
+        val t = now()
+        if (!exitAt.isNaN()) {
+            // ramka „autoster wyłączony” już poszła — zamykamy
+            if (t >= exitAt) PowerPlatform.exit(powerShutdownPc && PowerPlatform.canShutdownSystem)
+            return
+        }
+        val ext = PowerState.external
+        if (ext != false) { powerLostAt = Double.NaN; powerCancelled = false; powerCountdown = null; return }
+        if (!powerAutoClose || powerCancelled) { powerCountdown = null; return }
+        if (powerLostAt.isNaN()) { powerLostAt = t; mapMessage("Brak zasilania z ciągnika") }
+        val left = powerDelayS - (t - powerLostAt)
+        powerCountdown = kotlin.math.ceil(left).toInt().coerceAtLeast(0)
+        if (left <= 0) {
+            // zapis pola i bezpieczne wyłączenie autosteru, potem zamknięcie
+            if (session.engaged) session.setEngaged(false, t)
+            saveField()
+            if (hardware) setHardwareMode(false)
+            exitAt = t + 1.0
+        }
+    }
+
+    // ---------------- zapisane maszyny ----------------
+    private val toolPresets = ToolPresets(files)
+    var toolNames by mutableStateOf(runCatching { toolPresets.names() }.getOrDefault(emptyList()))
+        private set
+    var currentTool by mutableStateOf(runCatching { files.read("maszyna.txt")?.trim().orEmpty() }.getOrDefault(""))
+        private set
+
+    /** Zapisuje ustawienia maszyny z bieżącego profilu pod nazwą (np. „Talerzówka 3 m”). */
+    fun saveToolAs(raw: String): String? {
+        val name = Profiles.sanitize(raw)
+        if (name.isEmpty()) return "Wpisz nazwę maszyny"
+        return try {
+            toolPresets.save(name, profile)
+            toolNames = toolPresets.names()
+            setCurrentTool(name)
+            null
+        } catch (e: Exception) { "Nie udało się zapisać: ${e.message}" }
+    }
+
+    /** Podpina zapisaną maszynę do bieżącego ciągnika (wymiary ciągnika zostają). */
+    fun loadTool(name: String): String? {
+        val t = toolPresets.load(name) ?: return "Maszyna „$name” jest uszkodzona"
+        if (session.engaged) session.setEngaged(false, now())
+        updateProfile(ToolPresets.apply(profile, t))
+        setCurrentTool(name)
+        return null
+    }
+
+    fun deleteTool(name: String) {
+        toolPresets.delete(name)
+        toolNames = toolPresets.names()
+        if (currentTool == name) setCurrentTool("")
+    }
+
+    private fun setCurrentTool(n: String) {
+        currentTool = n
+        try { files.write("maszyna.txt", n) } catch (_: Exception) {}
+        tick++
+    }
+
     // ---------------- odbiornik GPS na USB/COM ----------------
     private val serialFile = "gps-com.cfg"
     val serialSupported: Boolean get() = SerialPorts.supported
@@ -769,6 +859,7 @@ class HardwareController {
         val saved = runCatching { files.read(modeFile)?.trim() }.getOrNull()
         if (!hardware && (saved == "sprzet" || simulating)) setHardwareMode(true)
         if (serialPort.isNotBlank() && serial == null) setSerial(serialPort, serialBaud)
+        PowerPlatform.startMonitor()
         // pole otwarte przy poprzednim uruchomieniu (z pokryciem i liniami)
         val lastField = runCatching { files.read(lastFieldFile)?.trim() }.getOrNull()
         if (!lastField.isNullOrEmpty() && session.fieldName == null && runCatching { fieldStore.exists(lastField) }.getOrDefault(false)) {
@@ -789,6 +880,7 @@ class HardwareController {
         while (true) {
             delay(100)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
+            powerStep()
             if (session.fieldName != savedFieldName) {
                 savedFieldName = session.fieldName
                 try { files.write(lastFieldFile, savedFieldName ?: "") } catch (_: Exception) {}

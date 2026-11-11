@@ -101,3 +101,22 @@ class TramlinesTest {
         assertEquals(0x80, f[12].toInt() and 0xFF)
     }
 }
+
+class CoverageOutlineTest {
+    @Test
+    fun outlineOfWorkedAreaWithGapsAndHole() {
+        val c = Coverage()
+        // pasy 6 m na 60 m długości, przerwy 1 m między pasami, w środku dziura 5×5 m
+        var x = 0.0
+        while (x < 40) {
+            c.paintQuad(Vec2(x, 0.0), Vec2(x + 6, 0.0), Vec2(x + 6, 60.0), Vec2(x, 60.0))
+            x += 7.0
+        }
+        val o = assertNotNull(c.outline())
+        val a = Polygon.area(o)
+        // 41 × 60 = 2460 m² (przerwy i krawędzie domknięte, ±1 m dookoła)
+        assertTrue(a in 2200.0..2700.0, "pole $a")
+        assertTrue(Polygon.contains(o, Vec2(20.0, 30.0)))
+        assertTrue(!Polygon.contains(o, Vec2(20.0, 70.0)))
+    }
+}
