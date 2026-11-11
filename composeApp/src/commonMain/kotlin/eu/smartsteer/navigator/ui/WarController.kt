@@ -17,6 +17,7 @@ import eu.smartsteer.navigator.core.war.WarCrypto
 import eu.smartsteer.navigator.core.war.WarField
 import eu.smartsteer.navigator.core.war.WarOrder
 import eu.smartsteer.navigator.core.war.WarProtocol
+import eu.smartsteer.navigator.core.war.WarRateMap
 import eu.smartsteer.navigator.core.war.httpJson
 import eu.smartsteer.navigator.core.war.nowIso
 import eu.smartsteer.navigator.core.war.nowMillis
@@ -251,9 +252,21 @@ class WarController(private val hw: HardwareController, private val files: TextF
                 saveOrders()
                 hw.touch()
             }
+            "mapa_dawek" -> {
+                val rm = WarRateMap.parse(m) ?: return true
+                val old = rateMapFor(rm.warId)
+                if (old != null && old.sentAt > rm.sentAt) return true          // starsza wysyłka przyszła później
+                try { files.write(WarRateMap.fileName(rm.warId), json) } catch (_: Exception) { return false }
+                hw.onWarRateMap(rm)
+            }
         }
         return true
     }
+
+    /** Ostatnia mapa dawek przysłana z WAR dla pola o tym id (albo null). */
+    fun rateMapFor(warId: String?): WarRateMap? = try {
+        warId?.let { files.read(WarRateMap.fileName(it)) }?.let { WarProtocol.parse(it)?.second }?.let { WarRateMap.parse(it) }
+    } catch (_: Exception) { null }
 
     private fun saveFields() {
         try { files.write(FIELDS, fields.joinToString(",\n", "[", "]") { WarProtocol.fieldJson(it) }) } catch (_: Exception) {}

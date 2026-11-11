@@ -148,6 +148,27 @@ Co 5 s w pracy, co 30 s na postoju, tylko przy żywym GPS (i gdy rolnik nie wył
 `fix`: jakość GGA (1 GPS, 2 DGPS, 4 RTK FIX, 5 RTK FLOAT). `pracuje` = autoster albo sekcje włączone. WAR pokazuje maszynę
 na mapie „Na żywo” (Gospodarstwo → Maszyny) pod nazwą `komputer`.
 
+### 3.7 WAR → Navigator: mapa zmiennych dawek (`mapa_dawek`) — ze skrzynki Navigatora
+
+Telefon: pole → NDVI → Strefy → dawki dla trzech stref → **„Wyślij do nawigacji (WAR Navigator)”**. Strefy ze zdjęcia
+Sentinel-2 jako siatka oczek ~10 m (ta sama co w pliku ISO-XML dla terminali ISOBUS):
+
+```json
+{"typ": "mapa_dawek", "v": 1, "id": "md-p1", "pole": {"war_id": "p1", "nazwa": "Za stodołą"}, "nazwa": "Za stodołą",
+ "produkt": "Saletra amonowa 34", "rodzaj": "nawoz_kg", "rodzaj_nazwa": "Nawóz", "data": "2026-05-06", "t": "…",
+ "jednostka": "kg/ha", "strefy": {"1": 115, "2": 100, "3": 85},
+ "siatka": {"min_n": 52.0, "min_e": 22.0, "dn": 0.0001, "de": 0.00015, "kol": 120, "rz": 90,
+            "wiersze": ["0000222211…", "…"]},
+ "ha_strefy": {"slabe": 2.1, "srednie": 6.3, "mocne": 1.4}, "razem": 1015.5}
+```
+
+- `wiersze` — od południa do północy, w wierszu od zachodu; znak = kod strefy oczka: `0` poza polem, `1` słabsza,
+  `2` typowa, `3` mocniejsza. `strefy` — dawka dla kodu w `jednostka` (kg/ha, l/ha, szt./m²).
+- Oczko wiersza `r`, kolumny `c`: szerokość `min_n + r·dn … min_n + (r+1)·dn`, długość `min_e + c·de … min_e + (c+1)·de` (WGS84).
+- Navigator zapisuje ostatnią mapę dla `pole.war_id` (nowsza `t` wygrywa) i wczytuje ją do pola o tym `war_id`:
+  od razu, gdy pole jest otwarte, inaczej przy otwarciu. Mapy z pliku (GeoJSON/KML) nie nadpisuje — wtedy przycisk
+  „Wczytaj mapę z WAR” w Pola → Mapa dawek. Poza oczkami (brzeg pola) — dawka typowa.
+
 ## 4. Pliki (bez internetu)
 
 ### Z WAR do Navigatora: pola, granice, linie

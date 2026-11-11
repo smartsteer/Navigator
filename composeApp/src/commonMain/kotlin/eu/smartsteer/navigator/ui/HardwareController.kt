@@ -3,6 +3,7 @@ package eu.smartsteer.navigator.ui
 import eu.smartsteer.navigator.core.sim.SimReceiver
 import eu.smartsteer.navigator.ui.pl
 import eu.smartsteer.navigator.core.field.RateMapImport
+import eu.smartsteer.navigator.core.war.WarRateMap
 import eu.smartsteer.navigator.core.hw.AutoTune
 import eu.smartsteer.navigator.core.hw.GuidanceMode
 import eu.smartsteer.navigator.ui.power.PowerPlatform
@@ -242,6 +243,33 @@ class HardwareController {
 
     fun clearRateMap() { session.rateMap = null; saveField(); tick++ }
 
+    /** Mapa dawek z WAR do otwartego pola. Zwraca komunikat. */
+    fun applyWarRateMap(rm: WarRateMap): String {
+        val pl = session.plane ?: return "Najpierw otwórz pole"
+        if (session.fieldName == null) return "Najpierw otwórz pole"
+        val m = rm.toRateMap(pl)
+        if (m.zones.isEmpty()) return "Mapa z WAR nie ma stref w polu"
+        session.rateMap = m
+        saveField()
+        tick++
+        return "Mapa dawek z WAR: ${m.minRate.pl(0)}–${m.maxRate.pl(0)} ${m.unit}"
+    }
+
+    /** Przyszła mapa z WAR: od razu do otwartego pola, jeśli to jego mapa; inne pola wczytają ją przy otwarciu. */
+    fun onWarRateMap(rm: WarRateMap) {
+        val what = rm.product.ifEmpty { rm.kindName }.let { if (it.isEmpty()) "" else " ($it)" }
+        if (session.fieldName != null && session.fieldWarId == rm.warId) mapMessage(applyWarRateMap(rm) + what)
+        else mapMessage("Przyszła mapa dawek z WAR dla pola „${rm.fieldName}”$what — wczyta się przy otwarciu pola")
+        tick++
+    }
+
+    /** Przy otwarciu pola z WAR: wczytaj mapę z WAR, gdy pole nie ma mapy albo ma starszą z WAR (własnej z pliku nie ruszamy). */
+    private fun loadWarRateMapOnOpen() {
+        val rm = war.rateMapFor(session.fieldWarId) ?: return
+        val cur = session.rateMap
+        if (cur == null || (cur.name.startsWith(WarRateMap.PREFIX) && cur.name != rm.mapName)) applyWarRateMap(rm)
+    }
+
     fun setDefaultRate(v: Double) { session.rateMap = session.rateMap?.copy(defaultRate = v); saveField(); tick++ }
 
     /** Wczytuje pola z pliku do listy pól. Zwraca komunikat dla rolnika. */
@@ -442,6 +470,7 @@ class HardwareController {
         fieldStartedText = nowText()
         fieldStartedIso = nowIso()
         war.onFieldOpened(f.warId)
+        loadWarRateMapOnOpen()
         tick++
         return null
     }

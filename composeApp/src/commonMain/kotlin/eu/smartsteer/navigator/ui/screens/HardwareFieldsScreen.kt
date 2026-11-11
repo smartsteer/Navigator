@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.smartsteer.navigator.core.field.Polygon
 import eu.smartsteer.navigator.core.settings.openFolder
+import eu.smartsteer.navigator.core.war.WarRateMap
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.components.TextInput
 import eu.smartsteer.navigator.ui.components.ActionButton
@@ -204,6 +205,12 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                         ActionButton(onClick = { hw.setDefaultRate(0.0) }) { ButtonText("Poza strefami: 0", size = 13.sp) }
                         ActionButton(onClick = { hw.clearRateMap(); msg = "Mapa dawek usunięta" }) { ButtonText("Usuń mapę", color = Ss.TextSoft, size = 13.sp) }
                     }
+                }
+                val warMap = remember(hw.tick, s.fieldWarId) { hw.war.rateMapFor(s.fieldWarId) }
+                if (warMap != null && rm?.name != warMap.mapName) {
+                    ActionButton(onClick = { msg = hw.applyWarRateMap(warMap) }) { ButtonText("Wczytaj mapę z WAR: ${warMap.mapName.removePrefix(WarRateMap.PREFIX)}", size = 13.sp) }
+                } else if (s.fieldWarId != null && warMap == null) {
+                    Label("Mapę dawek z WAR wyślesz z telefonu: pole → NDVI → Strefy → „Wyślij do nawigacji”.", Ss.TextMuted, 12.sp)
                 }
                 val cands = remember(hw.tick / 50) { hw.rateMapCandidates() }
                 if (cands.isEmpty()) {
