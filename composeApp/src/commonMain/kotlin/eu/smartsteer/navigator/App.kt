@@ -283,7 +283,10 @@ private fun HwTopBar(hw: HardwareController) {
             }
             TopStat(g?.correctionAge?.takeIf { gpsOk }?.let { "${it.pl(0)} s" } ?: "—", "POPRAWKI",
                 if (gpsOk && (g?.correctionAge ?: 99.0) <= 5) Ss.Text else Ss.Warning)
-            TopStat(if (gpsOk) accuracyText(h.fix) else "—", "DOKŁADNOŚĆ", if (rtk) Ss.Text else Ss.Warning)
+            // zmierzona (GST z odbiornika / telefonu): „±1,4 cm”, „±3,2 m”; bez GST — przybliżenie dla rodzaju poprawki
+            val acc = h.horizontalAccuracy(now)
+            TopStat(if (gpsOk) acc?.takeIf { it.second }?.let { "±" + metersText(it.first) } ?: accuracyText(h.fix) else "—", "DOKŁADNOŚĆ",
+                if (rtk && (acc == null || acc.first < 0.05)) Ss.Text else Ss.Warning)
             val hasLine = h.line != null || h.curveRef != null || h.contour.guide.isNotEmpty()
             HwLightBar(if (hasLine && gpsOk) h.xteCm else null, Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -308,6 +311,13 @@ private fun TopStat(value: String, label: String, color: androidx.compose.ui.gra
         Text(value, color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         Text(label, color = Ss.TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
+}
+
+/** 1,4 cm / 35 cm / 3,2 m. */
+private fun metersText(m: Double): String = when {
+    m < 0.1 -> "${((m * 1000).toInt() / 10.0).toString().replace('.', ',')} cm"
+    m < 1.0 -> "${(m * 100).toInt()} cm"
+    else -> "${((m * 10).toInt() / 10.0).toString().replace('.', ',')} m"
 }
 
 /** Przybliżona dokładność pozycji dla danego rodzaju poprawki. */
@@ -459,3 +469,4 @@ private fun RailToggle(label: String, on: Boolean, onClick: () -> Unit) {
         )
     }
 }
+

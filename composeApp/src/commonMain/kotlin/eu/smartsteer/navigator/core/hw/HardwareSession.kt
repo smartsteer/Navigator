@@ -194,6 +194,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
                 vtgCourse = v.courseDeg?.let { it * PI / 180 }
                 vtgTimeS = nowS
             }
+            type == "GST" -> Nmea.parseGstHorizontal(sentence)?.let { gstAccuracyM = it; gstTimeS = nowS }
             type == "HDT" -> Nmea.parseHdt(sentence)?.let { dualHeading = (it.headingDeg + profile.dualHeadingOffset) * PI / 180; dualTimeS = nowS }
         }
     }
@@ -434,6 +435,23 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val q = tp + Vec2.forward(sections.toolHeading) * (speedKmh / 3.6 * profile.lookAheadOn)
         for (i in m.zones.indices.reversed()) if (Polygon.contains(m.zones[i].poly, q)) return m.zones[i].rate to i
         return m.defaultRate to -1
+    }
+
+    // dokładność pozycji: z GST (odbiornik / telefon), inaczej szacunek z rodzaju poprawki i HDOP
+    private var gstAccuracyM: Double? = null
+    private var gstTimeS = -1e9
+
+    /** Błąd poziomy w metrach i czy to pomiar (GST), czy szacunek; null — brak pozycji. */
+    fun horizontalAccuracy(nowS: Double): Pair<Double, Boolean>? {
+        if (!gpsAlive(nowS)) return null
+        gstAccuracyM?.let { if (nowS - gstTimeS < 3.0) return it to true }
+        val hdop = lastGga?.hdop?.takeIf { it < 50 } ?: 2.0
+        return when (fix) {
+            FixQuality.RTK_FIX -> 0.02
+            FixQuality.RTK_FLOAT -> 0.3
+            FixQuality.DGPS -> 0.7 * hdop
+            else -> 2.5 * hdop
+        } to false
     }
 
     /** Gdy ustawione (np. GPS z telefonu, 2–5 m) — autostera nie da się włączyć, a przycisk znika z mapy. */

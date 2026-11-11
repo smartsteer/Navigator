@@ -71,6 +71,18 @@ object Nmea {
         return Vtg(courseDeg = f[1].toDoubleOrNull(), speedKmh = speed)
     }
 
+    /**
+     * GST — błąd pozycji (1σ): zwraca błąd poziomy w metrach, √(błąd szer.² + błąd dł.²).
+     * Podają go odbiorniki u-blox/Unicore (trzeba włączyć zdanie GST) i GPS telefonu w Navigatorze.
+     */
+    fun parseGstHorizontal(sentence: String): Double? {
+        val f = fields(sentence, "GST") ?: return null
+        val la = f.getOrNull(6)?.toDoubleOrNull() ?: return null
+        val lo = f.getOrNull(7)?.toDoubleOrNull() ?: return null
+        val h = kotlin.math.sqrt(la * la + lo * lo)
+        return if (h.isFinite() && h > 0 && h < 1000) h else null
+    }
+
     fun parseHdt(sentence: String): Hdt? {
         val f = fields(sentence, "HDT") ?: return null
         if (f.size < 2) return null

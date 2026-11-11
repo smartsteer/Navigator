@@ -90,7 +90,9 @@ actual object SerialPorts {
                 // pozycja co 0,1–1 s (to też trzyma odbiornik włączony); gdy telefon nie podaje NMEA — GGA/VTG z pozycji
                 val l = object : LocationListener {
                     override fun onLocationChanged(p: Location) {
-                        if (closed || System.currentTimeMillis() - lastGgaMs < 2500) return
+                        if (closed) return
+                        gst(p)?.let(onLine)                                      // dokładność telefonu (±m) na górnym pasku
+                        if (System.currentTimeMillis() - lastGgaMs < 2500) return
                         gga(p)?.let(onLine); vtg(p)?.let(onLine)
                     }
                     @Deprecated("Android < 29") override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -162,6 +164,13 @@ actual object SerialPorts {
         val hdop = if (p.hasAccuracy()) (p.accuracy / 5.0).coerceIn(0.5, 20.0) else 1.5     // przybliżenie z dokładności (m)
         val alt = if (p.hasAltitude()) p.altitude else 0.0
         return cs(String.format(Locale.US, "GPGGA,%s,%s,%s,1,%02d,%.1f,%.1f,M,0.0,M,,", hhmmss, dm(p.latitude, true), dm(p.longitude, false), sats, hdop, alt))
+    }
+
+    /** GST z dokładności telefonu: Location.accuracy = promień 68% → błąd szer. = dł. = accuracy/√2. */
+    private fun gst(p: Location): String? {
+        if (!p.hasAccuracy()) return null
+        val e = p.accuracy / Math.sqrt(2.0)
+        return cs(String.format(Locale.US, "GPGST,,%.2f,,,,%.2f,%.2f,", p.accuracy.toDouble(), e, e))
     }
 
     private fun vtg(p: Location): String? {
