@@ -102,6 +102,70 @@ object YouTurn {
         return Curves.headings(path)
     }
 
+    /** Zawrót z cofaniem (K): dojazd + łuk naprzód, łuk wstecz, wyjazd naprzód na nowy przejazd. */
+    data class KTurn(val forward: List<Pose>, val reverse: List<Pose>, val exit: List<Pose>)
+
+    /**
+     * Kształt zawrotu K w układzie przejazdu (y = naprzód, x = w prawo), dla [w] < 2·[r]:
+     * łuk naprzód o kąt α (cos α = −w / 2r), łuk wstecz o π − α z przeciwnym skrętem, potem prosto na nowy przejazd.
+     * Na podstawie pomysłu K-turn z AgOpenGPS (CYouTurn.cs), geometria liczona tu wprost z okręgów.
+     */
+    fun kShape(r: Double, w: Double, right: Boolean, step: Double = 0.5): Triple<List<Vec2>, List<Vec2>, List<Vec2>>? {
+        if (w >= 2 * r || w <= 0) return null
+        val alpha = kotlin.math.acos(-w / (2 * r))
+        val s = if (right) 1.0 else -1.0
+        val fwd = ArrayList<Vec2>()
+        val nF = ((alpha * r) / step).toInt().coerceAtLeast(4)
+        for (k in 0..nF) { val t = alpha * k / nF; fwd.add(Vec2(s * (r - r * cos(t)), r * sin(t))) }
+        val p1 = fwd.last()
+        val rev = ArrayList<Vec2>()
+        val nR = (((PI - alpha) * r) / step).toInt().coerceAtLeast(4)
+        for (k in 0..nR) {
+            val t = alpha + (PI - alpha) * k / nR
+            rev.add(Vec2(p1.x + s * r * (cos(t) - cos(alpha)), p1.y - r * (sin(t) - sin(alpha))))
+        }
+        val end = rev.last()
+        val out = ArrayList<Vec2>()
+        var y = end.y
+        while (y > -20.0) { out.add(Vec2(end.x, y)); y -= step }
+        return Triple(fwd, rev, out)
+    }
+
+    /** Zawrót K ułożony na końcu przejazdu, w granicy [turnLine]. Null = nie mieści się albo za późno. */
+    fun buildK(guide: List<Pose>, fromIdx: Int, turnLine: List<Vec2>, radius: Double, width: Double, right: Boolean): KTurn? {
+        if (guide.size < 2 || turnLine.size < 3) return null
+        val (f, r, x) = kShape(radius, width, right) ?: return null
+        var exit = -1
+        for (i in fromIdx.coerceAtLeast(0) until guide.size) {
+            if (!Polygon.contains(turnLine, guide[i].p)) { exit = i; break }
+        }
+        if (exit <= fromIdx) return null
+        val e = guide[exit]
+        val fwd = Vec2(sin(e.heading), cos(e.heading))
+        val rgt = Vec2(cos(e.heading), -sin(e.heading))
+        val d = (f + r).maxOf { it.y }
+        var shift = d
+        var origin: Vec2? = null
+        while (shift <= d + 40.0) {
+            val o = e.p - fwd * shift
+            if ((f + r).all { Polygon.contains(turnLine, o + rgt * it.x + fwd * it.y) }) { origin = o; break }
+            shift += 0.5
+        }
+        val o = origin ?: return null
+        fun w(v: Vec2) = o + rgt * v.x + fwd * v.y
+        val approach = ArrayList<Vec2>()
+        for (i in fromIdx.coerceAtLeast(0)..exit) {
+            if (((guide[i].p - o) dot fwd) >= -0.3) break
+            approach.add(guide[i].p)
+        }
+        if (approach.isEmpty()) return null
+        return KTurn(
+            Curves.headings(approach + f.map { w(it) }),
+            Curves.headings(r.map { w(it) }),
+            Curves.headings(x.map { w(it) }),
+        )
+    }
+
     private fun ang(c: Vec2, p: Vec2) = atan2(p.y - c.y, p.x - c.x)
 
     /** Łuk wokół [c] od kąta [a0] do [a1] (kąty matematyczne: 0 = +x, przeciwnie do zegara). */

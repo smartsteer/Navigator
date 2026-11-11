@@ -3,6 +3,8 @@ package eu.smartsteer.navigator.core.hw
 import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import eu.smartsteer.navigator.core.geo.Vec2
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -169,5 +171,69 @@ class AutoTuneTest {
         }
         val prop = kotlin.test.assertNotNull(out)
         assertTrue(prop.profile.gainP > p.gainP, prop.reasons.toString())
+    }
+}
+
+class ReverseAndKTurnTest {
+    private fun feeder(h: HardwareSession, sim: eu.smartsteer.navigator.core.sim.SimReceiver): (Double) -> Unit = { t ->
+        h.onNmea(sim.vtg(), t); h.onNmea(sim.gga(), t)
+        val f = sim.pgn253(); h.onDatagram(f, f.size, t)
+        h.update(t)
+    }
+
+    @Test
+    fun reversingKeepsTractorHeading() {
+        val sim = eu.smartsteer.navigator.core.sim.SimReceiver()
+        val h = HardwareSession(eu.smartsteer.navigator.core.settings.VehicleProfile(antennaPivot = 0.0))
+        val feed = feeder(h, sim)
+        var t = 0.0
+        sim.targetSpeedKmh = 5.0
+        repeat(40) { sim.step(0.1, null); t += 0.1; feed(t) }
+        assertTrue(!h.reversing)
+        sim.targetSpeedKmh = -3.0
+        repeat(60) { sim.step(0.1, null); t += 0.1; feed(t) }
+        assertTrue(h.reversing, "powinien wykryć cofanie")
+        val diff = kotlin.math.abs(eu.smartsteer.navigator.core.sim.TractorSim.normalize(h.headingRad - sim.tractor.heading))
+        assertTrue(diff < 0.1, "kurs ciągnika przy cofaniu: różnica $diff")
+        sim.targetSpeedKmh = 5.0
+        repeat(60) { sim.step(0.1, null); t += 0.1; feed(t) }
+        assertTrue(!h.reversing)
+    }
+
+    @Test
+    fun kTurnToNextPass() {
+        val sim = eu.smartsteer.navigator.core.sim.SimReceiver()
+        val h = HardwareSession(eu.smartsteer.navigator.core.settings.VehicleProfile(antennaPivot = 0.0, toolWidth = 4.0, youTurnStyle = 1, youTurnRadius = 6.0, wheelbase = 3.3, supRtkLossS = 0.0))
+        val feed = feeder(h, sim)
+        var t = 0.0
+        sim.targetSpeedKmh = 6.0
+        feed(t)
+        h.restoreFieldForTest(listOf(Vec2(-60.0, -30.0), Vec2(60.0, -30.0), Vec2(60.0, 120.0), Vec2(-60.0, 120.0)))
+        h.setHeadlandWidth(20.0)
+        h.restoreLine(AbLine(Vec2(0.0, 0.0), Vec2(0.0, 50.0)))
+        repeat(20) { sim.step(0.1, null); t += 0.1; feed(t) }
+        kotlin.test.assertNull(h.setEngaged(true, t))
+        h.autoUturn = true
+        var sawK = false; var sawRev = false
+        var steps = 0
+        while (steps < 3000) {
+            when (h.kPhase) {
+                1 -> sawK = true
+                2 -> { sim.targetSpeedKmh = -3.0; if (h.reversing) sawRev = true }
+                3 -> sim.targetSpeedKmh = 5.0
+            }
+            sim.step(0.1, if (h.engaged) h.steerSetDeg else 0.0); t += 0.1; feed(t); steps++
+            if (sawRev && h.kPhase == 0) break
+            if (!h.engaged) break
+        }
+        assertTrue(sawK, "zawrót K się nie zaczął: ${h.message}")
+        assertTrue(sawRev, "nie było cofania: ${h.message}")
+        assertTrue(h.engaged, "autoster wyłączony: ${h.message}")
+        assertEquals(0, h.kPhase)
+        // jedziemy na sąsiednim przejeździe, z powrotem na południe
+        repeat(150) { sim.step(0.1, h.steerSetDeg); t += 0.1; feed(t) }
+        assertTrue(h.engaged, "po zawrocie: ${h.message}")
+        assertTrue(kotlin.math.abs(kotlin.math.abs(h.passIndex) - 1) == 0, "przejazd ${h.passIndex}")
+        assertTrue(kotlin.math.abs(h.xteCm) < 15.0, "odchyłka ${h.xteCm}")
     }
 }

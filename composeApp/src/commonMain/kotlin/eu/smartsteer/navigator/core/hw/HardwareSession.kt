@@ -226,7 +226,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         recordingObstacle?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= 0.5) r.add(pv) }
         autosteer?.let { wasCal.sample(pv, headingRad, it.actualAngleDeg, speedKmh) }
         sections.updateTool(pv, headingRad, profile)
-        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS), obstacles)
+        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles)
     }
 
     /**
@@ -238,16 +238,35 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         headingRad = norm(rawHeadingRad + if (headingFlipped) PI else 0.0)
     }
 
+    /**
+     * Jazda do tyłu: kurs z GPS (kierunek ruchu) jest wtedy odwrotny do kursu ciągnika. Ciągnik nie obraca się
+     * w miejscu o 180°, więc nagły przeskok kursu ruchu o ponad 120° przy małej prędkości = zmiana kierunku jazdy
+     * (jak wykrywanie cofania w AgOpenGPS, Position.designer.cs). Z IMU / dwiema antenami porównujemy wprost.
+     */
+    var reversing = false; private set
+
+    private fun angDiff(a: Double, b: Double): Double {
+        var d = (a - b) % (2 * PI)
+        if (d > PI) d -= 2 * PI
+        if (d < -PI) d += 2 * PI
+        return abs(d)
+    }
+
     private fun rawHeading(p: Vec2, nowS: Double) {
         val dual = dualHeading
-        if (dual != null && nowS - dualTimeS < 1.0) { rawHeadingRad = dual; headingSource = HeadingSource.DUAL; return }
+        if (dual != null && nowS - dualTimeS < 1.0) {
+            rawHeadingRad = dual; headingSource = HeadingSource.DUAL
+            val v = vtgCourse
+            if (v != null && speedKmh >= MIN_HEADING_KMH && nowS - vtgTimeS < 1.0) reversing = angDiff(v, dual) > PI / 2
+            return
+        }
         val moving = speedKmh >= MIN_HEADING_KMH
         val vtg = vtgCourse
         val ref = motionRef
         var gps: Double? = null
         var src = HeadingSource.NONE
         when {
-            vtg != null && moving && nowS - vtgTimeS < 1.0 -> { gps = vtg; src = HeadingSource.VTG }
+            vtg != null && moving && nowS - vtgTimeS < 1.0 -> { gps = vtg; src = HeadingSource.VTG; motionRef = p }
             ref == null -> motionRef = p
             p.distanceTo(ref) >= 0.5 -> {
                 gps = atan2(p.x - ref.x, p.y - ref.y)
@@ -256,10 +275,20 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             }
         }
         if (imu.headingAlive(nowS) && profile.fusionWeight > 0) {
-            rawHeadingRad = if (gps != null) imu.fuse(gps, profile.fusionWeight) else imu.corrected()
+            if (gps != null) reversing = angDiff(gps, imu.corrected()) > PI / 2
+            val g = gps?.let { if (reversing) norm(it + PI) else it }
+            rawHeadingRad = if (g != null) imu.fuse(g, profile.fusionWeight) else imu.corrected()
             headingSource = HeadingSource.IMU
         } else if (gps != null) {
-            rawHeadingRad = gps
+            // bez IMU: kierunek jazdy z ciągłości kursu ciągnika
+            val prev = if (headingSource == HeadingSource.NONE) gps else rawHeadingRad
+            val d = angDiff(gps, prev)
+            if (speedKmh < REVERSE_DETECT_KMH) {
+                val vehicleIfFwd = angDiff(gps, prev)
+                val vehicleIfRev = angDiff(norm(gps + PI), prev)
+                reversing = vehicleIfRev < vehicleIfFwd && (reversing || d > REVERSE_JUMP)
+            }
+            rawHeadingRad = if (reversing) norm(gps + PI) else gps
             headingSource = src
         }
     }
@@ -545,6 +574,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             ),
             profile,
         )?.let { trip(it) }
+        if (engaged && reversing && kPhase != 2 && kPhase != 3) trip("Jazda do tyłu — autoster wyłączony")
         if (engaged && !gpsAlive(nowS)) trip("Utracono GPS — autoster wyłączony")
         if (engaged && !autosteerAlive(nowS)) trip("Moduł autosterowania nie odpowiada — autoster wyłączony")
         checkSpeedLimits()
@@ -553,6 +583,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val roll = imu.rollDeg?.takeIf { imu.rollAlive(nowS) }
         // auto-zawrót: zaczynamy przed końcem przejazdu, a gdy trwa — jedziemy po nim
         if (p != null && youTurnPath == null) maybeStartTurn(p, nowS)
+        if (kPhase != 0 && p != null && kTurnStep(p, roll)) return
         val turn = youTurnPath
         if (turn != null && p != null) {
             val res = if (engaged) steering.computePath(turn, turnHint, p, headingRad, speedKmh, true, profile, roll) else null
@@ -636,6 +667,19 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val reach = YouTurn.depth(YouTurn.shape(radius, width, uTurnRight)) + TURN_TRIGGER_M
         if (guide[exit].p.distanceTo(p) > reach) return
         val key = "$mode:$passIndex:$curvePassIndex:$reversed:$curveReversed"
+        if (profile.youTurnStyle == 1 && width < 2 * radius) {
+            val k = YouTurn.buildK(guide, from, tl, radius, width, uTurnRight)
+            if (k == null) {
+                if (turnFailKey != key) { turnFailKey = key; fail("Zawrót K się nie mieści — poszerz uwrocie") }
+                return
+            }
+            kForwardEnd = k.forward.last(); kReverseEnd = k.reverse.last()
+            youTurnPath = extend(k.forward, 8.0); kReverse = extend(k.reverse, 6.0); kExit = k.exit; kPhase = 1
+            turnHint = -1
+            steering.reset()
+            ok("Zawrót K ${if (uTurnRight) "w prawo" else "w lewo"}: naprzód, potem wsteczny")
+            return
+        }
         val path = YouTurn.build(guide, from, tl, radius, width, uTurnRight)
         if (path == null) {
             if (turnFailKey != key) { turnFailKey = key; fail("Zawrót się nie mieści — poszerz uwrocie albo zmniejsz promień zawrotu") }
@@ -657,7 +701,76 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         GuidanceMode.CONTOUR -> null
     }
 
+    // ---------------- zawrót K (z cofaniem) ----------------
+    /** 0 = brak, 1 = łuk naprzód, 2 = łuk wstecz, 3 = wyjazd naprzód na nowy przejazd. */
+    var kPhase = 0; private set
+    var kReverse: List<Pose>? = null; private set
+    private var kExit: List<Pose>? = null
+
+    private var kForwardEnd: Pose? = null
+    private var kReverseEnd: Pose? = null
+
+    /** Ścieżka przedłużona prosto o [m] (żeby wyprzedzenie nie kończyło łuku za wcześnie). */
+    private fun extend(path: List<Pose>, m: Double): List<Pose> {
+        val e = path.last()
+        val d = Vec2.forward(e.heading)
+        return path + (1..(m * 2).toInt()).map { Pose(e.p + d * (it * 0.5), e.heading) }
+    }
+
+    /** Czy punkt minął koniec odcinka (w kierunku jazdy po nim). */
+    private fun passed(p: Vec2, end: Pose?): Boolean =
+        end != null && p.distanceTo(end.p) < 4.0 && ((p - end.p) dot Vec2.forward(end.heading)) >= -0.2
+
+    /** Krok zawrotu K; true = prowadzenie obsłużone. */
+    private fun kTurnStep(p: Vec2, roll: Double?): Boolean {
+        if (!engaged) { finishTurn("Zawrót przerwany", flip = false); return false }
+        val pp = profile.copy(algorithm = eu.smartsteer.navigator.core.settings.SteerAlgorithm.PURE_PURSUIT)
+        when (kPhase) {
+            1 -> {
+                val path = youTurnPath ?: return false
+                val res = steering.computePath(path, turnHint, p, headingRad, speedKmh, true, profile, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
+                turnHint = res.index
+                xteCm = res.out.distanceFromLine * 100; goal = res.out.goal
+                steerSetDeg = res.out.steerAngleDeg
+                if (passed(p, kForwardEnd) || res.pastEnd) {
+                    kPhase = 2; youTurnPath = kReverse; turnHint = -1; steering.reset()
+                    ok("STOP — wrzuć wsteczny")
+                }
+            }
+            2 -> {
+                val path = kReverse ?: return false
+                // prowadzenie wstecz: „przód” wirtualnie z tyłu ciągnika, skręt odwrotny
+                val res = steering.computePath(path, turnHint, p, norm(headingRad + PI), speedKmh, true, pp, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
+                xteCm = res.out.distanceFromLine * 100; goal = res.out.goal
+                if (reversing) {
+                    turnHint = res.index
+                    steerSetDeg = -res.out.steerAngleDeg
+                    if (passed(p, kReverseEnd) || res.pastEnd) {
+                        kPhase = 3; youTurnPath = kExit; turnHint = -1; steering.reset()
+                        ok("STOP — naprzód")
+                    }
+                } else {
+                    // jeszcze się toczymy naprzód: koła zostają jak na łuku; na postoju ustawiamy je już do cofania
+                    if (speedKmh < 0.8) steerSetDeg = -res.out.steerAngleDeg
+                    val start = path.first().p
+                    if (speedKmh > 1.0 && p.distanceTo(start) > 6.0) { trip("Zawrót K: ciągnik pojechał dalej naprzód — autoster wyłączony"); finishTurn("Zawrót przerwany", false) }
+                }
+            }
+            3 -> {
+                val path = kExit ?: return false
+                if (reversing) { steerSetDeg = 0.0; return true }
+                val res = steering.computePath(path, turnHint, p, headingRad, speedKmh, true, profile, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
+                turnHint = res.index
+                xteCm = res.out.distanceFromLine * 100; goal = res.out.goal
+                steerSetDeg = res.out.steerAngleDeg
+                if (res.pastEnd || (p - path.first().p).length > 8.0) finishTurn("Zawrót K zakończony", flip = true)
+            }
+        }
+        return true
+    }
+
     private fun finishTurn(msg: String, flip: Boolean) {
+        kPhase = 0; kReverse = null; kExit = null
         youTurnPath = null
         turnHint = -1
         pathHint = -1
@@ -667,7 +780,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     }
 
     /** Ręczne przerwanie zawrotu. */
-    fun cancelTurn() { if (youTurnPath != null) { youTurnPath = null; pathHint = -1; steering.reset(); ok("Zawrót przerwany") } }
+    fun cancelTurn() { if (youTurnPath != null) { youTurnPath = null; kPhase = 0; kReverse = null; kExit = null; pathHint = -1; steering.reset(); ok("Zawrót przerwany") } }
 
     private fun followPath(path: List<Pose>, p: Vec2, roll: Double?, endMessage: String?): AbSteering.Output? {
         val res = steering.computePath(path, pathHint, p, headingRad, speedKmh, engaged, profile, roll) ?: return null
@@ -776,7 +889,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             trip("Za szybko (ponad ${profile.maxSteerSpeed.roundToInt()} km/h) — autoster wyłączony")
             return
         }
-        if (profile.minSteerSpeed >= 0.1 && speedKmh < profile.minSteerSpeed) {
+        if (kPhase == 0 && profile.minSteerSpeed >= 0.1 && speedKmh < profile.minSteerSpeed) {
             if (++slowCounter > 80) {
                 slowCounter = 0
                 trip("Za wolno (poniżej ${profile.minSteerSpeed} km/h) — autoster wyłączony")
@@ -1089,6 +1202,10 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         const val PGN_EXTERNAL_IMU = 0xD3
         const val PGN_IMU_DISCONNECT = 0xD4
         const val GPS_TIMEOUT_S = 1.0
+        /** Wykrywanie zmiany kierunku jazdy tylko przy małej prędkości. */
+        const val REVERSE_DETECT_KMH = 6.0
+        /** Przeskok kursu ruchu, który znaczy „zmiana kierunku jazdy”. */
+        const val REVERSE_JUMP = 2.1
         /** Poniżej tej prędkości nie liczymy kursu z ruchu (szum RTK), km/h. */
         const val MIN_HEADING_KMH = 1.0
     }

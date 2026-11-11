@@ -142,6 +142,9 @@ data class VehicleProfile(
     /** Krok zmiany dawki w sterowniku, %. */
     val rateStepPct: Double = 10.0,
 
+    /** Kształt zawrotu: 0 = U / omega (sam dobiera), 1 = K z cofaniem (gdy przejazd węższy niż 2 promienie). */
+    val youTurnStyle: Int = 0,
+
     // --- Nadzór autosteru (0 = wyłączone) ---
     /** Wyłącz, gdy brak RTK FIX dłużej niż tyle sekund. */
     val supRtkLossS: Double = 5.0,
@@ -247,6 +250,7 @@ data class VehicleProfile(
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
         "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "hydAuto" to hydAuto,
         "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed, "rateHintMode" to rateHintMode, "rateStepPct" to rateStepPct,
+        "youTurnStyle" to youTurnStyle,
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
@@ -309,6 +313,7 @@ data class VehicleProfile(
                 rateBaseSpeed = num("rateBaseSpeed", d.rateBaseSpeed),
                 rateHintMode = int("rateHintMode", d.rateHintMode),
                 rateStepPct = num("rateStepPct", d.rateStepPct),
+                youTurnStyle = int("youTurnStyle", d.youTurnStyle),
                 supRtkLossS = num("supRtkLossS", d.supRtkLossS),
                 supMaxXteM = num("supMaxXteM", d.supMaxXteM),
                 supSteerErrDeg = num("supSteerErrDeg", d.supSteerErrDeg),

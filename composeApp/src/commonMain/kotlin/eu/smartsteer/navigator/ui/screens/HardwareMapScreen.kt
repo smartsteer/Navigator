@@ -115,6 +115,7 @@ fun HardwareMapScreen(hw: HardwareController) {
         HwInfo(hw, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 16.dp))
         OrderBanner(hw, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
         HeadlandHint(hw, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
+        KTurnBanner(hw, Modifier.align(Alignment.Center).padding(bottom = 160.dp))
         RatePill(hw, Modifier.align(Alignment.TopCenter).padding(top = 215.dp))
         TunePendingCard(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp).width(380.dp))
 
@@ -276,7 +277,7 @@ private fun SimControls(hw: HardwareController, locked: Boolean, modifier: Modif
             Text("SYMULACJA", color = Ss.Warning, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Text("${sim.targetSpeedKmh.pl(1)} km/h", color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
-        ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.targetSpeedKmh = (sim.targetSpeedKmh - 1).coerceAtLeast(0.0); hw.touch() } }) { NavIcon(IconKind.Minus, Ss.Text, 20.dp) }
+        ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.targetSpeedKmh = (sim.targetSpeedKmh - 1).coerceAtLeast(-6.0); hw.touch() } }) { NavIcon(IconKind.Minus, Ss.Text, 20.dp) }
         ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.targetSpeedKmh = (sim.targetSpeedKmh + 1).coerceAtMost(25.0); hw.touch() } }) { NavIcon(IconKind.Plus, Ss.Text, 20.dp) }
         ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.manualSteerDeg = (sim.manualSteerDeg - 5).coerceAtLeast(-30.0); hw.touch() } }) { NavIcon(IconKind.ChevronLeft, Ss.Text, 20.dp) }
         ActionButton(Modifier.width(52.dp), onClick = { if (!locked) { sim.manualSteerDeg = 0.0; hw.touch() } }) { ButtonText("${sim.manualSteerDeg.pl(0)}°", size = 13.sp) }
@@ -328,6 +329,25 @@ private fun HwInfo(hw: HardwareController, modifier: Modifier) {
             color = if (s.gpsAlive(now)) Ss.TextSoft else Ss.Warning, fontSize = 13.sp,
         )
     }
+}
+
+/** Zawrót K i jazda do tyłu: duży napis, co teraz zrobić. */
+@Composable
+private fun KTurnBanner(hw: HardwareController, modifier: Modifier) {
+    hw.tick
+    val s = hw.session
+    val (text, warn) = when {
+        s.kPhase == 2 && !s.reversing -> "STOP — WSTECZNY" to true
+        s.kPhase == 2 -> "COFAJ ↓" to false
+        s.kPhase == 3 && s.reversing -> "STOP — NAPRZÓD" to true
+        s.reversing && !s.engaged -> "WSTECZ" to false
+        else -> return
+    }
+    Text(
+        text,
+        modifier.clip(RoundedCornerShape(16.dp)).background(if (warn) Ss.Warning else Ss.Info).padding(horizontal = 28.dp, vertical = 14.dp),
+        color = if (warn) Ss.OnWarning else Ss.Ground, fontSize = 28.sp, fontWeight = FontWeight.Bold,
+    )
 }
 
 /** Dawka z mapy dawek w miejscu maszyny. */
@@ -865,6 +885,8 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 drawPath(polygonPath(it), Ss.TextMuted.copy(alpha = 0.6f), style = Stroke(width = 1f * px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f * px, 6f * px))))
             }
             s.youTurnPath?.let { poly(it, Ss.Accent, 3f) }
+            // zawrót K: odcinek do przejechania wstecz
+            if (s.kPhase == 1) s.kReverse?.let { poly(it, Ss.Warning, 2.5f, dashed = true) }
 
             // linia AB i sąsiednie przejazdy
             val l = s.line.takeIf { s.mode == GuidanceMode.AB }

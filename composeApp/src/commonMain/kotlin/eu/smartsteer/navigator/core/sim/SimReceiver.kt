@@ -29,7 +29,8 @@ class SimReceiver(originLat: Double = 52.2297, originLon: Double = 21.0122, whee
         tractor.step(dt, autosteerDeg ?: manualSteerDeg)
     }
 
-    private val courseDeg: Double get() = ((tractor.heading * 180 / PI) % 360 + 360) % 360
+    /** Kurs ruchu (przy cofaniu odwrotny do kursu ciągnika — jak w prawdziwym odbiorniku). */
+    private val courseDeg: Double get() = (((tractor.heading + if (tractor.speedMs < 0) PI else 0.0) * 180 / PI) % 360 + 360) % 360
 
     fun gga(): String {
         val (lat, lon) = plane.toGeo(tractor.position)
@@ -37,7 +38,7 @@ class SimReceiver(originLat: Double = 52.2297, originLon: Double = 21.0122, whee
     }
 
     fun vtg(): String {
-        val kmh = tractor.speedMs * 3.6
+        val kmh = kotlin.math.abs(tractor.speedMs) * 3.6
         val body = "GNVTG,${r(courseDeg, 2)},T,,M,${r(kmh / 1.852, 3)},N,${r(kmh, 3)},K,A"
         var x = 0
         for (c in body) x = x xor c.code

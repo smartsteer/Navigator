@@ -223,6 +223,12 @@ private fun ColumnScope.GuidanceTab(p: VehicleProfile, set: (VehicleProfile) -> 
     Num("Promień zawrotu", "Najciaśniejszy łuk, jaki ciągnik z maszyną spokojnie przejedzie", p.youTurnRadius, "m", 0.5, 3.0, 30.0, 1) { set(p.copy(youTurnRadius = it)) }
     Num("Zawracaj na przejazd", "1 = sąsiedni, 2 = co drugi…", p.youTurnSkip.toDouble(), "", 1.0, 1.0, 10.0, 0) { set(p.copy(youTurnSkip = it.toInt())) }
     Num("Odstęp od granicy", "Zawrót nie podejdzie bliżej granicy pola", p.youTurnFromBoundary, "m", 0.5, 0.0, 20.0, 1) { set(p.copy(youTurnFromBoundary = it)) }
+    Choice("Kształt zawrotu", listOf("U / omega", "K z cofaniem"), p.youTurnStyle) { set(p.copy(youTurnStyle = it)) }
+    if (p.youTurnStyle == 1) Label(
+        "K: łuk naprzód, STOP i wsteczny (program skręca koła do cofania), STOP i naprzód na następny przejazd. " +
+            "Biegi zmieniasz sam — program wykrywa jazdę do tyłu z GPS. Działa, gdy przejazd jest węższy niż 2 promienie zawrotu; inaczej robi zwykłe U.",
+        Ss.TextMuted, 12.sp,
+    )
     Label(
         if (p.youTurnSkip * p.passSpacing >= 2 * p.youTurnRadius) "Kształt: szeroki zawrót „U”." else "Kształt: „omega” (odstęp mniejszy niż 2 × promień) — potrzebuje więcej miejsca na uwrociu.",
         Ss.TextMuted, 13.sp,
