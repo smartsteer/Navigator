@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 
 class MainActivity : ComponentActivity() {
     /** Bez tej blokady część tabletów odrzuca po Wi‑Fi pakiety rozgłoszeniowe z płytki AIO. */
+    private var wifiLock: WifiManager.WifiLock? = null
     private var multicastLock: WifiManager.MulticastLock? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,6 +20,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Ekran nie gaśnie podczas pracy w polu
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Wi-Fi bez oszczędzania energii (mniejsze opóźnienia przy łączności z płytką przez Wi-Fi)
+        @Suppress("DEPRECATION")
+        wifiLock = (applicationContext.getSystemService(WIFI_SERVICE) as? WifiManager)
+            ?.createWifiLock(if (Build.VERSION.SDK_INT >= 29) WifiManager.WIFI_MODE_FULL_LOW_LATENCY else WifiManager.WIFI_MODE_FULL_HIGH_PERF, "navigator-wifi")
+            ?.apply { setReferenceCounted(false); acquire() }
         multicastLock = (applicationContext.getSystemService(WIFI_SERVICE) as? WifiManager)
             ?.createMulticastLock("navigator-udp")
             ?.apply { setReferenceCounted(false); acquire() }
@@ -53,6 +59,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         multicastLock?.release()
+        wifiLock?.release()
         super.onDestroy()
     }
 }

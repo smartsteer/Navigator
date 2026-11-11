@@ -26,6 +26,12 @@ private class JvmUdpLink : UdpLink {
     @Volatile private var socket: DatagramSocket? = null
     @Volatile private var target: InetAddress = InetAddress.getByAddress(byteArrayOf(192.toByte(), 168.toByte(), 5, 255.toByte()))
 
+    @Volatile private var unicast: List<InetAddress> = emptyList()
+
+    override fun setUnicast(ips: List<String>) {
+        unicast = ips.mapNotNull { ip -> runCatching { InetAddress.getByName(ip) }.getOrNull() }
+    }
+
     override fun setSubnet(a: Int, b: Int, c: Int) {
         target = InetAddress.getByAddress(byteArrayOf(a.toByte(), b.toByte(), c.toByte(), 255.toByte()))
     }
@@ -63,7 +69,9 @@ private class JvmUdpLink : UdpLink {
     override fun send(bytes: ByteArray, port: Int): String? {
         val s = socket ?: return "Nasłuch nie działa"
         return try {
-            s.send(DatagramPacket(bytes, bytes.size, target, port))
+            val u = unicast
+            if (u.isEmpty()) s.send(DatagramPacket(bytes, bytes.size, target, port))
+            else for (ip in u) s.send(DatagramPacket(bytes, bytes.size, ip, port))
             null
         } catch (e: Exception) {
             "Brak sieci ${target.hostAddress?.removeSuffix(".255")}.x: ${e.message}"

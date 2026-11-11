@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import eu.smartsteer.navigator.core.aog.AogFrame
+import eu.smartsteer.navigator.core.aog.Pgn
 import eu.smartsteer.navigator.core.aog.ModuleScan
 import eu.smartsteer.navigator.core.aog.AutosteerStatus
 import eu.smartsteer.navigator.core.hw.HardwareSession
@@ -657,6 +658,56 @@ class HardwareController {
         }
     }
 
+    // ---------------- łączność przez Wi-Fi ----------------
+    private val wifiFile = "wifi.cfg"
+    /** Tryb Wi-Fi: wysyłka na adresy modułów (z potwierdzeniami Wi-Fi) zamiast rozgłoszeń. */
+    var wifiMode by mutableStateOf(runCatching { files.read(wifiFile)?.trim() == "1" }.getOrDefault(false))
+        private set
+    private val moduleSeen = HashMap<String, Double>()
+    private val linkRx = ArrayDeque<Double>()
+    /** Adresy modułów, na które idzie wysyłka (tryb Wi-Fi). */
+    var wifiTargets by mutableStateOf<List<String>>(emptyList())
+        private set
+    /** Jakość łącza z modułem skrętu (ostatnie 5 s): odsetek zgubionych odpowiedzi i najdłuższa przerwa. */
+    var linkLossPct by mutableStateOf<Int?>(null)
+        private set
+    var linkMaxGapMs by mutableStateOf<Int?>(null)
+        private set
+    private var lastWifiBroadcastS = 0.0
+
+    fun setWifi(on: Boolean) {
+        wifiMode = on
+        try { files.write(wifiFile, if (on) "1" else "0") } catch (_: Exception) {}
+        if (!on) link?.setUnicast(emptyList())
+        tick++
+    }
+
+    private suspend fun wifiStep(l: UdpLink?) {
+        val t = now()
+        // jakość łącza: moduł odpowiada na każdą ramkę PGN 254 (10 na sekundę)
+        while (linkRx.isNotEmpty() && t - linkRx.first() > 5.0) linkRx.removeFirst()
+        if (hardware && txCount > 50) {
+            linkLossPct = ((1.0 - linkRx.size / 50.0) * 100).toInt().coerceIn(0, 100)
+            var gap = if (linkRx.isEmpty()) 5.0 else t - linkRx.last()
+            for (i in 1 until linkRx.size) gap = maxOf(gap, linkRx[i] - linkRx[i - 1])
+            linkMaxGapMs = (gap * 1000).toInt()
+        } else { linkLossPct = null; linkMaxGapMs = null }
+        val ips = moduleSeen.filter { t - it.value < 10.0 }.keys.sorted()
+        if (!wifiMode || l == null) { wifiTargets = emptyList(); return }
+        wifiTargets = ips
+        l.setUnicast(ips)
+        // co 3 s jedno rozgłoszenie, żeby zgłosił się moduł, którego jeszcze nie znamy (albo zmienił adres)
+        if (ips.isEmpty() || t - lastWifiBroadcastS > 3.0) {
+            lastWifiBroadcastS = t
+            if (ips.isNotEmpty()) {
+                val f = session.steerFrame()
+                l.setUnicast(emptyList())
+                withContext(Dispatchers.Default) { l.send(f) }
+                l.setUnicast(ips)
+            }
+        }
+    }
+
     // ---------------- zasilanie: zamknięcie po zaniku ----------------
     private val powerFile = "zasilanie.cfg"
     private val powerCfg = runCatching { files.read(powerFile).orEmpty().lines() }.getOrDefault(emptyList())
@@ -872,7 +923,12 @@ class HardwareController {
                 if (!hardware) continue
                 rxCount++
                 lastRxS = now()
-                AogFrame.parse(p.bytes)?.let { f -> ModuleScan.parseReply(f)?.let { m -> foundModules = foundModules.filter { it.source != m.source } + m } }
+                AogFrame.parse(p.bytes)?.let { f ->
+                    ModuleScan.parseReply(f)?.let { m -> foundModules = foundModules.filter { it.source != m.source } + m }
+                    // adresy modułów (do wysyłki bezpośredniej przez Wi-Fi) i jakość łącza z PGN 253
+                    if (p.from != "COM") moduleSeen[p.from] = now()
+                    if (f.pgn == Pgn.FROM_AUTOSTEER) linkRx.addLast(now())
+                }
                 session.onDatagram(p.bytes, p.bytes.size, now())
                 addLog(describe(p))
             }
@@ -881,6 +937,7 @@ class HardwareController {
             delay(100)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
             powerStep()
+            wifiStep(l)
             if (session.fieldName != savedFieldName) {
                 savedFieldName = session.fieldName
                 try { files.write(lastFieldFile, savedFieldName ?: "") } catch (_: Exception) {}

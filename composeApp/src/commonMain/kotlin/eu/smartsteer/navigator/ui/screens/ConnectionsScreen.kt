@@ -59,6 +59,7 @@ fun ConnectionsScreen(@Suppress("UNUSED_PARAMETER") ctrl: DemoController, hw: Ha
             ModePanel(hw)
             NetworkPanel(hw)
             if (hw.serialSupported) SerialPanel(hw)
+            WifiPanel(hw)
             SectionTitle("Moduły")
             ModulesStatus(hw)
         }
@@ -101,6 +102,42 @@ private fun ModePanel(hw: HardwareController) {
         }
         hw.linkError?.let { Label(it, Ss.Warning, 14.sp) }
         if (hw.hardware) hw.sendError?.let { Label("Wysyłka: $it", Ss.Warning, 13.sp) }
+    }
+}
+
+/** Łączność z płytką przez Wi-Fi (router/most Wi-Fi w kabinie). */
+@Composable
+private fun WifiPanel(hw: HardwareController) {
+    Panel(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("Łączność przez Wi-Fi", color = Ss.Text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Label("Tablet bez kabla: płytka podpięta kablem do małego routera Wi-Fi w kabinie, tablet łączy się z jego siecią.", Ss.TextMuted, 13.sp)
+            }
+            Segmented(listOf("KABEL", "WI-FI"), if (hw.wifiMode) 1 else 0, { hw.setWifi(it == 1) }, selectedColor = { if (it == 1) Ss.Info else Ss.Accent })
+        }
+        val loss = hw.linkLossPct
+        val gap = hw.linkMaxGapMs
+        if (loss != null && gap != null) {
+            val bad = loss > 10 || gap > 400
+            Label(
+                "Łącze z modułem skrętu (5 s): zgubione $loss% · najdłuższa przerwa $gap ms" + if (bad) " — za słabe do autosteru" else " — dobre",
+                if (bad) Ss.Warning else Ss.Accent, 14.sp,
+            )
+        }
+        if (hw.wifiMode) {
+            Label(
+                if (hw.wifiTargets.isEmpty()) "Szukam modułów… (rozgłoszenie)" else "Wysyłka bezpośrednio do: ${hw.wifiTargets.joinToString(", ")}",
+                Ss.TextSoft, 13.sp,
+            )
+            Label(
+                "Jak ustawić: router (np. mały „travel router”) z adresem w sieci płytki ${hw.subnetText}.x, płytka kablem do portu LAN, " +
+                    "Wi-Fi 5 GHz z osobną nazwą, router blisko tabletu. Windows: Opcje zasilania → Ustawienia karty sieci bezprzewodowej → Maksymalna wydajność. " +
+                    "Program sam wyłącza oszczędzanie energii Wi-Fi na Androidzie i wysyła ramki bezpośrednio do modułów (pewniej niż rozgłoszenia). " +
+                    "Nadzór wyłączy autoster, gdy moduł nie odpowiada dłużej niż 1 s.",
+                Ss.TextMuted, 12.sp,
+            )
+        }
     }
 }
 

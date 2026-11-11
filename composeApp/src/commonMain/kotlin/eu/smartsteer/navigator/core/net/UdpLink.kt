@@ -9,6 +9,12 @@ interface UdpLink {
     fun start(onPacket: (bytes: ByteArray, length: Int, from: String) -> Unit): String?
     /** Wysyła ramkę do modułów (domyślnie port 8888). Zwraca opis błędu albo null. */
     fun send(bytes: ByteArray, port: Int = 8888): String?
+    /**
+     * Tryb Wi-Fi: wysyłka bezpośrednio na adresy modułów zamiast rozgłoszenia. Przez Wi-Fi rozgłoszenia idą
+     * najwolniejszą prędkością i bez potwierdzeń (gubią się), a pakiety na konkretny adres są potwierdzane i ponawiane.
+     * Pusta lista = rozgłoszenie jak zwykle.
+     */
+    fun setUnicast(ips: List<String>)
     /** Sieć modułów: trzy pierwsze liczby adresu, np. 192.168.5. */
     fun setSubnet(a: Int, b: Int, c: Int)
     /**
