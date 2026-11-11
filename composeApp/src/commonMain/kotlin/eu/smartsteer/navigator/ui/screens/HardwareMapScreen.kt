@@ -136,7 +136,11 @@ fun HardwareMapScreen(hw: HardwareController) {
         if (hw.simulating) SimControls(hw, locked, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 190.dp))
         HwSectionsBar(hw, locked, Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
         HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))
-        SteerButton(hw, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))
+        if (hw.session.steerBlockedReason == null) SteerButton(hw, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))
+        else Text(
+            "GPS telefonu · prowadzenie ręczne", color = Ss.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 24.dp).clip(RoundedCornerShape(10.dp)).background(Ss.Bar.copy(alpha = 0.9f)).padding(horizontal = 10.dp, vertical = 6.dp),
+        )
         CameraView(Modifier.align(Alignment.BottomEnd).padding(end = 130.dp, bottom = 100.dp))
         TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }.takeIf { it != TileSource.NONE }?.let {
             Text(it.attribution, Modifier.align(Alignment.BottomEnd).padding(end = 130.dp, bottom = 4.dp), color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)

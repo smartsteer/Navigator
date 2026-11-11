@@ -119,6 +119,23 @@ class HardwareSessionTest {
     }
 
     @Test
+    fun phoneGpsBlocksAutosteer() {
+        val h = HardwareSession()
+        h.restoreLine(AbLine(Vec2(0.0, 0.0), Vec2(0.0, 50.0)))
+        val t = driveNorth(h, 0.0, 0.0, 5.0, 0.0)
+        val reply = steerReply()
+        h.onDatagram(reply, reply.size, t)
+        h.steerBlockedReason = "GPS z telefonu"
+        assertEquals("GPS z telefonu", h.setEngaged(true, t))      // wszystko inne gotowe, a jednak nie
+        assertFalse(h.engaged)
+        h.steerBlockedReason = null
+        assertNull(h.setEngaged(true, t))
+        h.steerBlockedReason = "GPS z telefonu"                    // zmiana źródła w trakcie — wyłącza
+        h.update(t + 0.1)
+        assertFalse(h.engaged)
+    }
+
+    @Test
     fun nmeaDatagramWithSeveralSentences() {
         val h = HardwareSession()
         val text = vtg(90.0, 5.0) + "\r\n" + gga(Vec2(10.0, 20.0)) + "\r\n"

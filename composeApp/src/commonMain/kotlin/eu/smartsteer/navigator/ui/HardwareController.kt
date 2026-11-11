@@ -1272,18 +1272,26 @@ class HardwareController {
 
     fun serialPorts(): List<String> = SerialPorts.list()
 
+    /** GPS z telefonu (2–5 m): tylko prowadzenie ręczne — autoster zablokowany i bez przycisku na mapie. */
+    val phoneGps: Boolean get() = serialPort.startsWith("Telefon")
+
+    private fun applySteerBlock() {
+        session.steerBlockedReason = if (phoneGps) "GPS z telefonu (2–5 m) — tylko prowadzenie ręczne; do autosteru potrzebny RTK (płytka AIO albo odbiornik na Bluetooth/USB)" else null
+    }
+
     /** Otwiera port (pusty = wyłącza). Zdania NMEA idą jak z sieci, poprawki NTRIP także do portu. */
     fun setSerial(port: String, baud: Int) {
         serial?.close(); serial = null
         serialPort = port; serialBaud = baud
         try { files.write(serialFile, "$port\n$baud\n") } catch (_: Exception) {}
-        if (port.isBlank()) { serialStatus = "Wyłączony"; tick++; return }
+        if (port.isBlank()) { serialStatus = "Wyłączony"; applySteerBlock(); tick++; return }
         val link = SerialPorts.create()
         val err = link.open(port, baud,
             onLine = { line -> inbox.trySend(Packet((line + "\n").encodeToByteArray(), "COM")) },
             onClosed = { e -> serialStatus = e ?: "Zamknięty"; serial = null },
         )
-        if (err == null) { serial = link; serialStatus = "Odbieram z ${port.substringBefore(" — ")} ($baud)" } else serialStatus = err
+        if (err == null) { serial = link; serialStatus = if (phoneGps) "Odbieram z GPS telefonu" else "Odbieram z ${port.substringBefore(" — ")}${if (port.startsWith("BT: ")) "" else " ($baud)"}" } else serialStatus = err
+        applySteerBlock()
         if (err == null && !hardware) setHardwareMode(true)
         tick++
     }

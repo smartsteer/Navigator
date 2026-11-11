@@ -436,6 +436,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         return m.defaultRate to -1
     }
 
+    /** Gdy ustawione (np. GPS z telefonu, 2–5 m) — autostera nie da się włączyć, a przycisk znika z mapy. */
+    var steerBlockedReason: String? = null
+
     // ---------------- czujnik przeszkód (core/safety, docs/PRZESZKODY.md) ----------------
     val obstacleGuard = eu.smartsteer.navigator.core.safety.ObstacleGuard()
     /** Ostatnia paczka z czujnika (ustawia kontroler po odebraniu). */
@@ -593,6 +596,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         lastUserToggleS = nowS
         if (!on) { engaged = false; return null }
         val why = when {
+            steerBlockedReason != null -> steerBlockedReason
             mode == GuidanceMode.AB && line == null -> "Najpierw utwórz linię AB"
             mode == GuidanceMode.CURVE && curveRef == null -> "Najpierw nagraj krzywą"
             mode == GuidanceMode.CONTOUR && contour.guide.isEmpty() -> "Brak wcześniejszego przejazdu obok — kontur nie ma czego się trzymać"
@@ -619,6 +623,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             profile,
         )?.let { trip(it) }
         obstacleStep(nowS)
+        steerBlockedReason?.let { if (engaged) trip("$it — autoster wyłączony") }
         if (engaged && reversing && kPhase != 2 && kPhase != 3) trip("Jazda do tyłu — autoster wyłączony")
         if (engaged && !gpsAlive(nowS)) trip("Utracono GPS — autoster wyłączony")
         if (engaged && !autosteerAlive(nowS)) trip("Moduł autosterowania nie odpowiada — autoster wyłączony")
