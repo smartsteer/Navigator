@@ -323,7 +323,7 @@ private fun ColumnScope.AutoTunePanel(hw: HardwareController) {
             "człon całkujący, wzmocnienie P i minimalny PWM. PODPOWIEDZI — pyta przed zmianą, AUTOMAT — zmienia sam. Zawsze można cofnąć.",
         Ss.TextSoft, 13.sp,
     )
-    Choice("Samouczenie", AutoTune.Mode.entries.map { it.label }, hw.tuneMode.ordinal) { hw.setTuneMode(AutoTune.Mode.entries[it]) }
+    Choice("Samouczenie", AutoTune.Mode.entries.map { it.label }, hw.tuneMode.ordinal) { hw.changeTuneMode(AutoTune.Mode.entries[it]) }
     hw.tuneStats?.let { st ->
         Label(
             "Ostatnie 30 s: odchyłka średnio ${st.rmsCm.pl(1)} cm (maks. ${st.maxCm.pl(0)} cm), przesunięcie ${st.meanCm.pl(1, plusSign = true)} cm, " +

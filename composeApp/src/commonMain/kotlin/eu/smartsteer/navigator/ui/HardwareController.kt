@@ -677,7 +677,7 @@ class HardwareController {
         private set
     val tuneStats: AutoTune.Stats? get() = autoTune.lastStats
 
-    fun setTuneMode(m: AutoTune.Mode) {
+    fun changeTuneMode(m: AutoTune.Mode) {
         tuneMode = m
         try { files.write(tuneFile, m.name) } catch (_: Exception) {}
         if (m == AutoTune.Mode.OFF) tunePending = null
