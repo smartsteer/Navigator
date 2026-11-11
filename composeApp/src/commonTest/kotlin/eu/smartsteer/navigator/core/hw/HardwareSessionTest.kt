@@ -175,7 +175,7 @@ class HardwareSessionTest {
 
     @Test
     fun autoUturnAtFieldEnd() {
-        val h = HardwareSession(VehicleProfile(toolWidth = 6.0, antennaPivot = 0.0))
+        val h = HardwareSession(VehicleProfile(toolWidth = 6.0, antennaPivot = 0.0, supSteerErrDeg = 0.0)) // moduł w teście zawsze odpowiada kątem 0°
         var t = 0.0
         val reply = steerReply()
         fun at(p: Vec2, course: Double) {

@@ -121,6 +121,20 @@ data class VehicleProfile(
     val machineUser3: Int = 3,
     val machineUser4: Int = 4,
 
+    // --- Nadzór autosteru (0 = wyłączone) ---
+    /** Wyłącz, gdy brak RTK FIX dłużej niż tyle sekund. */
+    val supRtkLossS: Double = 5.0,
+    /** Wyłącz, gdy ciągnik był już na linii i odjechał od niej dalej niż tyle metrów. */
+    val supMaxXteM: Double = 1.0,
+    /** Wyłącz, gdy kąt kół różni się od zadanego o więcej niż tyle stopni… */
+    val supSteerErrDeg: Double = 6.0,
+    /** …przez tyle sekund (awaria silnika, zaworu albo czujnika kąta). */
+    val supSteerErrS: Double = 2.0,
+    /** Wyłącz, gdy poprawki RTK są starsze niż tyle sekund. */
+    val supCorrAgeS: Double = 10.0,
+    /** Wyłącz, gdy program przez tyle sekund nie liczył prowadzenia (zawieszenie, przeciążony komputer). */
+    val supLoopGapS: Double = 0.5,
+
     // --- Moduł skrętu (PGN 252) ---
     val gainP: Int = 50,
     val highPwm: Int = 180,
@@ -210,6 +224,8 @@ data class VehicleProfile(
         "machineInvertRelays" to machineInvertRelays, "hydEnabled" to hydEnabled, "hydRaiseTime" to hydRaiseTime,
         "hydLowerTime" to hydLowerTime, "machineUser1" to machineUser1, "machineUser2" to machineUser2,
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
+        "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
+        "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
         "numSections" to numSections, "lookAheadOn" to lookAheadOn, "lookAheadOff" to lookAheadOff,
         "slowSpeedCutoff" to slowSpeedCutoff, "sectionOffWhenOut" to sectionOffWhenOut,
@@ -261,6 +277,12 @@ data class VehicleProfile(
                 machineUser2 = int("machineUser2", d.machineUser2),
                 machineUser3 = int("machineUser3", d.machineUser3),
                 machineUser4 = int("machineUser4", d.machineUser4),
+                supRtkLossS = num("supRtkLossS", d.supRtkLossS),
+                supMaxXteM = num("supMaxXteM", d.supMaxXteM),
+                supSteerErrDeg = num("supSteerErrDeg", d.supSteerErrDeg),
+                supSteerErrS = num("supSteerErrS", d.supSteerErrS),
+                supCorrAgeS = num("supCorrAgeS", d.supCorrAgeS),
+                supLoopGapS = num("supLoopGapS", d.supLoopGapS),
                 hitchLength = num("hitchLength", d.hitchLength),
                 toolTrailing = bool("toolTrailing", d.toolTrailing),
                 trailingHitchLength = num("trailingHitchLength", d.trailingHitchLength),

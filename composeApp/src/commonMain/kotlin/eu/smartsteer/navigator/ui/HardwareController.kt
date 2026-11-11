@@ -678,6 +678,26 @@ class HardwareController {
     private var stopRequested = false
 
     private val modeFile = "tryb.cfg"
+    private val lastFieldFile = "ostatnie-pole.txt"
+    private var savedFieldName: String? = null
+
+    // ---------------- dziennik nadzoru ----------------
+    private val tripFile = "dziennik-nadzoru.txt"
+    /** Ostatnie samoczynne wyłączenia autosteru (najnowsze na początku), z godziną. */
+    var recentTrips by mutableStateOf(
+        runCatching { files.read(tripFile).orEmpty().lines().filter { it.isNotBlank() }.takeLast(20).reversed() }.getOrDefault(emptyList()),
+    )
+        private set
+    val tripLogLocation: String get() = profilesLocation + " → " + tripFile
+
+    private fun logTrip(msg: String) {
+        val line = "${nowText()}  $msg"
+        recentTrips = (listOf(line) + recentTrips).take(20)
+        try {
+            val old = files.read(tripFile).orEmpty().lines().filter { it.isNotBlank() }.takeLast(999)
+            files.write(tripFile, (old + line).joinToString("\n") + "\n")
+        } catch (_: Exception) {}
+    }
 
     fun setHardwareMode(on: Boolean) {
         if (on == hardware) return
@@ -707,6 +727,12 @@ class HardwareController {
         // tryb z poprzedniego uruchomienia (SPRZĘT albo symulacja jazdy)
         val saved = runCatching { files.read(modeFile)?.trim() }.getOrNull()
         if (!hardware && (saved == "sprzet" || simulating)) setHardwareMode(true)
+        // pole otwarte przy poprzednim uruchomieniu (z pokryciem i liniami)
+        val lastField = runCatching { files.read(lastFieldFile)?.trim() }.getOrNull()
+        if (!lastField.isNullOrEmpty() && session.fieldName == null && runCatching { fieldStore.exists(lastField) }.getOrDefault(false)) {
+            openField(lastField)?.let { mapMessage(it) } ?: mapMessage("Otwarto ostatnie pole „$lastField”")
+        }
+        savedFieldName = session.fieldName
         launch { war.loop() }
         launch {
             for (p in inbox) {
@@ -721,6 +747,11 @@ class HardwareController {
         while (true) {
             delay(100)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
+            if (session.fieldName != savedFieldName) {
+                savedFieldName = session.fieldName
+                try { files.write(lastFieldFile, savedFieldName ?: "") } catch (_: Exception) {}
+            }
+            while (session.tripLog.isNotEmpty()) logTrip(session.tripLog.removeFirst())
             // obrót mapy za ciągnikiem: wygładzony kurs, żeby pole obracało się płynnie
             var dh = session.headingRad - viewHeading
             while (dh > kotlin.math.PI) dh -= 2 * kotlin.math.PI

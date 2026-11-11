@@ -311,8 +311,16 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     /** Krok prowadzenia (np. 10 razy na sekundę). */
     fun update(nowS: Double) {
-        if (engaged && !gpsAlive(nowS)) { engaged = false; fail("Utracono GPS — autoster wyłączony") }
-        if (engaged && !autosteerAlive(nowS)) { engaged = false; fail("Moduł autosterowania nie odpowiada — autoster wyłączony") }
+        supervisor.check(
+            Supervisor.Input(
+                nowS = nowS, engaged = engaged, inTurn = youTurnPath != null, fix = fix,
+                correctionAgeS = lastGga?.correctionAge, xteM = xteCm / 100, setDeg = steerSetDeg,
+                actualDeg = autosteer?.takeIf { autosteerAlive(nowS) }?.actualAngleDeg, speedKmh = speedKmh,
+            ),
+            profile,
+        )?.let { trip(it) }
+        if (engaged && !gpsAlive(nowS)) trip("Utracono GPS — autoster wyłączony")
+        if (engaged && !autosteerAlive(nowS)) trip("Moduł autosterowania nie odpowiada — autoster wyłączony")
         checkSpeedLimits()
         if (freeDrive && speedKmh > FREE_DRIVE_MAX_KMH) { freeDrive = false; fail("Test silnika wyłączony — ciągnik jedzie") }
         val p = pivot
@@ -348,7 +356,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
                     contourBuiltS = nowS
                     if (contour.guide !== before) pathHint = -1
                 }
-                if (engaged && contour.guide.isEmpty()) { engaged = false; fail("Kontur zgubiony — autoster wyłączony") }
+                if (engaged && contour.guide.isEmpty()) trip("Kontur zgubiony — autoster wyłączony")
                 followPath(contour.guide, p, roll, endMessage = null)
             } else null
         }
@@ -537,15 +545,13 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     private fun checkSpeedLimits() {
         if (!engaged) { slowCounter = 0; return }
         if (speedKmh > profile.maxSteerSpeed) {
-            engaged = false
-            fail("Za szybko (ponad ${profile.maxSteerSpeed.roundToInt()} km/h) — autoster wyłączony")
+            trip("Za szybko (ponad ${profile.maxSteerSpeed.roundToInt()} km/h) — autoster wyłączony")
             return
         }
         if (profile.minSteerSpeed >= 0.1 && speedKmh < profile.minSteerSpeed) {
             if (++slowCounter > 80) {
-                engaged = false
                 slowCounter = 0
-                fail("Za wolno (poniżej ${profile.minSteerSpeed} km/h) — autoster wyłączony")
+                trip("Za wolno (poniżej ${profile.minSteerSpeed} km/h) — autoster wyłączony")
             }
         } else {
             slowCounter = 0
@@ -739,6 +745,20 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     private fun ok(m: String): Boolean { message = m; return true }
     private fun fail(m: String): Boolean { message = m; return false }
+
+    // ---------------- nadzór ----------------
+    private val supervisor = Supervisor()
+    /** Samoczynne wyłączenia autosteru (przyczyny) — kontroler zapisuje je do dziennika i opróżnia. */
+    val tripLog = ArrayDeque<String>()
+
+    /** Samoczynne wyłączenie autosteru z podaniem przyczyny. */
+    private fun trip(m: String) {
+        if (!engaged) return
+        engaged = false
+        fail(m)
+        tripLog.addLast(m)
+        while (tripLog.size > 50) tripLog.removeFirst()
+    }
 
     companion object {
         const val MIN_AB_M = 20.0

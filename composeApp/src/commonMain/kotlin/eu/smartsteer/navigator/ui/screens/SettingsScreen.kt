@@ -69,7 +69,7 @@ import kotlin.math.abs
 import kotlin.math.round
 
 private enum class Tab(val label: String) {
-    Vehicle("Ciągnik"), Tool("Maszyna"), Guidance("Prowadzenie"), Imu("IMU"), Module("Moduł skrętu"), Board("Płytka"), Ntrip("NTRIP"), War("WAR"), Profiles("Profile"),
+    Vehicle("Ciągnik"), Tool("Maszyna"), Guidance("Prowadzenie"), Imu("IMU"), Module("Moduł skrętu"), Supervisor("Nadzór"), Board("Płytka"), Ntrip("NTRIP"), War("WAR"), Profiles("Profile"),
 }
 
 /** Ustawienia sprzętu i prowadzenia, zapisywane w profilu pojazdu (jak w AgOpenGPS). */
@@ -102,6 +102,7 @@ fun SettingsScreen(hw: HardwareController) {
                     Tab.Guidance -> GuidanceTab(p, set)
                     Tab.Imu -> ImuTab(hw, p, set)
                     Tab.Module -> ModuleTab(hw, p, set)
+                    Tab.Supervisor -> SupervisorTab(hw, p, set)
                     Tab.Board -> BoardTab(hw, p, set)
                     Tab.Ntrip -> NtripTab(hw)
                     Tab.War -> WarTab(hw)
@@ -296,6 +297,27 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
     Num("Maksymalny PWM", null, p.highPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(highPwm = it.toInt())) }
     Num("Niski PWM", "Moc przy małych korektach", p.lowPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(lowPwm = it.toInt())) }
     Num("Minimalny PWM", "Najmniejsza moc, przy której koła ruszają", p.minPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(minPwm = it.toInt())) }
+}
+
+/** Nadzór autosteru: progi samoczynnego wyłączenia i dziennik wyłączeń. */
+@Composable
+private fun ColumnScope.SupervisorTab(hw: HardwareController, p: VehicleProfile, set: (VehicleProfile) -> Unit) {
+    SectionTitle("Nadzór autosteru")
+    Label(
+        "Autoster wyłącza się sam (z alarmem), gdy dzieje się coś niebezpiecznego. Zawsze działa: brak GPS lub modułu skrętu ponad 1 s, " +
+            "prędkość poza zakresem. Płytka AIO dodatkowo zatrzymuje silnik, gdy przestanie dostawać polecenia z programu. 0 = sprawdzanie wyłączone.",
+        Ss.TextSoft, 13.sp,
+    )
+    Num("Brak RTK FIX dłużej niż", "FLOAT, DGPS albo zwykły GPS; 0 = jeździ także bez RTK", p.supRtkLossS, "s", 1.0, 0.0, 60.0, 0) { set(p.copy(supRtkLossS = it)) }
+    Num("Poprawki starsze niż", "Wiek poprawek z odbiornika (GGA)", p.supCorrAgeS, "s", 1.0, 0.0, 60.0, 0) { set(p.copy(supCorrAgeS = it)) }
+    Num("Odjazd od linii większy niż", "Liczy się dopiero, gdy ciągnik już raz był na linii; nie w trakcie zawrotu", p.supMaxXteM, "m", 0.1, 0.0, 5.0, 1) { set(p.copy(supMaxXteM = it)) }
+    Num("Koła nie słuchają: różnica kąta", "Zadany a rzeczywisty kąt kół (awaria silnika, zaworu, czujnika)", p.supSteerErrDeg, "°", 1.0, 0.0, 30.0, 0) { set(p.copy(supSteerErrDeg = it)) }
+    Num("…przez", null, p.supSteerErrS, "s", 0.5, 0.5, 10.0, 1) { set(p.copy(supSteerErrS = it)) }
+    Num("Przerwa w pracy programu", "Watchdog: gdy program nie liczył prowadzenia dłużej (zawieszenie komputera)", p.supLoopGapS, "s", 0.1, 0.0, 3.0, 1) { set(p.copy(supLoopGapS = it)) }
+    SectionTitle("Ostatnie wyłączenia")
+    if (hw.recentTrips.isEmpty()) Label("Brak — autoster nie wyłączył się sam.", Ss.TextMuted, 13.sp)
+    hw.recentTrips.take(10).forEach { Label(it, Ss.TextSoft, 13.sp) }
+    Label("Pełny dziennik: ${hw.tripLogLocation}", Ss.TextMuted, 12.sp)
 }
 
 @Composable
@@ -773,6 +795,7 @@ fun HardwareSteerScreen(hw: HardwareController) {
             Num("Wyłącz powyżej", "Autoster wyłączy się przy większej prędkości", p.maxSteerSpeed, "km/h", 1.0, 1.0, 40.0, 0) { set(p.copy(maxSteerSpeed = it)) }
             GuidanceTuning(p, set)
             ModuleTab(hw, p, set)
+            SupervisorTab(hw, p, set)
             Label("Ustawienia modułu skrętu wysyłają się do płytki same (po 1,5 s od ostatniej zmiany) i zapisują w profilu „${hw.profileName}”.", Ss.TextMuted, 12.sp)
         }
         LivePanel(hw)
