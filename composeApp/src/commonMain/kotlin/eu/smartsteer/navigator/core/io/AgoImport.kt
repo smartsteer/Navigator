@@ -208,7 +208,21 @@ object AgoImport {
         val tracks = tracksTxt?.let { parseTracks(it) }.orEmpty()
         val ab = tracks.firstOrNull { it.mode == 2 }?.let { AbLine(conv(it.a), conv(it.b)) }
         val curve = tracks.firstOrNull { it.mode == 4 && it.curve.size >= 2 }?.curve?.map { conv(it) }
-        return FieldData(name, lat0, lon0, boundary, 0.0, ab, curve)
+        // wszystkie linie z AgOpenGPS (AB = tryb 2, krzywa = tryb 4) i wewnętrzne granice jako przeszkody
+        val all = tracks.mapNotNull { t ->
+            when {
+                t.mode == 2 -> eu.smartsteer.navigator.core.field.Track(t.name.ifBlank { "AB" }, AbLine(conv(t.a), conv(t.b)), null)
+                t.mode == 4 && t.curve.size >= 2 -> eu.smartsteer.navigator.core.field.Track(t.name.ifBlank { "Krzywa" }, null, t.curve.map { conv(it) })
+                else -> null
+            }
+        }
+        val inner = boundaryTxt?.let { parseBoundary(it).drop(1) }.orEmpty()
+            .map { r -> Polygon.simplify(r.map { conv(it) }, minSpacing = 0.5, tolerance = 0.02) }.filter { it.size >= 3 }
+        return FieldData(
+            name, lat0, lon0, boundary, 0.0, ab, curve,
+            tracks = all, activeTrack = if (all.isEmpty()) -1 else all.indexOfFirst { it.ab != null }.takeIf { it >= 0 } ?: 0,
+            obstacles = inner,
+        )
     }
 
     private fun mLat(latDeg: Double): Double {

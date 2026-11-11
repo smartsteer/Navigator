@@ -121,6 +121,18 @@ data class VehicleProfile(
     val machineUser3: Int = 3,
     val machineUser4: Int = 4,
 
+    // --- Ścieżki technologiczne (tramline) ---
+    /** Co ile przejazdów siewnika wypada przejazd opryskiwacza (szerokość opryskiwacza / szerokość siewnika); 0 = wyłączone. */
+    val tramEvery: Int = 0,
+    /** Rozstaw kół ciągnika z opryskiwaczem, m. */
+    val tramTrack: Double = 1.8,
+    /** Szerokość śladu koła, m. */
+    val tramWheel: Double = 0.5,
+    /** Przesunięcie układu ścieżek o tyle przejazdów siewnika. */
+    val tramShift: Int = 0,
+    /** Automatyczny podnośnik na uwrociu (gdy włączony podnośnik w module maszyny). */
+    val hydAuto: Boolean = true,
+
     // --- Nadzór autosteru (0 = wyłączone) ---
     /** Wyłącz, gdy brak RTK FIX dłużej niż tyle sekund. */
     val supRtkLossS: Double = 5.0,
@@ -224,6 +236,7 @@ data class VehicleProfile(
         "machineInvertRelays" to machineInvertRelays, "hydEnabled" to hydEnabled, "hydRaiseTime" to hydRaiseTime,
         "hydLowerTime" to hydLowerTime, "machineUser1" to machineUser1, "machineUser2" to machineUser2,
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
+        "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "hydAuto" to hydAuto,
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
@@ -277,6 +290,11 @@ data class VehicleProfile(
                 machineUser2 = int("machineUser2", d.machineUser2),
                 machineUser3 = int("machineUser3", d.machineUser3),
                 machineUser4 = int("machineUser4", d.machineUser4),
+                tramEvery = int("tramEvery", d.tramEvery),
+                tramTrack = num("tramTrack", d.tramTrack),
+                tramWheel = num("tramWheel", d.tramWheel),
+                tramShift = int("tramShift", d.tramShift),
+                hydAuto = bool("hydAuto", d.hydAuto),
                 supRtkLossS = num("supRtkLossS", d.supRtkLossS),
                 supMaxXteM = num("supMaxXteM", d.supMaxXteM),
                 supSteerErrDeg = num("supSteerErrDeg", d.supSteerErrDeg),

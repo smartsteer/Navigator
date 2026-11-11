@@ -187,6 +187,23 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                 }
             }
 
+            SectionTitle("Przeszkody na polu${if (s.obstacles.isNotEmpty()) " (${s.obstacles.size})" else ""}")
+            Label("Oczko wodne, słup, kępa drzew: objedź dookoła środkiem ciągnika. Sekcje wyłączają się nad przeszkodą.", Ss.TextMuted, 13.sp)
+            if (s.recordingObstacle != null) {
+                Label("Nagrywam przeszkodę… ${s.recordingObstacle!!.size} punktów.", Ss.Warning, 14.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ActionButton(background = Ss.Warning, border = Ss.Warning, minHeight = 60.dp, onClick = { s.finishObstacle(); msg = s.message; hw.saveField() }) {
+                        ButtonText("Zakończ przeszkodę", color = Ss.OnWarning, weight = FontWeight.Bold)
+                    }
+                    ActionButton(onClick = { s.cancelObstacle(); msg = s.message }) { ButtonText("Przerwij", color = Ss.TextSoft) }
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ActionButton(onClick = { s.startObstacle(); msg = s.message }) { ButtonText("Nagraj przeszkodę") }
+                    if (s.obstacles.isNotEmpty()) ActionButton(onClick = { s.removeNearestObstacle(); msg = s.message; hw.saveField() }) { ButtonText("Usuń najbliższą", color = Ss.TextSoft) }
+                }
+            }
+
             SectionTitle("Uwrocie")
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Szerokość uwrocia", color = Ss.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))

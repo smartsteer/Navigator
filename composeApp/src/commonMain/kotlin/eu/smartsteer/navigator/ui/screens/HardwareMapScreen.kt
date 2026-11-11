@@ -152,6 +152,12 @@ private fun RightTools(hw: HardwareController, sheetOpen: Boolean, locked: Boole
         }
         RoundTool(IconKind.SectionsAuto, sec.mode == SectionMode.AUTO, !locked, "AUTO") { sec.mode = SectionMode.AUTO; hw.touch() }
         RoundTool(IconKind.SectionsOff, sec.mode == SectionMode.OFF, !locked, "WYŁ.", warn = true) { sec.mode = SectionMode.OFF; hw.touch() }
+        if (s.profile.hydEnabled && s.profile.hydAuto) {
+            val st = s.hydLiftState()
+            RoundTool(IconKind.Implement, s.hydLiftOn, !locked, if (!s.hydLiftOn) "podnośnik" else if (st == 2) "↑ GÓRA" else if (st == 1) "↓ DÓŁ" else "brak uwr.") {
+                s.hydLiftOn = !s.hydLiftOn; hw.touch()
+            }
+        }
     }
 }
 
@@ -232,6 +238,9 @@ private fun GuideSheet(hw: HardwareController, modifier: Modifier, onClose: () -
             }
         }
         if (s.mode != GuidanceMode.CONTOUR) TurnControls(hw)
+        TrackList(hw)
+        PlanControls(hw)
+        FlagControls(hw)
         HwStats(hw)
     }
 }
@@ -457,9 +466,95 @@ private fun AbControls(hw: HardwareController) {
                 onClick = { s.markB(); hw.touch() },
             ) { ButtonText("B", color = if (s.line != null) Ss.Accent else if (bOk) Ss.Text else Ss.TextMuted, size = 24.sp, weight = FontWeight.Bold) }
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionButton(Modifier.weight(1f), onClick = { s.markAPlus(); hw.touch() }) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ButtonText("A+", size = 17.sp, weight = FontWeight.Bold)
+                    ButtonText("z kursu", size = 11.sp, color = Ss.TextMuted)
+                }
+            }
+            ActionButton(Modifier.weight(1f), onClick = { s.snapToTractor(); hw.touch() }) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ButtonText("Do ciągnika", size = 14.sp, weight = FontWeight.Bold)
+                    ButtonText("przesuń linię", size = 11.sp, color = Ss.TextMuted)
+                }
+            }
+        }
         if (s.line != null || s.pointA != null) {
             ActionButton(Modifier.fillMaxWidth(), onClick = { s.clearLine(); hw.touch() }) { ButtonText("Usuń linię", color = Ss.TextSoft) }
         }
+}
+
+/** Lista linii pola (jak w AgOpenGPS): dotknięcie wybiera, ✕ usuwa. */
+@Composable
+private fun TrackList(hw: HardwareController) {
+    val s = hw.session
+    if (s.tracks.isEmpty()) return
+    Label("Linie pola (${s.tracks.size})")
+    s.tracks.forEachIndexed { i, t ->
+        val cur = i == s.activeTrack
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (cur) Ss.AccentSoft else Ss.SurfaceHigh)
+                .border(1.dp, if (cur) Ss.Accent else Ss.Border, RoundedCornerShape(10.dp))
+                .clickable(role = Role.Button) { s.selectTrack(i); hw.touch() }.padding(start = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(if (t.isCurve) "∿" else "╱", color = if (cur) Ss.Accent else Ss.TextMuted, fontSize = 16.sp, modifier = Modifier.width(22.dp))
+            Text(t.name, Modifier.weight(1f), color = if (cur) Ss.Accent else Ss.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Box(Modifier.size(44.dp).clickable(role = Role.Button) { s.deleteTrack(i); hw.touch() }, contentAlignment = Alignment.Center) {
+                Text("✕", color = Ss.TextMuted, fontSize = 15.sp)
+            }
+        }
+    }
+}
+
+/** Plan przejazdów: kierunki z najmniejszą liczbą przejazdów dla tej maszyny. */
+@Composable
+private fun PlanControls(hw: HardwareController) {
+    val s = hw.session
+    var plans by remember { mutableStateOf<List<eu.smartsteer.navigator.core.field.FieldPlanner.Plan>>(emptyList()) }
+    if (s.boundary == null) {
+        Label("Plan przejazdów: najpierw granica pola (ekran Pola).", Ss.TextMuted, 12.sp)
+        return
+    }
+    ActionButton(Modifier.fillMaxWidth(), background = Ss.AccentSoft, border = Ss.Accent, onClick = { plans = s.planPasses(); hw.touch() }) {
+        ButtonText("Zaplanuj przejazdy (najmniej)", color = Ss.Accent, weight = FontWeight.Bold)
+    }
+    if (plans.isNotEmpty()) {
+        Label("Szerokość przejazdu ${s.profile.passSpacing.pl(2)} m${if (s.headland != null) " · wnętrze bez uwrocia" else ""}. Dotknij, aby użyć:", Ss.TextMuted, 12.sp)
+        plans.forEachIndexed { i, p ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (i == 0) Ss.AccentSoft else Ss.SurfaceHigh)
+                    .clickable(role = Role.Button) { s.applyPlan(p); plans = emptyList(); hw.touch() }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("${p.passes} przejazdów · kurs ${p.headingDeg}°", color = if (i == 0) Ss.Accent else Ss.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "${p.turns} zawrotów · nadmiar ${p.wasteM.pl(1)} m${if (p.alongEdge) " · wzdłuż boku" else ""}",
+                        color = Ss.TextMuted, fontSize = 12.sp,
+                    )
+                }
+                if (i == 0) Text("NAJLEPSZY", color = Ss.Accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+/** Znaczniki na polu (kamień, mokre miejsce…). */
+@Composable
+private fun FlagControls(hw: HardwareController) {
+    val s = hw.session
+    Label("Znaczniki${if (s.flags.isNotEmpty()) " (${s.flags.size})" else ""}")
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        for ((c, col) in listOf(0 to Ss.Danger, 1 to Ss.GuideLine, 2 to Ss.Info)) {
+            ActionButton(Modifier.weight(1f), onClick = { s.addFlag(c); hw.touch() }) {
+                Box(Modifier.size(18.dp).clip(CircleShape).background(col))
+            }
+        }
+        ActionButton(Modifier.weight(1.4f), onClick = { s.removeNearestFlag(); hw.touch() }) { ButtonText("Usuń najbliższy", size = 12.sp, color = Ss.TextSoft) }
+    }
 }
 
 @Composable
@@ -545,6 +640,18 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             s.headland?.let { h ->
                 drawPath(polygonPath(h), Ss.Warning.copy(alpha = 0.8f), style = Stroke(width = 1.5f * px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f * px, 6f * px))))
             }
+            // przeszkody (sekcje się na nich wyłączają)
+            for (ob in s.obstacles) {
+                drawPath(polygonPath(ob), Ss.Danger.copy(alpha = 0.25f))
+                drawPath(polygonPath(ob), Ss.Danger, style = Stroke(width = 2f * px))
+            }
+            s.recordingObstacle?.let { r ->
+                if (r.size >= 2) {
+                    val path = Path()
+                    r.forEachIndexed { i, q -> if (i == 0) path.moveTo(q.x.toFloat(), q.y.toFloat()) else path.lineTo(q.x.toFloat(), q.y.toFloat()) }
+                    drawPath(path, Ss.Danger, style = Stroke(width = 3f * px, cap = StrokeCap.Round))
+                }
+            }
             s.recordingBoundary?.let { r ->
                 if (r.size >= 2) {
                     val path = Path()
@@ -625,11 +732,25 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                         (if (active) 4f else 1.5f) * px,
                     )
                 }
+                // ścieżki technologiczne (ślady kół opryskiwacza)
+                if (s.profile.tramEvery > 0) {
+                    val tw = maxOf(s.profile.tramWheel.toFloat(), 2f * px)
+                    for (t in eu.smartsteer.navigator.core.field.Tramlines.tracksNear(s.passIndex, w, s.profile.tramEvery, s.profile.tramTrack, s.profile.tramShift)) {
+                        val base = l.a + right * t + dir * along
+                        drawLine(Ss.Warning.copy(alpha = 0.55f), o(base - dir * r.toDouble()), o(base + dir * r.toDouble()), tw)
+                    }
+                }
                 drawCircle(Ss.MapLine, 6f * px, o(l.a))
                 drawCircle(Ss.MapLine, 6f * px, o(l.b))
             }
             s.pointA?.let { if (l == null && s.mode == GuidanceMode.AB) drawCircle(Ss.Warning, 8f * px, o(it)) }
             s.goal?.let { drawCircle(Ss.Accent, 5f * px, o(it)) }
+            // znaczniki
+            for (f in s.flags) {
+                val c = when (f.color) { 1 -> Ss.GuideLine; 2 -> Ss.Info; else -> Ss.Danger }
+                drawCircle(c, 9f * px, o(f.p))
+                drawCircle(Ss.Ground, 9f * px, o(f.p), style = Stroke(width = 2f * px))
+            }
 
             // maszyna i sekcje
             s.sections.hitchPos?.let { hitch ->

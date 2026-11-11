@@ -184,6 +184,14 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
     Num("Sekcje stoją poniżej", null, p.slowSpeedCutoff, "km/h", 0.1, 0.0, 5.0, 1) { set(p.copy(slowSpeedCutoff = it)) }
     Toggle("Wyłączaj poza granicą pola", p.sectionOffWhenOut) { set(p.copy(sectionOffWhenOut = it)) }
     Toggle("Wyłączaj na uwrociu", p.sectionOffInHeadland) { set(p.copy(sectionOffInHeadland = it)) }
+    SectionTitle("Ścieżki technologiczne")
+    Num("Przejazdów siewnika na opryskiwacz", "Szerokość opryskiwacza ÷ szerokość siewnika (np. 18 m / 3 m = 6); 0 = wyłączone", p.tramEvery.toDouble(), "", 1.0, 0.0, 30.0, 0) { set(p.copy(tramEvery = it.toInt())) }
+    if (p.tramEvery > 0) {
+        Num("Rozstaw kół opryskiwacza", null, p.tramTrack, "m", 0.05, 1.0, 3.5, 2) { set(p.copy(tramTrack = it)) }
+        Num("Szerokość śladu koła", null, p.tramWheel, "m", 0.05, 0.1, 1.0, 2) { set(p.copy(tramWheel = it)) }
+        Num("Przesunięcie układu", "O ile przejazdów przesunąć ścieżki względem linii AB", p.tramShift.toDouble(), "", 1.0, -30.0, 30.0, 0) { set(p.copy(tramShift = it.toInt())) }
+        Label("Moduł maszyny dostaje bity śladu (PGN 239): wyłącza sekcje nad śladem kół — po prawej albo lewej stronie.", Ss.TextMuted, 12.sp)
+    }
     SectionTitle("Przełącznik roboczy")
     Toggle("Sekcje tylko przy włączonym przełączniku", p.useWorkSwitch) { set(p.copy(useWorkSwitch = it)) }
     if (p.useWorkSwitch) {
@@ -353,6 +361,8 @@ private fun ColumnScope.BoardTab(hw: HardwareController, p: VehicleProfile, set:
     if (p.hydEnabled) {
         Num("Czas podnoszenia", null, p.hydRaiseTime.toDouble(), "s", 1.0, 0.0, 255.0, 0) { set(p.copy(hydRaiseTime = it.toInt())) }
         Num("Czas opuszczania", null, p.hydLowerTime.toDouble(), "s", 1.0, 0.0, 255.0, 0) { set(p.copy(hydLowerTime = it.toInt())) }
+        Toggle("Podnoś sam na uwrociu", p.hydAuto) { set(p.copy(hydAuto = it)) }
+        Label("Działa przy wyznaczonym uwrociu i włączonym przycisku „Podnośnik” na mapie. Wyprzedzenie = czas włączania sekcji.", Ss.TextMuted, 12.sp)
     }
     Num("Użytkownik 1", "Wartości dla własnego programu modułu", p.machineUser1.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(machineUser1 = it.toInt())) }
     Num("Użytkownik 2", null, p.machineUser2.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(machineUser2 = it.toInt())) }

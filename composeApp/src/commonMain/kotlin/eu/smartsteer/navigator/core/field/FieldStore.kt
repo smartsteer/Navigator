@@ -6,6 +6,14 @@ import eu.smartsteer.navigator.core.settings.Profiles
 import eu.smartsteer.navigator.core.settings.TextFiles
 import eu.smartsteer.navigator.core.update.MiniJson
 
+/** Linia prowadzenia zapisana w polu (jak lista linii w AgOpenGPS): prosta AB albo krzywa. */
+data class Track(val name: String, val ab: AbLine? = null, val curve: List<Vec2>? = null) {
+    val isCurve: Boolean get() = ab == null && curve != null
+}
+
+/** Znacznik na polu (kamień, mokre miejsce…). [color]: 0 = czerwony, 1 = żółty, 2 = niebieski. */
+data class Flag(val p: Vec2, val color: Int = 0, val note: String = "")
+
 /** Zapisane pole: początek płaszczyzny lokalnej, granica, uwrocie i linie prowadzenia. */
 data class FieldData(
     val name: String,
@@ -18,6 +26,12 @@ data class FieldData(
     val curve: List<Vec2>? = null,
     /** Id pola w WAR (pole przyszło z WAR) — wraca w raporcie pracy. */
     val warId: String? = null,
+    /** Wszystkie linie pola; [ab]/[curve] to linia aktywna (zgodność ze starszymi plikami). */
+    val tracks: List<Track> = emptyList(),
+    val activeTrack: Int = -1,
+    val flags: List<Flag> = emptyList(),
+    /** Przeszkody wewnątrz pola (oczko wodne, słup, kępa drzew) — sekcje się na nich wyłączają. */
+    val obstacles: List<List<Vec2>> = emptyList(),
 ) {
     fun toJson(): String = buildString {
         append("{\n")
@@ -30,7 +44,24 @@ data class FieldData(
         if (ab == null) append("null") else append("[${n(ab.a.x)}, ${n(ab.a.y)}, ${n(ab.b.x)}, ${n(ab.b.y)}]")
         append(",\n")
         append("  \"curve\": ").append(pts(curve)).append(",\n")
-        append("  \"warId\": ").append(if (warId == null) "null" else "\"" + esc(warId) + "\"").append('\n')
+        append("  \"warId\": ").append(if (warId == null) "null" else "\"" + esc(warId) + "\"").append(",\n")
+        append("  \"tracks\": [")
+        tracks.forEachIndexed { i, t ->
+            if (i > 0) append(", ")
+            append("{\"name\": \"").append(esc(t.name)).append("\", \"ab\": ")
+            val ab = t.ab
+            if (ab == null) append("null") else append("[${n(ab.a.x)}, ${n(ab.a.y)}, ${n(ab.b.x)}, ${n(ab.b.y)}]")
+            append(", \"curve\": ").append(pts(t.curve)).append("}")
+        }
+        append("],\n")
+        append("  \"activeTrack\": ").append(activeTrack).append(",\n")
+        append("  \"flags\": [")
+        flags.forEachIndexed { i, f ->
+            if (i > 0) append(", ")
+            append("{\"x\": ${n(f.p.x)}, \"y\": ${n(f.p.y)}, \"color\": ${f.color}, \"note\": \"").append(esc(f.note)).append("\"}")
+        }
+        append("],\n")
+        append("  \"obstacles\": [").append(obstacles.joinToString(", ") { pts(it) }).append("]\n")
         append("}\n")
     }
 
@@ -51,6 +82,21 @@ data class FieldData(
                 ab = ab,
                 curve = readPts(m["curve"]),
                 warId = m["warId"] as? String,
+                tracks = (m["tracks"] as? List<*>).orEmpty().mapNotNull { e ->
+                    val t = e as? Map<*, *> ?: return@mapNotNull null
+                    val tab = (t["ab"] as? List<*>)?.mapNotNull { it as? Double }?.takeIf { it.size == 4 }
+                        ?.let { AbLine(Vec2(it[0], it[1]), Vec2(it[2], it[3])) }
+                    val tc = readPts(t["curve"])
+                    if (tab == null && tc == null) null else Track((t["name"] as? String) ?: "Linia", tab, tc)
+                },
+                activeTrack = ((m["activeTrack"] as? Double) ?: -1.0).toInt(),
+                flags = (m["flags"] as? List<*>).orEmpty().mapNotNull { e ->
+                    val f = e as? Map<*, *> ?: return@mapNotNull null
+                    val x = f["x"] as? Double ?: return@mapNotNull null
+                    val y = f["y"] as? Double ?: return@mapNotNull null
+                    Flag(Vec2(x, y), ((f["color"] as? Double) ?: 0.0).toInt(), (f["note"] as? String).orEmpty())
+                },
+                obstacles = (m["obstacles"] as? List<*>).orEmpty().mapNotNull { readPts(it)?.takeIf { p -> p.size >= 3 } },
             )
         }
 

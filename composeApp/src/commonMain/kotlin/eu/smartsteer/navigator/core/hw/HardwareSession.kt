@@ -12,6 +12,9 @@ import eu.smartsteer.navigator.core.gps.Gga
 import eu.smartsteer.navigator.core.gps.Nmea
 import eu.smartsteer.navigator.core.field.Coverage
 import eu.smartsteer.navigator.core.field.FieldData
+import eu.smartsteer.navigator.core.field.FieldPlanner
+import eu.smartsteer.navigator.core.field.Flag
+import eu.smartsteer.navigator.core.field.Track
 import eu.smartsteer.navigator.core.field.Polygon
 import eu.smartsteer.navigator.core.field.Sections
 import eu.smartsteer.navigator.core.guidance.AbSteering
@@ -219,8 +222,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             val q = pv + Vec2.right(headingRad) * (boundarySide * profile.toolWidth / 2)
             if (r.isEmpty() || r.last().distanceTo(q) >= 1.0) r.add(q)
         }
+        recordingObstacle?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= 0.5) r.add(pv) }
         sections.updateTool(pv, headingRad, profile)
-        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS))
+        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS), obstacles)
     }
 
     /**
@@ -274,14 +278,154 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         if (a.distanceTo(b) < MIN_AB_M) return fail("Za blisko punktu A (${a.distanceTo(b).roundToInt()} m). Potrzeba co najmniej ${MIN_AB_M.roundToInt()} m")
         line = AbLine(a, b)
         passIndex = 0
+        addTrack(Track(nextName("AB"), line, null))
         return ok("Linia AB gotowa")
     }
 
     fun clearLine() {
+        val t = tracks.getOrNull(activeTrack)
+        if (t != null && !t.isCurve) { tracks.removeAt(activeTrack); activeTrack = -1 }
         pointA = null
         line = null
         engaged = false
         ok("Linia usunięta")
+    }
+
+    /**
+     * Linia A+ (jak w AgOpenGPS): od miejsca, gdzie stoi ciągnik, w kierunku jazdy albo w podanym kursie —
+     * bez przejeżdżania 20 m.
+     */
+    fun markAPlus(headingDeg: Double? = null): Boolean {
+        val p = pivot ?: return fail("Brak pozycji GPS — nie można utworzyć linii")
+        val h = headingDeg?.let { it * PI / 180 } ?: headingRad
+        val l = AbLine(p, p + Vec2.forward(h) * 50.0)
+        line = l; pointA = p; passIndex = 0; engaged = false
+        if (mode != GuidanceMode.AB) mode = GuidanceMode.AB
+        val deg = ((h * 180 / PI) % 360 + 360) % 360
+        addTrack(Track("A+ ${deg.roundToInt()}°", l, null))
+        return ok("Linia A+ gotowa (kurs ${deg.roundToInt()}°)")
+    }
+
+    /** Przesuwa linię AB tak, żeby bieżący przejazd szedł dokładnie przez ciągnik (bez zmiany kierunku). */
+    fun snapToTractor(): Boolean {
+        val l = line ?: return fail("Najpierw utwórz linię AB")
+        val p = pivot ?: return fail("Brak pozycji GPS")
+        val right = Vec2.right(l.heading)
+        val w = profile.passSpacing
+        val d = (p - l.a) dot right
+        // jak w activeSegment: przesunięcie linii/maszyny działa w prawo względem kierunku jazdy
+        val side = (if (reversed) -1.0 else 1.0) * (lineShiftCm / 100.0 - profile.toolOffset)
+        val k = kotlin.math.round((d - side) / w)
+        val off = d - k * w - side
+        val nl = AbLine(l.a + right * off, l.b + right * off)
+        line = nl; pointA = nl.a
+        if (activeTrack in tracks.indices) tracks[activeTrack] = tracks[activeTrack].copy(ab = nl)
+        return ok("Linia przesunięta o ${(off * 100).roundToInt()} cm — przejazd idzie przez ciągnik")
+    }
+
+    // ---------------- lista linii pola ----------------
+    /** Wszystkie linie pola (AB, A+, krzywe, plan). */
+    val tracks = ArrayList<Track>()
+    var activeTrack = -1; private set
+
+    private fun nextName(prefix: String): String {
+        var k = 1
+        while (tracks.any { it.name == "$prefix $k" }) k++
+        return "$prefix $k"
+    }
+
+    /** Dodaje linię do listy i ją uaktywnia. */
+    fun addTrack(t: Track) {
+        tracks.add(t)
+        activeTrack = tracks.size - 1
+    }
+
+    /** Wybór linii z listy: ustawia tryb (AB / krzywa) i linię. */
+    fun selectTrack(i: Int): Boolean {
+        val t = tracks.getOrNull(i) ?: return false
+        engaged = false
+        activeTrack = i
+        val ab = t.ab
+        val c = t.curve
+        if (ab != null) {
+            mode = GuidanceMode.AB
+            restoreLine(ab)
+        } else if (c != null && c.size >= 2) {
+            mode = GuidanceMode.CURVE
+            restoreCurve(Curves.headings(c))
+        }
+        pathHint = -1; steering.reset()
+        return ok("Linia „${t.name}”")
+    }
+
+    fun deleteTrack(i: Int) {
+        if (i !in tracks.indices) return
+        val t = tracks.removeAt(i)
+        if (i == activeTrack) {
+            activeTrack = -1
+            if (t.isCurve) { curveRef = null; curvePath = emptyList() } else { line = null; pointA = null }
+            engaged = false
+        } else if (i < activeTrack) activeTrack--
+        ok("Usunięto „${t.name}”")
+    }
+
+    // ---------------- plan przejazdów ----------------
+    /** Kierunki przejazdów z najmniejszą liczbą przejazdów (wnętrze pola bez uwrocia). */
+    fun planPasses(): List<FieldPlanner.Plan> {
+        val area = headland ?: boundary ?: return emptyList()
+        return FieldPlanner.plan(area, profile.passSpacing)
+    }
+
+    fun applyPlan(plan: FieldPlanner.Plan): Boolean {
+        engaged = false
+        mode = GuidanceMode.AB
+        restoreLine(plan.line)
+        addTrack(Track("Plan ${plan.headingDeg}° · ${plan.passes} przejazdów", plan.line, null))
+        pathHint = -1; steering.reset()
+        return ok("Plan: ${plan.passes} przejazdów w kierunku ${plan.headingDeg}°")
+    }
+
+    // ---------------- znaczniki i przeszkody ----------------
+    val flags = ArrayList<Flag>()
+    val obstacles = ArrayList<List<Vec2>>()
+    /** Nagrywana przeszkoda (objazd dookoła). */
+    var recordingObstacle: MutableList<Vec2>? = null; private set
+
+    fun addFlag(color: Int): Boolean {
+        val p = pivot ?: return fail("Brak pozycji GPS")
+        flags.add(Flag(p, color))
+        return ok("Znacznik ${flags.size} postawiony")
+    }
+
+    fun removeNearestFlag(): Boolean {
+        val p = pivot ?: return fail("Brak pozycji GPS")
+        val i = flags.indices.minByOrNull { flags[it].p.distanceTo(p) } ?: return fail("Brak znaczników")
+        flags.removeAt(i)
+        return ok("Znacznik usunięty")
+    }
+
+    fun startObstacle(): Boolean {
+        if (pivot == null) return fail("Brak pozycji GPS")
+        recordingObstacle = ArrayList()
+        return ok("Objedź przeszkodę dookoła i naciśnij „Zakończ”")
+    }
+
+    fun finishObstacle(): Boolean {
+        val r = recordingObstacle ?: return fail("Nagrywanie nie trwa")
+        recordingObstacle = null
+        val poly = Polygon.simplify(r)
+        if (poly.size < 3 || Polygon.area(poly) < 4.0) return fail("Za mała przeszkoda — objedź ją dookoła")
+        obstacles.add(poly)
+        return ok("Przeszkoda zapisana (${Polygon.area(poly).roundToInt()} m²)")
+    }
+
+    fun cancelObstacle() { recordingObstacle = null; ok("Nagrywanie przeszkody przerwane") }
+
+    fun removeNearestObstacle(): Boolean {
+        val p = pivot ?: return fail("Brak pozycji GPS")
+        val i = obstacles.indices.minByOrNull { k -> obstacles[k].minOf { it.distanceTo(p) } } ?: return fail("Brak przeszkód")
+        obstacles.removeAt(i)
+        return ok("Przeszkoda usunięta")
     }
 
     fun restoreLine(l: AbLine) { line = l; pointA = l.a; passIndex = 0 }
@@ -480,12 +624,15 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val len = Curves.length(rec)
         if (len < MIN_AB_M || rec.size < 10) return fail("Za krótka krzywa (${len.roundToInt()} m). Potrzeba co najmniej ${MIN_AB_M.roundToInt()} m")
         restoreCurve(Curves.buildReference(rec))
+        addTrack(Track(nextName("Krzywa"), null, curveRef?.map { it.p }))
         return ok("Krzywa gotowa (${len.roundToInt()} m)")
     }
 
     fun cancelCurve() { recordingCurve = null; ok("Nagrywanie przerwane") }
 
     fun clearCurve() {
+        val t = tracks.getOrNull(activeTrack)
+        if (t != null && t.isCurve) { tracks.removeAt(activeTrack); activeTrack = -1 }
         recordingCurve = null; curveRef = null; curvePath = emptyList(); engaged = false
         ok("Krzywa usunięta")
     }
@@ -653,7 +800,38 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun centerFreeDrive() { freeDriveAngle = 0.0 }
 
     /** Ramka PGN 239 do modułu maszyny (sekcje). */
-    fun machineFrame(): ByteArray = Sections.machineFrame(speedKmh, sections.bits())
+    fun machineFrame(): ByteArray = Sections.machineFrame(speedKmh, sections.bits(), hydLiftState(), tramBits())
+
+    /** Podnośnik włączony przyciskiem na mapie (działa, gdy w profilu jest podnośnik i automat). */
+    var hydLiftOn = false
+
+    /**
+     * Podnośnik na uwrociu: 2 = podnieś, gdy punkt przed maszyną (wyprzedzenie włączania sekcji) jest na uwrociu
+     * albo trwa zawrót; 1 = opuść w polu roboczym; 0 = nie sterujemy.
+     * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs (hydLift).
+     */
+    fun hydLiftState(): Int {
+        if (!profile.hydEnabled || !profile.hydAuto || !hydLiftOn) return 0
+        val inner = headland ?: return 0
+        if (youTurnPath != null) return 2
+        val tp = sections.toolPos ?: return 0
+        val look = (speedKmh / 3.6 * profile.lookAheadOn).coerceAtLeast(0.5)
+        val q = tp + Vec2.forward(sections.toolHeading) * look
+        return if (Polygon.contains(inner, q)) 1 else 2
+    }
+
+    /** Bity ścieżek technologicznych dla bieżącego przejazdu (AB albo krzywa). */
+    fun tramBits(): Int {
+        val p = profile
+        if (p.tramEvery <= 0) return 0
+        return when (mode) {
+            GuidanceMode.AB -> if (line == null) 0 else
+                eu.smartsteer.navigator.core.field.Tramlines.bits(passIndex, p.passSpacing, p.tramEvery, p.tramTrack, p.tramWheel, p.tramShift, reversed)
+            GuidanceMode.CURVE -> if (curveRef == null) 0 else
+                eu.smartsteer.navigator.core.field.Tramlines.bits(curvePassIndex, p.passSpacing, p.tramEvery, p.tramTrack, p.tramWheel, p.tramShift, curveReversed)
+            GuidanceMode.CONTOUR -> 0
+        }
+    }
 
     /** Przełącznik roboczy z PGN 253 (bit 0); aktywny stan wg ustawień. Bez modułu = wyłączony. */
     fun workSwitchOn(nowS: Double): Boolean {
@@ -682,6 +860,18 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         setHeadlandWidth(f.headlandWidth)
         f.ab?.let { restoreLine(it) }
         f.curve?.let { if (it.size >= 2) restoreCurve(Curves.headings(it)) }
+        if (f.tracks.isNotEmpty()) {
+            tracks.addAll(f.tracks)
+            activeTrack = f.activeTrack.takeIf { it in tracks.indices } ?: -1
+            tracks.getOrNull(activeTrack)?.let { if (it.isCurve) mode = GuidanceMode.CURVE else mode = GuidanceMode.AB }
+        } else {
+            // starsze pliki: jedna AB i jedna krzywa
+            f.ab?.let { tracks.add(Track("AB 1", it, null)) }
+            f.curve?.let { if (it.size >= 2) tracks.add(Track("Krzywa 1", null, it)) }
+            activeTrack = if (f.ab != null) 0 else if (tracks.isNotEmpty()) 0 else -1
+        }
+        flags.addAll(f.flags)
+        obstacles.addAll(f.obstacles)
         coverage.loadText(coverageText)
         ok("Pole „${f.name}” wczytane")
     }
@@ -690,7 +880,10 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun fieldData(): FieldData? {
         val n = fieldName ?: return null
         val pl = plane ?: return null
-        return FieldData(n, pl.originLat, pl.originLon, boundary, headlandWidth, line, curveRef?.map { it.p }, fieldWarId)
+        return FieldData(
+            n, pl.originLat, pl.originLon, boundary, headlandWidth, line, curveRef?.map { it.p }, fieldWarId,
+            tracks.toList(), activeTrack, flags.toList(), obstacles.toList(),
+        )
     }
 
     fun closeField() {
@@ -700,6 +893,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         coverage.clear(); sections.reset()
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         contour.clear(); engaged = false; youTurnPath = null
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null
         ok("Pole zamknięte")
     }
 
@@ -710,6 +904,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         engaged = false; pathHint = -1; steering.reset(); youTurnPath = null
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null
     }
 
     fun startBoundary(): Boolean {

@@ -75,6 +75,7 @@ class Sections {
     fun update(
         p: VehicleProfile, speedKmh: Double, coverage: Coverage,
         boundary: List<Vec2>?, inner: List<Vec2>?, workOn: Boolean,
+        obstacles: List<List<Vec2>> = emptyList(),
     ) {
         val n = p.sectionWidthsEffective.size
         val fwd = Vec2.forward(toolHeading)
@@ -89,6 +90,7 @@ class Sections {
                 val q = a + (b - a) * ((k + 0.5) / (SAMPLES + 1)) + fwd * ahead
                 if (boundary != null && p.sectionOffWhenOut && !Polygon.contains(boundary, q)) continue
                 if (inner != null && p.sectionOffInHeadland && inner.size >= 3 && !Polygon.contains(inner, q)) continue
+                if (p.sectionOffWhenOut && obstacles.any { Polygon.contains(it, q) }) continue
                 if (!coverage.isCovered(q)) return true
             }
             return false
@@ -151,12 +153,16 @@ class Sections {
         const val PGN_MACHINE_CONFIG = 0xEE
 
         /** PGN 239 — dane dla modułu maszyny: prędkość × 10 i sekcje. */
-        fun machineFrame(speedKmh: Double, bits: Int): ByteArray {
+        /**
+         * [hydLift]: 0 = podnośnik nieużywany, 1 = opuść (praca), 2 = podnieś (uwrocie) — jak w AgOpenGPS
+         * (Position.designer.cs, p_239.hydLift). [tram]: bit 0 = ślad po prawej, bit 1 = po lewej.
+         */
+        fun machineFrame(speedKmh: Double, bits: Int, hydLift: Int = 0, tram: Int = 0): ByteArray {
             val d = ByteArray(8)
             d[0] = 0 // zawrót
             d[1] = (speedKmh * 10).roundToInt().coerceIn(0, 255).toByte()
-            d[2] = 0 // podnośnik
-            d[3] = 0 // ścieżki technologiczne
+            d[2] = hydLift.coerceIn(0, 2).toByte() // podnośnik
+            d[3] = (tram and 3).toByte() // ścieżki technologiczne
             d[4] = 0 // geo-stop
             d[5] = 0
             d[6] = (bits and 0xFF).toByte()
