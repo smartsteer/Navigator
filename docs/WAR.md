@@ -194,7 +194,7 @@ Sentinel-2 jako siatka oczek ~10 m (ta sama co w pliku ISO-XML dla terminali ISO
   od razu, gdy pole jest otwarte, inaczej przy otwarciu. Mapy z pliku (GeoJSON/KML) nie nadpisuje — wtedy przycisk
   „Wczytaj mapę z WAR” w Pola → Mapa dawek. Poza oczkami (brzeg pola) — dawka typowa.
 
-### 3.8 Wspólna praca kilku maszyn (PROPOZYCJA — po stronie WAR do zrobienia)
+### 3.9 Wspólna praca kilku maszyn (PROPOZYCJA — po stronie WAR do zrobienia)
 
 Navigator (opcja „Wspólna praca kilku maszyn na polu” w Ustawienia → WAR, domyślnie wyłączona) co minutę, gdy otwarte
 jest pole z `war_id` i przybyło pokrycia, wysyła do skrzynki prac:
