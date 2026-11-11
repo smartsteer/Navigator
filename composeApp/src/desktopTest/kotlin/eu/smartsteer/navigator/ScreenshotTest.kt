@@ -51,6 +51,57 @@ class ScreenshotTest {
                     scene.close()
                 }
             }
+            // podkład: sprawdzenie adresów kafelków (wynik w kafelki.txt) i zrzuty mapy z podkładem
+            val (lat, lon) = s.plane!!.toGeo(s.pivot!!)
+            val z = 18
+            val tx = eu.smartsteer.navigator.core.map.TileMath.tileX(lon, z).toInt()
+            val ty = eu.smartsteer.navigator.core.map.TileMath.tileY(lat, z).toInt()
+            val geo = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/"
+            val variants = listOf(
+                "HighRes 3857" to geo + "HighResolution?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}",
+                "StdRes 3857" to geo + "StandardResolution?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}",
+                "HighRes GoogleMaps" to geo + "HighResolution?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=GoogleMapsCompatible&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+            )
+            val report = StringBuilder("kafelek z=$z x=$tx y=$ty\n")
+            var orto: String? = null
+            for ((name, tpl) in variants) {
+                val url = tpl.replace("{z}", "$z").replace("{x}", "$tx").replace("{y}", "$ty")
+                val b = eu.smartsteer.navigator.core.map.TileIo.download(url)
+                report.append("$name: ${b?.size ?: "BŁĄD"}\n")
+                if (b != null && orto == null) orto = tpl
+            }
+            val esri = eu.smartsteer.navigator.core.map.TileIo.download(eu.smartsteer.navigator.core.map.TileSource.ESRI.url(z, tx, ty)!!)
+            report.append("Esri: ${esri?.size ?: "BŁĄD"}\n")
+            if (orto == null) {
+                // pełna odpowiedź pierwszego wariantu do diagnozy
+                runCatching {
+                    val c = java.net.URL(variants[0].second.replace("{z}", "$z").replace("{x}", "$tx").replace("{y}", "$ty")).openConnection() as java.net.HttpURLConnection
+                    report.append("HTTP ${c.responseCode} ${c.contentType}\n")
+                    report.append((if (c.responseCode >= 400) c.errorStream else c.inputStream)?.use { it.readBytes().decodeToString().take(1500) })
+                }
+                runCatching {
+                    val c = java.net.URL(geo + "HighResolution?SERVICE=WMTS&REQUEST=GetCapabilities").openConnection() as java.net.HttpURLConnection
+                    val t = c.inputStream.use { it.readBytes().decodeToString() }
+                    report.append("\n--- capabilities ---\n")
+                    Regex("<ows:Identifier>[^<]+</ows:Identifier>").findAll(t).take(60).forEach { report.append(it.value).append('\n') }
+                    Regex("template=\"[^\"]+\"").findAll(t).take(5).forEach { report.append(it.value).append('\n') }
+                }
+            }
+            File(dir, "kafelki.txt").writeText(report.toString())
+            orto?.let { eu.smartsteer.navigator.core.map.TileSource.ORTO_URL = it }
+            for ((i, name) in listOf(1 to "map_orto", 2 to "map_sat")) {
+                eu.smartsteer.navigator.ui.DisplayPrefs.updateBackground(i)
+                val scene = ImageComposeScene(1280, 800, Density(1f)) { App(hw, Screen.Map) }
+                try {
+                    scene.render(0)
+                    Thread.sleep(6000)
+                    var img = scene.render(1_000_000_000L)
+                    Thread.sleep(1000)
+                    img = scene.render(2_000_000_000L)
+                    img.encodeToData(EncodedImageFormat.PNG)?.bytes?.let { File(dir, "$name.png").writeBytes(it) }
+                } finally { scene.close() }
+            }
+            eu.smartsteer.navigator.ui.DisplayPrefs.updateBackground(0)
             hw.setHardwareMode(false)
         } catch (e: Throwable) {
             File(dir, "blad.txt").writeText(e.stackTraceToString())

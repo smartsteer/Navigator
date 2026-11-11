@@ -23,6 +23,11 @@ object DisplayPrefs {
         private set
     var fullScreen by mutableStateOf(saved["pelny"] == "1")
         private set
+    /** Podkład mapy: indeks w TileSource (0 = brak). */
+    var background by mutableStateOf(saved["podklad"]?.toIntOrNull() ?: 0)
+        private set
+
+    fun updateBackground(i: Int) { background = i; save() }
 
     /** Ustawia okno Windows (main.kt); na Androidzie pełny ekran jest zawsze. */
     var fullScreenSupported = false
@@ -32,6 +37,6 @@ object DisplayPrefs {
     fun toggleFullScreen() = updateFullScreen(!fullScreen)
 
     private fun save() {
-        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\n") }
+        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\n") }
     }
 }

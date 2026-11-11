@@ -96,6 +96,8 @@ fun SettingsScreen(hw: HardwareController) {
                         Choice("Dźwięki (autoster, alarmy, zawrót, sekcje)", listOf("WŁ.", "WYŁ."), if (hw.soundOn) 0 else 1) { hw.setSound(it == 0) }
                         Choice("Ekran", listOf("Zwykły", "Tablet (powiększony)"), if (DisplayPrefs.tablet) 1 else 0) { DisplayPrefs.updateTablet(it == 1) }
                         if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }
+                        Choice("Podkład mapy", eu.smartsteer.navigator.core.map.TileSource.entries.map { it.short }, DisplayPrefs.background) { DisplayPrefs.updateBackground(it) }
+                        Label("ORTO = ortofotomapa Polski z Geoportalu, SAT = zdjęcia satelitarne Esri. Raz obejrzane kafelki zostają na dysku; całe pole pobierzesz na ekranie Pola.", Ss.TextMuted, 12.sp)
                         VehicleTab(p, set)
                     }
                     Tab.Tool -> ToolTab(p, set)

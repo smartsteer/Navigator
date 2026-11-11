@@ -56,6 +56,10 @@ import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.guidance.Pose
 import eu.smartsteer.navigator.core.hw.GuidanceMode
 import eu.smartsteer.navigator.ui.HardwareController
+import eu.smartsteer.navigator.ui.DisplayPrefs
+import eu.smartsteer.navigator.core.map.TileMath
+import eu.smartsteer.navigator.core.map.TileSource
+import eu.smartsteer.navigator.ui.map.TileManager
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.BigValue
 import eu.smartsteer.navigator.ui.components.ButtonText
@@ -90,6 +94,10 @@ fun HardwareMapScreen(hw: HardwareController) {
             MapTool(IconKind.Follow, headingUp, enabled = !locked, label = if (headingUp) "KURS" else "N") { headingUp = !headingUp }
             MapTool(null, tilt, enabled = !locked, label = "3D") { tilt = !tilt }
             MapTool(if (locked) IconKind.Lock else IconKind.Unlock, locked, enabled = true, label = null) { locked = !locked }
+            val bg = TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }
+            MapTool(null, bg != TileSource.NONE, enabled = !locked, label = bg.short) {
+                DisplayPrefs.updateBackground((DisplayPrefs.background + 1) % TileSource.entries.size)
+            }
             Column(Modifier.width(52.dp).hwOverlay()) {
                 Box(Modifier.size(52.dp).clickable(enabled = !locked, role = Role.Button) { zoom = (zoom * 1.3f).coerceAtMost(80f) }, contentAlignment = Alignment.Center) {
                     NavIcon(IconKind.Plus, Ss.Text, 22.dp)
@@ -114,6 +122,9 @@ fun HardwareMapScreen(hw: HardwareController) {
         HwSectionsBar(hw, locked, Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
         HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))
         SteerButton(hw, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))
+        TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }.takeIf { it != TileSource.NONE }?.let {
+            Text(it.attribution, Modifier.align(Alignment.BottomEnd).padding(end = 130.dp, bottom = 4.dp), color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+        }
     }
 }
 
@@ -625,8 +636,31 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             translate(-camX, -camY)
         }) {
             val r = hypot(size.width, size.height) / sc
+            // podkład: ortofotomapa / zdjęcia satelitarne
+            val src = TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }
+            val pl = s.plane
+            val sat = src != TileSource.NONE && pl != null
+            if (sat && pl != null) {
+                TileManager.version
+                val (lat0, _) = pl.toGeo(cam)
+                val mppScreen = 1.0 / sc
+                var z = kotlin.math.round(kotlin.math.ln(TileMath.metersPerPixel(lat0, 0) / mppScreen) / kotlin.math.ln(2.0)).toInt().coerceIn(3, src.maxZoom)
+                val (la, lo) = pl.toGeo(cam + Vec2(-r.toDouble(), -r.toDouble()))
+                val (lb, lb2) = pl.toGeo(cam + Vec2(r.toDouble(), r.toDouble()))
+                var tiles = TileMath.range(minOf(la, lb), maxOf(la, lb), minOf(lo, lb2), maxOf(lo, lb2), z)
+                while (tiles.size > 120 && z > 3) { z--; tiles = TileMath.range(minOf(la, lb), maxOf(la, lb), minOf(lo, lb2), maxOf(lo, lb2), z) }
+                for ((tx, ty) in tiles) {
+                    val img = TileManager.get(src, z, tx, ty) ?: continue
+                    val nw = pl.toLocal(TileMath.lat(ty.toDouble(), z), TileMath.lon(tx.toDouble(), z))
+                    val se = pl.toLocal(TileMath.lat(ty + 1.0, z), TileMath.lon(tx + 1.0, z))
+                    withTransform({
+                        translate(nw.x.toFloat(), nw.y.toFloat())
+                        scale(((se.x - nw.x) / img.width).toFloat(), ((se.y - nw.y) / img.height).toFloat(), Offset.Zero)
+                    }) { drawImage(img) }
+                }
+            }
             // siatka co 10 m
-            val gc = Color(0xFF1C2822)
+            val gc = if (sat) Color(0x22FFFFFF) else Color(0xFF1C2822)
             var x = floor((camX - r) / 10f) * 10f
             while (x <= camX + r) { drawLine(gc, Offset(x, camY - r), Offset(x, camY + r), px); x += 10f }
             var y = floor((camY - r) / 10f) * 10f
@@ -634,7 +668,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
 
             // granica i uwrocie
             s.boundary?.let { b ->
-                drawPath(polygonPath(b), Ss.FieldFill)
+                if (!sat) drawPath(polygonPath(b), Ss.FieldFill)
                 drawPath(polygonPath(b), Ss.MapLine, style = Stroke(width = 2.5f * px))
             }
             s.headland?.let { h ->

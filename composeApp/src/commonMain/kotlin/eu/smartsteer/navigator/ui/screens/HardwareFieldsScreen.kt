@@ -187,6 +187,29 @@ fun HardwareFieldsScreen(hw: HardwareController) {
                 }
             }
 
+            SectionTitle("Mapa pola bez internetu")
+            run {
+                val src = eu.smartsteer.navigator.core.map.TileSource.entries.getOrElse(eu.smartsteer.navigator.ui.DisplayPrefs.background) { eu.smartsteer.navigator.core.map.TileSource.NONE }
+                val tm = eu.smartsteer.navigator.ui.map.TileManager
+                val pl = s.plane
+                if (src == eu.smartsteer.navigator.core.map.TileSource.NONE) {
+                    Label("Wybierz podkład (ORTO albo SAT) przyciskiem na mapie albo w Ustawienia → Ciągnik.", Ss.TextMuted, 13.sp)
+                } else if (b == null || pl == null) {
+                    Label("Najpierw granica pola — pobierze się mapa z zapasem 100 m.", Ss.TextMuted, 13.sp)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ActionButton(onClick = {
+                            val g = b.map { pl.toGeo(it) }
+                            val m = 100.0
+                            val dLat = m / 111_320.0
+                            val dLon = m / (111_320.0 * kotlin.math.cos(g.first().first * kotlin.math.PI / 180))
+                            tm.prefetch(src, g.minOf { it.first } - dLat, g.maxOf { it.first } + dLat, g.minOf { it.second } - dLon, g.maxOf { it.second } + dLon)
+                        }) { ButtonText(if (tm.prefetching) "Pobieram…" else "Pobierz mapę pola (${src.short})") }
+                        tm.prefetchText?.let { Label(it, Ss.TextSoft, 13.sp) }
+                    }
+                }
+            }
+
             SectionTitle("Przeszkody na polu${if (s.obstacles.isNotEmpty()) " (${s.obstacles.size})" else ""}")
             Label("Oczko wodne, słup, kępa drzew: objedź dookoła środkiem ciągnika. Sekcje wyłączają się nad przeszkodą.", Ss.TextMuted, 13.sp)
             if (s.recordingObstacle != null) {
