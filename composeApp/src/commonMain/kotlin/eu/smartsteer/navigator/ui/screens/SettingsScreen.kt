@@ -200,6 +200,7 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
     Toggle("Wyłączaj poza granicą pola", p.sectionOffWhenOut) { set(p.copy(sectionOffWhenOut = it)) }
     Toggle("Wyłączaj na uwrociu", p.sectionOffInHeadland) { set(p.copy(sectionOffInHeadland = it)) }
     Toggle("To jest opryskiwacz (ostrzeżenia o wietrze)", p.isSprayer) { set(p.copy(isSprayer = it)) }
+    HeadlandSeqEditor(p, set)
     SectionTitle("Ścieżki technologiczne")
     Num("Przejazdów siewnika na opryskiwacz", "Szerokość opryskiwacza ÷ szerokość siewnika (np. 18 m / 3 m = 6); 0 = wyłączone", p.tramEvery.toDouble(), "", 1.0, 0.0, 30.0, 0) { set(p.copy(tramEvery = it.toInt())) }
     if (p.tramEvery > 0) {
@@ -407,6 +408,42 @@ private fun ColumnScope.PowerSettings(hw: HardwareController) {
         Num("Po ilu sekundach", "Krótkie przerwy (rozruch silnika) nie zamykają programu", hw.powerDelayS.toDouble(), "s", 1.0, 3.0, 600.0, 0) { hw.setPowerOptions(delayS = it.toInt()) }
         if (pp.canShutdownSystem) Toggle("Wyłącz też komputer", hw.powerShutdownPc) { hw.setPowerOptions(shutdownPc = it) }
         Label("Przed zamknięciem: autoster wyłączony, pole zapisane. Na pasku odliczania można anulować.", Ss.TextMuted, 12.sp)
+    }
+}
+
+/** Edycja sekwencji na uwrociu: kroki przy wjeździe i wyjeździe, w odległości maszyny od linii uwrocia. */
+@Composable
+private fun ColumnScope.HeadlandSeqEditor(p: VehicleProfile, set: (VehicleProfile) -> Unit) {
+    val HS = eu.smartsteer.navigator.core.field.HeadlandSequence
+    val steps = HS.parse(p.headlandSeq)
+    fun save(l: List<eu.smartsteer.navigator.core.field.HeadlandSequence.Step>) = set(p.copy(headlandSeq = HS.format(l)))
+    SectionTitle("Sekwencja na uwrociu")
+    Label(
+        "Kroki wykonywane same przy wjeździe na uwrocie i przy wjeździe w pole (liczone od miejsca maszyny). " +
+            "Podnieś / Opuść idą do modułu maszyny, komunikaty pokazują się na ekranie i mówi je głos (np. „Wyłącz WOM”, „Zredukuj obroty”).",
+        Ss.TextMuted, 12.sp,
+    )
+    steps.forEachIndexed { i, st ->
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Ss.Panel2).padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Segmented(listOf("Wjazd na uwrocie", "Wjazd w pole"), if (st.entering) 0 else 1, { save(steps.toMutableList().also { l -> l[i] = st.copy(entering = it == 0) }) })
+                Box(Modifier.weight(1f))
+                ActionButton(onClick = { save(steps.filterIndexed { k, _ -> k != i }) }) { ButtonText("✕", color = Ss.TextMuted) }
+            }
+            Segmented(HS.Kind.entries.map { it.label }, st.kind.ordinal, { save(steps.toMutableList().also { l -> l[i] = st.copy(kind = HS.Kind.entries[it]) }) })
+            Num("Odległość od linii uwrocia", "0 = na linii; więcej = wcześniej", st.distM, "m", 1.0, 0.0, 50.0, 0) { v -> save(steps.toMutableList().also { l -> l[i] = st.copy(distM = v) }) }
+            if (st.kind == HS.Kind.MESSAGE) {
+                TextInput(st.text, { t -> save(steps.toMutableList().also { l -> l[i] = st.copy(text = t) }) }, title = "Treść komunikatu", modifier = Modifier.fillMaxWidth(), hint = "np. Wyłącz WOM", maxLength = 40)
+            }
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActionButton(onClick = { save(steps + HS.Step(true, HS.Kind.MESSAGE, 5.0, "")) }) { ButtonText("+ krok przy wjeździe na uwrocie", size = 13.sp) }
+        ActionButton(onClick = { save(steps + HS.Step(false, HS.Kind.MESSAGE, 0.0, "")) }) { ButtonText("+ krok przy wjeździe w pole", size = 13.sp) }
+        if (steps.isEmpty()) ActionButton(onClick = { set(p.copy(headlandSeq = HS.EXAMPLE)) }) { ButtonText("Wstaw przykład", size = 13.sp) }
     }
 }
 

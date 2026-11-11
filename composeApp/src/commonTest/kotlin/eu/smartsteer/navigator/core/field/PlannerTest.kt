@@ -199,3 +199,16 @@ class WeatherTest {
         assertTrue(w.windMs > eu.smartsteer.navigator.core.weather.Weather.SPRAY_MAX_WIND)
     }
 }
+
+class HeadlandSeqTest {
+    @Test
+    fun formatParseAndProfileJson() {
+        val steps = HeadlandSequence.parse(HeadlandSequence.EXAMPLE)
+        assertEquals(4, steps.size)
+        assertEquals(HeadlandSequence.Kind.RAISE, steps[1].kind)
+        val p = VehicleProfile(headlandSeq = HeadlandSequence.format(steps + HeadlandSequence.Step(true, HeadlandSequence.Kind.MESSAGE, 3.0, "Zredukuj \"obroty\"")))
+        val back = assertNotNull(VehicleProfile.fromJson(p.toJson()))
+        assertEquals(p.headlandSeq, back.headlandSeq)
+        assertEquals("Zredukuj \"obroty\"", HeadlandSequence.parse(back.headlandSeq).last().text)
+    }
+}

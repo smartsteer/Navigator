@@ -142,6 +142,9 @@ data class VehicleProfile(
     /** Krok zmiany dawki w sterowniku, %. */
     val rateStepPct: Double = 10.0,
 
+    /** Sekwencja na uwrociu (HeadlandSequence.format); pusta = brak. */
+    val headlandSeq: String = "",
+
     /** Maszyna to opryskiwacz — ostrzeżenia o wietrze (pogoda z internetu). */
     val isSprayer: Boolean = false,
 
@@ -232,7 +235,7 @@ data class VehicleProfile(
         e.forEachIndexed { i, (k, v) ->
             append("  \"").append(k).append("\": ")
             when (v) {
-                is String -> append('"').append(v).append('"')
+                is String -> append('"').append(v.replace("\\", "\\\\").replace("\"", "\\\"")).append('"')
                 else -> append(v.toString())
             }
             if (i < e.lastIndex) append(',')
@@ -253,7 +256,7 @@ data class VehicleProfile(
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
         "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "hydAuto" to hydAuto,
         "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed, "rateHintMode" to rateHintMode, "rateStepPct" to rateStepPct,
-        "youTurnStyle" to youTurnStyle, "isSprayer" to isSprayer,
+        "youTurnStyle" to youTurnStyle, "isSprayer" to isSprayer, "headlandSeq" to headlandSeq,
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
@@ -318,6 +321,7 @@ data class VehicleProfile(
                 rateStepPct = num("rateStepPct", d.rateStepPct),
                 youTurnStyle = int("youTurnStyle", d.youTurnStyle),
                 isSprayer = bool("isSprayer", d.isSprayer),
+                headlandSeq = (m["headlandSeq"] as? String) ?: d.headlandSeq,
                 supRtkLossS = num("supRtkLossS", d.supRtkLossS),
                 supMaxXteM = num("supMaxXteM", d.supMaxXteM),
                 supSteerErrDeg = num("supSteerErrDeg", d.supSteerErrDeg),

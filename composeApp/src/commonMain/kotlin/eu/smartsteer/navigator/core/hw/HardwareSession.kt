@@ -1016,7 +1016,11 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
      * albo trwa zawrót; 1 = opuść w polu roboczym; 0 = nie sterujemy.
      * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs (hydLift).
      */
+    /** Podnośnik ustawiony przez sekwencję uwrocia (1 = opuść, 2 = podnieś; 0 = automat). */
+    var hydOverride = 0
+
     fun hydLiftState(): Int {
+        if (profile.hydEnabled && hydOverride != 0) return hydOverride
         if (!profile.hydEnabled || !profile.hydAuto || !hydLiftOn) return 0
         val inner = headland ?: return 0
         if (youTurnPath != null) return 2

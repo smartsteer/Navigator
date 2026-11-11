@@ -785,6 +785,30 @@ class HardwareController {
         }
     }
 
+    // ---------------- sekwencja na uwrociu ----------------
+    private val seqFired = HashSet<Int>()
+    private var seqLastDir: Boolean? = null
+
+    private fun headlandSeqStep() {
+        val steps = eu.smartsteer.navigator.core.field.HeadlandSequence.parse(profile.headlandSeq)
+        val s = session
+        if (steps.isEmpty()) { s.hydOverride = 0; return }
+        if (s.speedKmh < 1.0) return
+        val hh = s.toolToHeadland()
+        if (hh == null || hh.first > 60.0) { seqFired.clear(); seqLastDir = null; return }
+        val (d, toHeadland) = hh
+        if (seqLastDir != toHeadland) { seqFired.clear(); seqLastDir = toHeadland }
+        steps.forEachIndexed { i, st ->
+            if (st.entering != toHeadland || i in seqFired || d > st.distM + 0.3) return@forEachIndexed
+            seqFired.add(i)
+            when (st.kind) {
+                eu.smartsteer.navigator.core.field.HeadlandSequence.Kind.RAISE -> { s.hydOverride = 2; mapMessage("Uwrocie: podnoszę"); say("Podnoszę") }
+                eu.smartsteer.navigator.core.field.HeadlandSequence.Kind.LOWER -> { s.hydOverride = 1; mapMessage("Pole: opuszczam"); say("Opuszczam") }
+                eu.smartsteer.navigator.core.field.HeadlandSequence.Kind.MESSAGE -> if (st.text.isNotBlank()) { mapMessage(st.text); say(st.text) }
+            }
+        }
+    }
+
     // ---------------- pogoda (wiatr do oprysku) ----------------
     var weather by mutableStateOf<eu.smartsteer.navigator.core.weather.Weather?>(null)
         private set
@@ -1276,7 +1300,7 @@ class HardwareController {
             powerStep()
             if (hardware) fieldLocatorStep()
             voiceStep()
-            if (hardware) { weatherStep(); windWarnStep() }
+            if (hardware) { weatherStep(); windWarnStep(); headlandSeqStep() }
             wifiStep(link)
             if (session.fieldName != savedFieldName) {
                 savedFieldName = session.fieldName
