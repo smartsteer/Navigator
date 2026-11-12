@@ -1,6 +1,6 @@
 Oznaczenie;Ilosc;Opis;Producent;MPN (do sprawdzenia);Obudowa;LCSC;Uwagi
 U10;1;Moduł Wi-Fi/Bluetooth Classic (SPP), CAN TWAI;Espressif;ESP32-WROOM-32E-N8;moduł SMD;;antena przy krawędzi płytki
-U1-U8;8;Sterownik 4 półmostków 5 A szczyt., ~50 mOhm (2 pełne mostki po 2 A ciągłe);Texas Instruments;DRV8962 (wersja i obudowa do potwierdzenia);HTSSOP PowerPAD;;16 mostków: 13 sekcji + główny + regulacyjny + rezerwa; zamiennik ST VNH7070AS
+U1-U8;8;Sterownik 4 półmostków 5 A szczyt., ~50 mOhm (2 pełne mostki po 2 A ciągłe);Texas Instruments;DRV8962QDDWRQ1 (samochodowa; zwykła DRV8962DDWR);HTSSOP-44 PowerPAD;C21218303 (DRV8962DDWR);16 mostków: 13 sekcji + główny + regulacyjny + rezerwa; zamiennik ST VNH7070AS
 U5x;4;Rejestr przesuwny 8 bit (IN/EN mostków);Nexperia;74HC595PW-Q100;TSSOP-16;;nOE podciągnięty: po resecie wszystko wyłączone
 U6x;1;Rejestr wejściowy 8 bit (nFAULT);Nexperia;74HC165PW-Q100;TSSOP-16;;
 R_PD;32;Rezystory 10 k do masy na wejściach mostków;Yageo;RC0603FR-0710KL;0603;;
@@ -20,7 +20,7 @@ F1;1;Bezpiecznik 10 A zasilania zaworów 3-pin;Littelfuse;0154010.DRT (OMNI-BLOK
 F2;1;PTC 0,5 A zasilanie przepływomierza;Bourns;MF-MSMF050-2;1812;;
 F3;1;PTC 0,2 A zasilanie czujnika ciśnienia 5 V;Bourns;MF-MSMF020-2;1812;;
 L1;1;Dławik przetwornicy (wg karty LMR33610);Würth / Bourns;wg kalkulatora TI;—;;
-J1;1;Gniazdo AMPSEAL 35-pin na płytkę (kostka A: sekcje);TE Connectivity;776231-1 (do potwierdzenia);THT;;wtyczka do wiązki: 776164-1
+J1;1;Gniazdo AMPSEAL 35-pin na płytkę (kostka A: sekcje);TE Connectivity;776231-1 (35-pin, THT);THT;;wtyczka do wiązki: 776164-1
 J2;1;Gniazdo AMPSEAL 23-pin na płytkę (kostka B: zasilanie, lampy, czujniki, CAN);TE Connectivity;770680-1 (do potwierdzenia);THT;;wtyczka do wiązki: 770680-1 / 776087-1
 J3;1;Gniazdo USB-C (tylko USB 2.0);GCT;USB4105-GF-A;SMD;;rezystory 5,1 k na CC1/CC2
 J4;1;Gniazdo SMA na obudowę + pigtail u.FL;—;SMA-K / IPEX;—;;antena GPS magnetyczna 3-5 m kabla
