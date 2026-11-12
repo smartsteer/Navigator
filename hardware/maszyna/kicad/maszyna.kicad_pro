@@ -276,6 +276,18 @@
         "pattern": "V12_ZAWORY"
       },
       {
+        "netclass": "Moc20A",
+        "pattern": "SILNIK_A"
+      },
+      {
+        "netclass": "Moc20A",
+        "pattern": "SILNIK_B"
+      },
+      {
+        "netclass": "Moc20A",
+        "pattern": "SILNIK_BOCZNIK"
+      },
+      {
         "netclass": "Moc2A",
         "pattern": "SEKCJA*"
       },

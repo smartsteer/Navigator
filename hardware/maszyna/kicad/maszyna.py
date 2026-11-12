@@ -73,10 +73,12 @@ for p in (31, 32, 33, 34, 35):
 
 # ---------------------------------------------------------------- ochrona wejścia 12 V (idealna dioda)
 U_ID = Part("Power_Management", "LM74700", footprint="Package_TO_SOT_SMD:SOT-23-6", value="LM74700-Q1")
-Q1 = Part(tool=SKIDL, name="NMOS_LFPAK56", ref_prefix="Q", footprint="Package_TO_SOT_SMD:LFPAK56", value="BUK7J1R4-40H",
-          pins=[Pin(num=1, name="S", func=Pin.types.PASSIVE), Pin(num=2, name="S", func=Pin.types.PASSIVE),
-                Pin(num=3, name="S", func=Pin.types.PASSIVE), Pin(num=4, name="G", func=Pin.types.PASSIVE),
-                Pin(num=5, name="D", func=Pin.types.PASSIVE)])
+nmos_t = Part(tool=SKIDL, name="NMOS_LFPAK56", ref_prefix="Q", footprint="Package_TO_SOT_SMD:LFPAK56", value="BUK7J1R4-40H",
+              dest=TEMPLATE,
+              pins=[Pin(num=1, name="S", func=Pin.types.PASSIVE), Pin(num=2, name="S", func=Pin.types.PASSIVE),
+                    Pin(num=3, name="S", func=Pin.types.PASSIVE), Pin(num=4, name="G", func=Pin.types.PASSIVE),
+                    Pin(num=5, name="D", func=Pin.types.PASSIVE)])
+Q1 = nmos_t()
 gate = Net("ID_GATE")
 vcap = Net("ID_VCAP")
 U_ID["ANODE"] += VIN
@@ -90,6 +92,17 @@ for p in (1, 2, 3):
     Q1[p] += VIN       # źródło od strony wejścia
 Q1[4] += gate
 Q1[5] += V12           # dren (zakładka) — wyjście
+Q1b = nmos_t()         # drugi równolegle: 40 A → 2 × 0,56 W zamiast 2,24 W (przegląd 2026-11-12)
+for p in (1, 2, 3):
+    Q1b[p] += VIN
+Q1b[4] += gate
+Q1b[5] += V12
+# główne zasilanie z ciągnika: Deutsch DTP 2-pin (25 A/styk) na obudowie → przewody 6 mm² → końcówki oczkowe M4 na płytce
+# (kostka B 1–6 zostaje równolegle — do zasilania bez silnika)
+for nm, net in (("VIN+", VIN), ("GND", GND)):
+    t = Part(tool=SKIDL, name="ZACISK_M4", ref_prefix="X", footprint="MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+             value=f"M4 {nm} (DTP zasilanie)", pins=[Pin(num=1, name="1", func=Pin.types.PASSIVE)])
+    t[1] += net
 tvs = Part("Device", "D_TVS", footprint="Diode_SMD:D_SMC", value="SMDJ26A")
 tvs[1] += V12
 tvs[2] += GND
@@ -318,7 +331,8 @@ U_ADC["AIN1"] += ain1
 # prąd lamp (IS)
 ain2 = Net("ADC_AIN2")
 U_ADC["AIN2"] += ain2
-U_ADC["AIN3"] += GND
+ain3 = Net("ADC_AIN3")         # prąd silnika (SO DRV8701)
+U_ADC["AIN3"] += ain3
 
 # ---------------------------------------------------------------- lampy robocze 20 A
 U_LAMP = Part("Power_Management", "BTS50010-1TAD", value="BTS50015-1TAD")
@@ -489,14 +503,7 @@ for k in range(8):
         u[eb] += n_en
         for n in (n_ina, n_inb, n_en):
             o = outs[bit]
-            if b == 15 and n is n_en:
-                # mostek 16 (REZERWA): EN wprost z ESP32 IO14 — sprzętowy PWM (LEDC, 15–20 kHz) do silnika DC
-                # z regulacją prędkości (np. napęd aparatu wysiewającego); kierunek nadal z rejestru (INA/INB).
-                # Bit rejestru zostaje wolny. Przy starcie nSLEEP = 0, więc impulsy IO14 przy bootowaniu nic nie włączą.
-                U_MCU["IO14"] += n
-                o += Net("NC_REG_BIT47")
-            else:
-                o += n
+            o += n
             R("10k", n, GND)      # stan bezpieczny: mostek wyłączony
             bit += 1
         # ochrona wyjść na kostce (ESD / indukcja przewodów)
@@ -505,6 +512,87 @@ for k in range(8):
             d[1] += n
             d[2] += GND
 # 74HC165 wejścia D0–D7 = nFAULT układów 0–7 (zrobione wyżej)
+
+# ---------------------------------------------------------------- mostek silnika 15 A (siewnik / zasuwa / siłownik)
+# DRV8701E (sterownik bramek mostka H, TI) + 4 × MOSFET N 1,4 mΩ; PWM na EN (ESP32 IO14, do 20 kHz), kierunek PH (IO15),
+# EN = 0 → hamowanie (oba dolne), pomiar prądu: bocznik 3 mΩ × wzmocnienie 20 → SO → AIN3. Ograniczenie prądu ~25 A (VREF 1,5 V).
+# Wyjście: końcówki M4 → przewody → Deutsch DTP 2-pin na obudowie (decyzja właściciela 2026-11-12, wariant mostka H).
+U_MOT = Part(tool=SKIDL, name="DRV8701E", ref_prefix="U", value="DRV8701ERGER",
+             footprint="Package_DFN_QFN:Texas_RGE0024H_VQFN-24-1EP_4x4mm_P0.5mm_EP2.7x2.7mm_ThermalVias",
+             pins=[Pin(num=n, name=nm, func=Pin.types.PASSIVE) for n, nm in [
+                 (1, "VM"), (2, "VCP"), (3, "CPH"), (4, "CPL"), (5, "GND"), (6, "VREF"), (7, "AVDD"), (8, "DVDD"), (9, "nFAULT"),
+                 (10, "SNSOUT"), (11, "SO"), (12, "IDRIVE"), (13, "nSLEEP"), (14, "EN"), (15, "PH"), (16, "GND"), (17, "GH1"),
+                 (18, "SH1"), (19, "GL1"), (20, "SN"), (21, "SP"), (22, "GL2"), (23, "SH2"), (24, "GH2"), (25, "PAD")]])
+MOT_A, MOT_B, MOT_SP = Net("SILNIK_A"), Net("SILNIK_B"), Net("SILNIK_BOCZNIK")
+mvcp, mcph, mcpl, mavdd, mdvdd, mvref = (Net(n) for n in ("MOT_VCP", "MOT_CPH", "MOT_CPL", "MOT_AVDD", "MOT_DVDD", "MOT_VREF"))
+MOT_PWM, MOT_DIR, MOT_FLT = Net("MOT_PWM"), Net("MOT_DIR"), Net("MOT_nFAULT")
+U_MOT["VM"] += V12
+for p in (5, 16, 25):
+    U_MOT[p] += GND
+U_MOT["VCP"] += mvcp
+U_MOT["CPH"] += mcph
+U_MOT["CPL"] += mcpl
+U_MOT["AVDD"] += mavdd
+U_MOT["DVDD"] += mdvdd
+U_MOT["VREF"] += mvref
+U_MOT["nSLEEP"] += NSLEEP
+U_MOT["EN"] += MOT_PWM
+U_MOT["PH"] += MOT_DIR
+U_MOT["nFAULT"] += MOT_FLT
+U_MOT["SNSOUT"] += Net("MOT_SNSOUT")
+U_MOT["SH1"] += MOT_A
+U_MOT["SH2"] += MOT_B
+U_MOT["SP"] += MOT_SP
+U_MOT["SN"] += GND
+C("100n 50V", V12, GND)
+C("10u 50V", V12, GND, C50_FP)
+C("10u 50V", V12, GND, C50_FP)
+cm = Part("Device", "C_Polarized", footprint="Capacitor_SMD:CP_Elec_10x10.5", value="220u 35V 105°C")
+cm[1] += V12
+cm[2] += GND
+C("1u 16V", mvcp, V12)
+C("100n 50V", mcph, mcpl)
+C("1u", mavdd, GND)
+C("1u", mdvdd, GND)
+R("22k", mavdd, mvref)          # VREF = 4,8 V × 10/32 = 1,5 V → ograniczenie 1,5 / (20 × 3 mΩ) = 25 A
+R("10k", mvref, GND)
+R("200k", U_MOT["IDRIVE"], GND)  # prąd bramek 25 / 50 mA (dobrać przy uruchomieniu)
+R("10k", mdvdd, U_MOT["SNSOUT"])
+R("10k", V3, MOT_FLT)
+U_MCU["IO14"] += MOT_PWM
+U_MCU["IO15"] += MOT_DIR
+U_MCU["IO34"] += MOT_FLT
+R("10k", MOT_PWM, GND)          # przy starcie: EN = 0 (hamowanie), a nSLEEP = 0 i tak usypia
+R("10k", MOT_DIR, GND)
+so = Net("MOT_SO")
+U_MOT["SO"] += so
+R("1k", so, ain3)
+C("1n", ain3, GND)
+# tranzystory: górne D = V12, S = faza; dolne D = faza, S = bocznik
+for half, ph, gh, gl in ((1, MOT_A, "GH1", "GL1"), (2, MOT_B, "GH2", "GL2")):
+    hs, ls = nmos_t(), nmos_t()
+    for p in (1, 2, 3):
+        hs[p] += ph
+        ls[p] += MOT_SP
+    hs[5] += V12
+    ls[5] += ph
+    ngh, ngl = Net(f"MOT_GH{half}"), Net(f"MOT_GL{half}")
+    U_MOT[gh] += ngh
+    U_MOT[gl] += ngl
+    hs[4] += ngh
+    ls[4] += ngl
+    R("100k", ngh, ph)            # bramka do źródła: tranzystor zatkany bez sterowania
+    R("100k", ngl, MOT_SP)
+rs = Part("Device", "R", footprint="Resistor_SMD:R_2512_6332Metric", value="3m 3W")
+rs[1] += MOT_SP
+rs[2] += GND
+for nm, net in (("SILNIK A", MOT_A), ("SILNIK B", MOT_B)):
+    t = Part(tool=SKIDL, name="ZACISK_M4", ref_prefix="X", footprint="MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+             value=f"M4 {nm} (DTP silnik)", pins=[Pin(num=1, name="1", func=Pin.types.PASSIVE)])
+    t[1] += net
+    d = Part("Device", "D_TVS", footprint="Diode_SMD:D_SMB", value="SMBJ26CA")
+    d[1] += net
+    d[2] += GND
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))

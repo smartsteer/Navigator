@@ -82,6 +82,8 @@ maszyna = SchLib(tool=SKIDL).add_parts(*[
         Part(**{ 'name':'C', 'dest':TEMPLATE, 'tool':SKIDL, 'aliases':Alias({'C'}), 'ref_prefix':'C', 'fplist':[''], 'footprint':'Capacitor_SMD:C_0603_1608Metric', 'keywords':'cap capacitor', 'description':'', 'datasheet':'~', 'pins':[
             Pin(num='1',name='~',func=pin_types.PASSIVE,unit=1),
             Pin(num='2',name='~',func=pin_types.PASSIVE,unit=1)], 'unit_defs':[] }),
+        Part(**{ 'name':'ZACISK_M4', 'dest':TEMPLATE, 'tool':SKIDL, 'aliases':Alias({'ZACISK_M4'}), 'ref_prefix':'X', 'fplist':None, 'footprint':'MountingHole:MountingHole_4.3mm_M4_Pad_Via', 'keywords':None, 'description':'', 'datasheet':None, 'pins':[
+            Pin(num='1',name='1',func=pin_types.PASSIVE)] }),
         Part(**{ 'name':'D_TVS', 'dest':TEMPLATE, 'tool':SKIDL, 'aliases':Alias({'D_TVS'}), 'ref_prefix':'D', 'fplist':[''], 'footprint':'Diode_SMD:D_SMC', 'keywords':'diode TVS thyrector', 'description':'', 'datasheet':'~', 'pins':[
             Pin(num='1',name='A1',func=pin_types.PASSIVE,unit=1),
             Pin(num='2',name='A2',func=pin_types.PASSIVE,unit=1)], 'unit_defs':[] }),
@@ -341,4 +343,30 @@ maszyna = SchLib(tool=SKIDL).add_parts(*[
             Pin(num='42',name='nSLEEP',func=pin_types.PASSIVE),
             Pin(num='43',name='CPL',func=pin_types.PASSIVE),
             Pin(num='44',name='CPH',func=pin_types.PASSIVE),
-            Pin(num='45',name='PAD',func=pin_types.PASSIVE)] })])
+            Pin(num='45',name='PAD',func=pin_types.PASSIVE)] }),
+        Part(**{ 'name':'DRV8701E', 'dest':TEMPLATE, 'tool':SKIDL, 'aliases':Alias({'DRV8701E'}), 'ref_prefix':'U', 'fplist':None, 'footprint':'Package_DFN_QFN:Texas_RGE0024H_VQFN-24-1EP_4x4mm_P0.5mm_EP2.7x2.7mm_ThermalVias', 'keywords':None, 'description':'', 'datasheet':None, 'pins':[
+            Pin(num='1',name='VM',func=pin_types.PASSIVE),
+            Pin(num='2',name='VCP',func=pin_types.PASSIVE),
+            Pin(num='3',name='CPH',func=pin_types.PASSIVE),
+            Pin(num='4',name='CPL',func=pin_types.PASSIVE),
+            Pin(num='5',name='GND',func=pin_types.PASSIVE),
+            Pin(num='6',name='VREF',func=pin_types.PASSIVE),
+            Pin(num='7',name='AVDD',func=pin_types.PASSIVE),
+            Pin(num='8',name='DVDD',func=pin_types.PASSIVE),
+            Pin(num='9',name='nFAULT',func=pin_types.PASSIVE),
+            Pin(num='10',name='SNSOUT',func=pin_types.PASSIVE),
+            Pin(num='11',name='SO',func=pin_types.PASSIVE),
+            Pin(num='12',name='IDRIVE',func=pin_types.PASSIVE),
+            Pin(num='13',name='nSLEEP',func=pin_types.PASSIVE),
+            Pin(num='14',name='EN',func=pin_types.PASSIVE),
+            Pin(num='15',name='PH',func=pin_types.PASSIVE),
+            Pin(num='16',name='GND',func=pin_types.PASSIVE),
+            Pin(num='17',name='GH1',func=pin_types.PASSIVE),
+            Pin(num='18',name='SH1',func=pin_types.PASSIVE),
+            Pin(num='19',name='GL1',func=pin_types.PASSIVE),
+            Pin(num='20',name='SN',func=pin_types.PASSIVE),
+            Pin(num='21',name='SP',func=pin_types.PASSIVE),
+            Pin(num='22',name='GL2',func=pin_types.PASSIVE),
+            Pin(num='23',name='SH2',func=pin_types.PASSIVE),
+            Pin(num='24',name='GH2',func=pin_types.PASSIVE),
+            Pin(num='25',name='PAD',func=pin_types.PASSIVE)] })])

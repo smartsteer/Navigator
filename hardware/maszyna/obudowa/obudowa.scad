@@ -27,6 +27,11 @@ amp_x = [11, 81];         // położenie lewej krawędzi wycięć
 amp_z = pcb_z + pcb[2];   // dół wycięcia = wierzch płytki (gniazda leżą na płytce)
 amp_sruby = 4.0;          // otwory śrub kołnierza AMPSEAL (po bokach wycięcia)
 
+// --- tylna ściana (y = max): 2 × Deutsch DTP 2-pin na panel (zasilanie, silnik) — ZMIERZYĆ otwór i rozstaw śrub z rysunku DTP04 ---
+dtp_d = 21;               // otwór pod gniazdo DTP04-2P
+dtp_x = [96, 118];        // środki gniazd od lewej krawędzi płytki (silnik, zasilanie — przy końcówkach M4)
+dtp_z = 22;               // wysokość środka nad dnem
+
 // --- otwory w ścianie prawej (x = max) ---
 usb = [10, 4.2];          // USB-C (z gumową zaślepką na zewnątrz)
 sma = 6.6;                // gniazdo SMA anteny GPS (gwint 1/4"-36)
@@ -79,6 +84,8 @@ module spod() {
         translate([xr, sc + luz + 52, sc + 24]) rotate([0, 90, 0]) cylinder(d = sma, h = sc + 2);
         translate([xr, sc + luz + 90, sc + 24]) rotate([0, 90, 0]) cylinder(d = led, h = sc + 2);
         translate([xr, sc + luz + 106, sc + 26]) rotate([0, 90, 0]) cylinder(d = odpow, h = sc + 2);
+        // tylna ściana: gniazda Deutsch DTP (silnik, zasilanie)
+        for (x = dtp_x) translate([sc + luz + x, zew[1] - sc - 1, dtp_z]) rotate([-90, 0, 0]) cylinder(d = dtp_d, h = sc + 2);
         // napis
         translate([zew[0]/2, 0.6, sc + h_spod - 9]) rotate([90, 0, 0])
             linear_extrude(1) text("SmartSteer", size = 6, halign = "center", font = "Liberation Sans:style=Bold");

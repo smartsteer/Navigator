@@ -48,7 +48,7 @@ put([r for r, f in fp.items() if f.GetValue() == "USB-C"][0], 160, 76, 90)
 put([r for r, f in fp.items() if f.GetValue() == "CH340C"][0], 145, 76)
 put([r for r, f in fp.items() if f.GetValue().startswith("TJA1051")][0], 140, 93)
 put([r for r, f in fp.items() if f.GetValue().startswith("ADS1115")][0], 152, 101)
-put([r for r, f in fp.items() if f.GetValue().startswith("74LVC1G17")][0], 128, 104)
+put([r for r, f in fp.items() if f.GetValue().startswith("74LVC1G17")][0], 136, 104)
 # sterowniki zaworów: rząd odsunięty od H1 (+2,5 mm) i od kostek (+3,5 mm) — miejsce na rząd diod TVS pod złączami
 for i, r in enumerate(ref_of("DRV8962")):
     put(r, 13.5 + i * 13.5, 63.5)
@@ -57,15 +57,31 @@ for i, r in enumerate(regs):
     put(r, 12 + i * 13, 88)
 # blok wejściowy tuż pod pinami zasilania kostki B (J2 1–6) i klucz lamp pod pinami 7–8 — krótka droga prądu 20–30 A
 put([r for r, f in fp.items() if f.GetValue().startswith("BTS500")][0], 89, 47, 0)
-put([r for r, f in fp.items() if f.GetValue().startswith("BUK7J")][0], 105, 43, 0)
-put([r for r, f in fp.items() if f.GetValue().startswith("LM74700")][0], 113, 42)
-put([r for r, f in fp.items() if f.GetValue() == "SMDJ26A"][0], 109, 51, 0)
+# wejście zasilania (Deutsch DTP → końcówki M4) z idealną diodą 2 × MOSFET — prawy dół
+idq = Q_ID = [r for r in ("Q1", "Q2")]
+put("Q1", 112, 104, 0)
+put("Q2", 121, 104, 0)
+put([r for r, f in fp.items() if f.GetValue().startswith("LM74700")][0], 116.5, 97)
+put([r for r, f in fp.items() if f.GetValue() == "SMDJ26A"][0], 129.5, 99, 90)
+put([r for r, f in fp.items() if f.GetValue().startswith("M4 VIN+")][0], 113, 114)
+put([r for r, f in fp.items() if f.GetValue().startswith("M4 GND (DTP zasilanie)")][0], 124, 114)
+# mostek silnika 15 A (DRV8701E + 4 × MOSFET + bocznik) — środek dołu, końcówki M4 przy krawędzi
+put([r for r, f in fp.items() if f.GetValue().startswith("DRV8701")][0], 58, 100)
+mos = sorted([r for r, f in fp.items() if f.GetValue().startswith("BUK7J") and r not in ("Q1", "Q2")], key=lambda r: int(r[1:]))
+for i, r in enumerate(mos):
+    put(r, 46 + i * 9, 110, 0)
+put([r for r, f in fp.items() if f.GetValue() == "3m 3W"][0], 82, 110, 90)
+put([r for r, f in fp.items() if f.GetValue().startswith("M4 SILNIK A")][0], 91, 114)
+put([r for r, f in fp.items() if f.GetValue().startswith("M4 SILNIK B")][0], 102, 114)
+tv = sorted([r for r, f in fp.items() if f.GetValue() == "SMBJ26CA"], key=lambda r: int(r[1:]))
+put(tv[0], 90, 106, 0)
+put(tv[1], 101, 106, 0)
 put([r for r, f in fp.items() if f.GetValue() == "10A mini"][0], 35, 50.2, 0)   # bezpiecznik zaworów 3-pin przy pinach J1 27–30
 for i, r in enumerate(sorted(r for r, f in fp.items() if f.GetValue().startswith("220u"))):
-    put(r, 80 + i * 14, 111)
-put([r for r, f in fp.items() if f.GetValue().startswith("LMR33610")][0], 30, 104)
-put([r for r, f in fp.items() if f.GetValue() == "10uH 2A"][0], 42, 104)
-put([r for r, f in fp.items() if f.GetValue().startswith("AMS1117")][0], 56, 104)
+    put(r, 70 + i * 14, 97.3)
+put([r for r, f in fp.items() if f.GetValue().startswith("LMR33610")][0], 12, 101)
+put([r for r, f in fp.items() if f.GetValue() == "10uH 2A"][0], 23, 101)
+put([r for r, f in fp.items() if f.GetValue().startswith("AMS1117")][0], 34, 101)
 # tor RF GPS: U10 pin 11 → L2 (bias) → J7 pin 1 w jednej linii
 u10 = [f for f in fp.values() if f.GetValue().startswith("Quectel")][0]
 p11 = [p for p in u10.Pads() if p.GetNumber() == "11"][0].GetPosition()

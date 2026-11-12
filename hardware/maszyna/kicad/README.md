@@ -61,8 +61,10 @@ Nie zmieniono (uzasadnienie):
 
 ## Sprzętowy PWM (przegląd 2026-11-12)
 
-- Mostek 16 (REZERWA, U25 EN3/EN4 → kostka B 21–22): EN z ESP32 **IO14** zamiast z rejestru — PWM 15–20 kHz, kierunek z rejestru (M16_INA/INB).
-  IO14 daje impulsy przy starcie ESP32, ale wtedy nSLEEP = 0 (sterowniki uśpione), więc nic się nie włącza.
+- ~~Mostek 16 z PWM~~ — wycofane: silnik może brać do 15 A, a DRV8962 daje 2 A / 5 A szczytowo. Zamiast tego osobny
+  **mostek silnika 15 A**: DRV8701E + 4 × BUK7J1R4‑40H, EN = PWM z IO14 (impulsy IO14 przy starcie nieszkodliwe: nSLEEP = 0 i EN ściągnięte),
+  PH = IO15, nFAULT = IO34, prąd przez bocznik 3 mΩ → SO → AIN3, wyjście końcówki M4 → Deutsch DTP 2‑pin.
+- Zasilanie główne przez Deutsch DTP 2‑pin → końcówki M4 (X1/X2), idealna dioda na dwóch MOSFET‑ach równolegle.
 - Klucz lamp U8 (IO25) obsługuje PWM 200 Hz–1 kHz bez zmian na płytce (silnik jednokierunkowy dużej mocy, pomiar prądu AIN2).
 - Uwagi z przeglądu nie wprowadzone: IO27 i IO33 nie są wolne (dioda czerwona, CAN RX); F1 i zworki nie nachodzą na inne
   elementy — `crtyd.py` liczy przecięcia courtyardów: 0 (F1 ma 0,7 mm odstępu od U20/U22, zworki są co 8 mm).

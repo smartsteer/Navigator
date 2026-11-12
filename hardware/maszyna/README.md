@@ -21,6 +21,7 @@ Licencja: GPLv3 (sprzęt opisany otwarcie, jak cały projekt).
 | GPS (tylko prędkość) | 1 | moduł GNSS na płytce + gniazdo anteny SMA |
 | Łączność z tabletem | — | **Bluetooth SPP** (płytka na opryskiwaczu, z ciągnika tylko zasilanie) **i** USB‑C (kabel, zapas, programowanie) |
 | CAN | 1 | 250 kbit/s do płytki Ster (zestaw z autosterem), terminator 120 Ω na zworce |
+| **Silnik 15 A (siewnik, zasuwa, siłownik)** | 1 | mostek H: DRV8701E + 4 × MOSFET 1,4 mΩ, PWM do 20 kHz w obie strony, hamowanie, pomiar prądu (bocznik 3 mΩ → AIN3), ograniczenie ~25 A; wyjście na **Deutsch DTP 2‑pin** |
 | Rezerwa | 2 | dwa wejścia analogowe/cyfrowe pod zasuwy rozsiewacza (później) |
 
 Zabezpieczenie: brak poleceń przez 0,5 s → zawór główny i sekcje zamknięte (programowo) — przy zaworach 3‑pin zamykają się też
@@ -68,7 +69,9 @@ po resecie są wyłączone (zawór zostaje, ale główny 3‑pin — jeśli taki
 | 26 / 27 | dioda LED zielona (praca/łączność) / czerwona (błąd) |
 | 13 / 14 | rezerwa (rozsiewacz) — wyprowadzone na kostkę B przez zabezpieczenie |
 | 39 | rezerwa wejście |
-| 14 | **PWM mostka 16 (REZERWA)** — EN3/EN4 U25 wprost z ESP32 (LEDC 15–20 kHz): silnik DC z regulacją prędkości do ~3 A (np. napęd aparatu wysiewającego); kierunek z rejestru |
+| 14 | **PWM silnika 15 A** — EN sterownika DRV8701E (LEDC do 20 kHz; 0 = hamowanie) |
+| 15 | kierunek silnika (PH DRV8701E) |
+| 34 | nFAULT DRV8701E (wejście) |
 | 36 | zworka „CAN / tylko BT” (odczyt przy starcie) |
 
 ADS1115: AIN0 ciśnienie, AIN1 napięcie zasilania (dzielnik 100k/15k), AIN2 prąd lamp (wyjście IS BTS50015), AIN3 rezerwa.
@@ -84,7 +87,7 @@ termiczne, podnapięciowe, sygnał nFAULT.
 | 1–13 | U1–U7 | sekcje 1–13 |
 | 14 | U7 (2. mostek) | zawór główny |
 | 15 | U8 (1. mostek) | zawór regulacyjny |
-| 16 | U8 (2. mostek) | rezerwa z **PWM sprzętowym** (EN z ESP32 IO14) — silnik DC z regulacją prędkości, mieszadło, zasuwa |
+| 16 | U8 (2. mostek) | rezerwa (mieszadło, mały siłownik — do 2 A) |
 
 Sterowanie: 48 sygnałów (IN_A, IN_B, wspólne EN na mostek) z 6 rejestrów 74HC595 (SPI), błędy z 74HC165. Wyjścia rejestrów po resecie odcięte,
 rezystory 10 k do masy na wejściach mostków + nSLEEP ściągnięty do masy → przy starcie i przy zawieszeniu procesora (watchdog) **nic się nie włącza samo**.
@@ -96,6 +99,13 @@ dla lamp 20 A + zaworów.
 Zawór **2‑pin**: A/B = +12/0 (otwórz) albo 0/+12 (zamknij), zasilany przez ustawiony czas (domyślnie 3 s), potem oba wyłączone.
 Zawór **3‑pin** (Arag: brązowy +12, niebieski masa, czarny sygnał): brązowy i niebieski ze wspólnych pinów zasilania kostki A,
 czarny = wyjście A kanału (+12 otwarty, 0 zamknięty), wyjście B nieużywane.
+
+## Złącza wysokoprądowe (decyzja właściciela 2026-11-12)
+
+- **Zasilanie główne: Deutsch DTP 2‑pin** (25 A/styk) na tylnej ściance obudowy, przewody 6 mm² do końcówek oczkowych M4 na płytce
+  (X1 +12 V, X2 masa), bezpiecznik 40 A przy akumulatorze. Idealna dioda: LM74700 + **2 × BUK7J1R4‑40H równolegle** (2 × 0,56 W przy 40 A).
+  Piny zasilania kostki B (1–6) zostają równolegle — wystarczą, gdy silnik 15 A nie jest używany.
+- **Silnik: Deutsch DTP 2‑pin**, przewody 4 mm² do końcówek M4 (X3 = A, X4 = B), transile SMBJ26CA przy końcówkach.
 
 ## Złącza (dwie kostki — decyzja właściciela)
 

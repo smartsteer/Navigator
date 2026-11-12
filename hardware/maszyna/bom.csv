@@ -12,7 +12,7 @@ U41;1;Przetwornik A/C 16 bit, 4 kanały, I2C;Texas Instruments;ADS1115IDGSR;VSSO
 U42;1;USB-UART;WCH;CH340C;SOP-16;;bez kwarcu, auto-reset ESP32
 U43;1;Moduł GNSS (GPS+BDS), UART;Quectel;L76K;LCC;;tylko prędkość; antena aktywna przez u.FL
 U44;1;Przerzutnik Schmitta (wejście przepływomierza);Nexperia;74LVC1G17GW;SOT-353;;
-Q1;1;MOSFET N 40 V 1,4 mOhm (idealna dioda);Nexperia;BUK7J1R4-40H;LFPAK56;;z kontrolerem U32
+Q1,Q2;2;MOSFET N 40 V 1,4 mOhm (idealna dioda, równolegle do 40 A);Nexperia;BUK7J1R4-40H;LFPAK56;;z kontrolerem U32
 U32;1;Kontroler idealnej diody (odwrotna polaryzacja);Texas Instruments;LM74700QDBVRQ1;SOT-23-6;;
 Q2,Q3;2;Tranzystory auto-reset ESP32;onsemi;MMBT3904;SOT-23;;
 D1;1;TVS 26 V 3 kW (zrzut obciążenia);Littelfuse;SMDJ26A;SMC;;dobrać do ISO 16750-2
@@ -31,3 +31,10 @@ JP2;1;Zworka czujnik ciśnienia 0,5-4,5 V / 4-20 mA;—;3-pin 2,54 mm;THT;;
 R_SH;1;Rezystor 150 Ω 0,1 % (4-20 mA);Yageo;RT0805BRD07150RL;0805;;
 LED1,LED2;2;Diody LED zielona / czerwona;—;—;0805;;widoczne przez okienko obudowy
 —;—;Rezystory, kondensatory odsprzęgające i filtrujące wg kart katalogowych;—;—;0603/0805/1206;;uzupełni 16b
+U26;1;Sterownik bramek mostka H (PH/EN), wzmacniacz prądu;Texas Instruments;DRV8701ERGER;VQFN-24 4x4 (RGE);;silnik 15 A; sprawdzić rozmiar padu termicznego z rysunkiem TI
+Q5-Q8;4;MOSFET N 40 V 1,4 mOhm (mostek silnika);Nexperia;BUK7J1R4-40H;LFPAK56;;
+R119;1;Bocznik 3 mOhm 3 W (pomiar prądu silnika);Vishay;WSLP2512R0030FEA;2512;;
+D38,D39;2;TVS dwukierunkowy 26 V (wyjścia silnika);Littelfuse;SMBJ26CA;SMB;;
+C99;1;Kondensator 220 uF 35 V 105 C (mostek silnika);Panasonic;EEH-ZA1V221P;10x10,5;;
+X1-X4;4;Końcówki oczkowe M4 na płytce (zasilanie, silnik);—;śruba M4 + nakrętka + podkładka;MountingHole_4.3mm_M4_Pad_Via;;przewody 6 mm² (zasilanie) / 4 mm² (silnik)
+J8,J9;2;Gniazdo Deutsch DTP 2-pin na panel (zasilanie, silnik) + wtyczki DTP06-2S;TE / Deutsch;DTP04-2P-L012 (do potwierdzenia) + DTP06-2S;panel;;styki 12 AWG, 25 A
