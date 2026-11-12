@@ -135,8 +135,28 @@ class SprayerController(private val files: TextFiles) {
         SprayerStatus.from(f)?.let { rxStatus = it; rxAtMs = nowMs() }
     }
 
+    /** Przełącznik sekcji: AUTO (sekcje z automatu, dotknięcie wyłącza/przywraca) albo RĘCZNIE (dotknięcie wł./wył.). */
+    var sectionsAuto by mutableStateOf(true); private set
+
+    fun setSectionsAuto(auto: Boolean) {
+        if (auto == sectionsAuto) return
+        sectionsAuto = auto
+        // przy zmianie trybu wyłączone zostają wyłączone, reszta: AUTO ↔ WŁ.
+        overrides = overrides.map { o -> if (o == SectionOverride.OFF) o else if (auto) SectionOverride.AUTO else SectionOverride.ON }
+        tick++
+    }
+
+    /** Jedno dotknięcie sekcji: AUTO ↔ WYŁ. w trybie AUTO, WŁ. ↔ WYŁ. w trybie RĘCZNIE. */
     fun cycleOverride(i: Int) {
-        overrides = overrides.mapIndexed { k, o -> if (k == i) SectionOverride.entries[(o.ordinal + 1) % 3] else o }
+        val on = if (sectionsAuto) SectionOverride.AUTO else SectionOverride.ON
+        overrides = overrides.mapIndexed { k, o -> if (k == i) (if (o == SectionOverride.OFF) on else SectionOverride.OFF) else o }
+        tick++
+    }
+
+    /** Wszystkie sekcje naraz: włączone (AUTO albo WŁ. wg trybu) albo wyłączone. */
+    fun setAllSections(on: Boolean) {
+        val v = if (!on) SectionOverride.OFF else if (sectionsAuto) SectionOverride.AUTO else SectionOverride.ON
+        overrides = overrides.map { v }
         tick++
     }
 

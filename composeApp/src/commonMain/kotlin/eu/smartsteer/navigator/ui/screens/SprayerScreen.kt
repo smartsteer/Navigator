@@ -167,9 +167,21 @@ private fun SprayerWork(hw: HardwareController) {
     // Belka z sekcjami — dotknięcie zmienia AUTO / WŁ. / WYŁ.
     Panel(Modifier.fillMaxWidth(), padding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionTitle("Sekcje — dotknij, aby przełączyć AUTO / WŁ. / WYŁ.")
-            Box(Modifier.weight(1f))
-            Label(if (hw.sprayerOnly) "Tylko opryskiwacz: AUTO = włączona z przyciskiem START" else "Automat sekcji: ${hw.session.sections.mode.label}", Ss.TextMuted, 13.sp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                SectionTitle(if (sp.sectionsAuto) "Sekcje AUTO — dotknij sekcję, aby ją wyłączyć / przywrócić" else "Sekcje RĘCZNIE — dotknij sekcję: wł. / wył.")
+                Label(
+                    if (!sp.sectionsAuto) "Sekcje nie wyłączają się same na granicy ani na obrobionym"
+                    else if (hw.sprayerOnly) "Tylko opryskiwacz: AUTO = otwarta z przyciskiem START"
+                    else "Automat sekcji Navigatora: ${hw.session.sections.mode.label}",
+                    Ss.TextMuted, 13.sp,
+                )
+            }
+            ActionButton(Modifier.height(52.dp), onClick = { sp.setAllSections(true) }) { ButtonText("WSZYSTKIE") }
+            Box(Modifier.width(8.dp))
+            ActionButton(Modifier.height(52.dp), onClick = { sp.setAllSections(false) }) { ButtonText("ŻADNA") }
+            Box(Modifier.width(12.dp))
+            Segmented(listOf("AUTO", "RĘCZNIE"), if (sp.sectionsAuto) 0 else 1, { sp.setSectionsAuto(it == 0) },
+                selectedColor = { if (it == 0) Ss.Accent else Ss.Warning })
         }
         Boom(hw)
     }
