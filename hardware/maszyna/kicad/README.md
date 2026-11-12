@@ -58,3 +58,11 @@ Nie zmieniono (uzasadnienie):
 - GPS_RF (U10 pin 11 → J7): 50 Ω, ok. 0,35–0,38 mm przy prepregu 0,2 mm nad masą (sprawdzić w kalkulatorze JLCPCB dla wybranego stosu), bez przelotek, płot z przelotek GND.
 - USB_DP/DM para 90 Ω, CANH/CANL para 120 Ω. Antena ESP32 poza miedzią wszystkich warstw (strefa zakazu jest w projekcie).
 - Masa jedna, ciągła (In1) — bez cięcia; podział stref fizyczny: moc (dół/środek, złącza), cyfrowe/RF (prawa strona).
+
+## Sprzętowy PWM (przegląd 2026-11-12)
+
+- Mostek 16 (REZERWA, U25 EN3/EN4 → kostka B 21–22): EN z ESP32 **IO14** zamiast z rejestru — PWM 15–20 kHz, kierunek z rejestru (M16_INA/INB).
+  IO14 daje impulsy przy starcie ESP32, ale wtedy nSLEEP = 0 (sterowniki uśpione), więc nic się nie włącza.
+- Klucz lamp U8 (IO25) obsługuje PWM 200 Hz–1 kHz bez zmian na płytce (silnik jednokierunkowy dużej mocy, pomiar prądu AIN2).
+- Uwagi z przeglądu nie wprowadzone: IO27 i IO33 nie są wolne (dioda czerwona, CAN RX); F1 i zworki nie nachodzą na inne
+  elementy — `crtyd.py` liczy przecięcia courtyardów: 0 (F1 ma 0,7 mm odstępu od U20/U22, zworki są co 8 mm).

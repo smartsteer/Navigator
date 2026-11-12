@@ -489,7 +489,14 @@ for k in range(8):
         u[eb] += n_en
         for n in (n_ina, n_inb, n_en):
             o = outs[bit]
-            o += n
+            if b == 15 and n is n_en:
+                # mostek 16 (REZERWA): EN wprost z ESP32 IO14 — sprzętowy PWM (LEDC, 15–20 kHz) do silnika DC
+                # z regulacją prędkości (np. napęd aparatu wysiewającego); kierunek nadal z rejestru (INA/INB).
+                # Bit rejestru zostaje wolny. Przy starcie nSLEEP = 0, więc impulsy IO14 przy bootowaniu nic nie włączą.
+                U_MCU["IO14"] += n
+                o += Net("NC_REG_BIT47")
+            else:
+                o += n
             R("10k", n, GND)      # stan bezpieczny: mostek wyłączony
             bit += 1
         # ochrona wyjść na kostce (ESD / indukcja przewodów)

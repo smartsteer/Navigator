@@ -15,7 +15,7 @@ Licencja: GPLv3 (sprzęt opisany otwarcie, jak cały projekt).
 | Sekcje (zawory Arag 2‑pin lub 3‑pin) | **13** | każda jako pełny mostek **2 A ciągłe** (decyzja właściciela: wszystkie wyjścia zaworów 2 A, z zapasem) — zmiana biegunowości dla 2‑pin, sygnał dla 3‑pin; diagnostyka przerwy/zwarcia |
 | Zawór główny | 1 | pełny mostek 2 A |
 | Zawór regulacyjny (silnik) | 1 | pełny mostek 2 A, impulsy ms z Navigatora |
-| Oświetlenie robocze | 1 | **20 A ciągłe**, klucz mocy z pomiarem prądu i zabezpieczeniem |
+| Oświetlenie robocze | 1 | **20 A ciągłe**, klucz mocy z pomiarem prądu i zabezpieczeniem; sterowany z ESP32 IO25 — można go też użyć z PWM 200 Hz–1 kHz do silnika jednokierunkowego do ~15 A (pomiar prądu przez AIN2) |
 | Przepływomierz | 1 | wejście impulsowe 12 V (otwarty kolektor / push‑pull), zasilanie czujnika 12 V z bezpiecznikiem |
 | Czujnik ciśnienia | 1 | 0,5–4,5 V (zasilanie 5 V) **albo** 4–20 mA — zworka |
 | GPS (tylko prędkość) | 1 | moduł GNSS na płytce + gniazdo anteny SMA |
@@ -68,6 +68,7 @@ po resecie są wyłączone (zawór zostaje, ale główny 3‑pin — jeśli taki
 | 26 / 27 | dioda LED zielona (praca/łączność) / czerwona (błąd) |
 | 13 / 14 | rezerwa (rozsiewacz) — wyprowadzone na kostkę B przez zabezpieczenie |
 | 39 | rezerwa wejście |
+| 14 | **PWM mostka 16 (REZERWA)** — EN3/EN4 U25 wprost z ESP32 (LEDC 15–20 kHz): silnik DC z regulacją prędkości do ~3 A (np. napęd aparatu wysiewającego); kierunek z rejestru |
 | 36 | zworka „CAN / tylko BT” (odczyt przy starcie) |
 
 ADS1115: AIN0 ciśnienie, AIN1 napięcie zasilania (dzielnik 100k/15k), AIN2 prąd lamp (wyjście IS BTS50015), AIN3 rezerwa.
@@ -83,7 +84,7 @@ termiczne, podnapięciowe, sygnał nFAULT.
 | 1–13 | U1–U7 | sekcje 1–13 |
 | 14 | U7 (2. mostek) | zawór główny |
 | 15 | U8 (1. mostek) | zawór regulacyjny |
-| 16 | U8 (2. mostek) | rezerwa (np. mieszadło / zasuwa rozsiewacza) |
+| 16 | U8 (2. mostek) | rezerwa z **PWM sprzętowym** (EN z ESP32 IO14) — silnik DC z regulacją prędkości, mieszadło, zasuwa |
 
 Sterowanie: 48 sygnałów (IN_A, IN_B, wspólne EN na mostek) z 6 rejestrów 74HC595 (SPI), błędy z 74HC165. Wyjścia rejestrów po resecie odcięte,
 rezystory 10 k do masy na wejściach mostków + nSLEEP ściągnięty do masy → przy starcie i przy zawieszeniu procesora (watchdog) **nic się nie włącza samo**.
