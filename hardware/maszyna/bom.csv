@@ -1,0 +1,28 @@
+Oznaczenie;Ilosc;Opis;Producent;MPN (do sprawdzenia);Obudowa;LCSC;Uwagi
+U10;1;Moduł Wi-Fi/Bluetooth Classic (SPP), CAN TWAI;Espressif;ESP32-WROOM-32E-N8;moduł SMD;;antena przy krawędzi płytki
+U1,U2,U3;3;Sterownik 12 półmostków, SPI, diagnostyka (automotive);Texas Instruments;DRV8912QPWPRQ1;HTSSOP-28 PowerPAD;;13 sekcji + główny + regulacyjny; sprawdzić prąd zaworów
+U20;1;Klucz mocy high-side 20 A z pomiarem prądu (lampy);Infineon;BTS50015-1TAD;PG-TO263-7;;miedź 2 oz, pole chłodzące
+U30;1;Przetwornica 12->5 V 1 A, 36 V wej.;Texas Instruments;LMR33610ADDAR;SO-8 PowerPAD;;wersja -Q1 do rozważenia
+U31;1;LDO 3,3 V 1 A;Diodes Inc.;AP2114H-3.3TRG1;SOT-223;;ESP32 do 500 mA szczytowo
+U40;1;Nadajnik-odbiornik CAN 3,3 V I/O;NXP;TJA1051T/3;SO-8;;
+U41;1;Przetwornik A/C 16 bit, 4 kanały, I2C;Texas Instruments;ADS1115IDGSR;VSSOP-10;;ciśnienie, napięcie, prąd lamp
+U42;1;USB-UART;WCH;CH340C;SOP-16;;bez kwarcu, auto-reset ESP32
+U43;1;Moduł GNSS (GPS+BDS), UART;Quectel;L76K;LCC;;tylko prędkość; antena aktywna przez u.FL
+U44;1;Przerzutnik Schmitta (wejście przepływomierza);Nexperia;74LVC1G17GW;SOT-353;;
+Q1;1;MOSFET P 40 V, ochrona przed odwrotną polaryzacją;Infineon;IPD50P04P4L-11;TO-252;;lub układ idealnej diody LM74700-Q1
+Q2,Q3;2;Tranzystory auto-reset ESP32;onsemi;MMBT3904;SOT-23;;
+D1;1;TVS 26 V 3 kW (zrzut obciążenia);Littelfuse;SMDJ26A;SMC;;dobrać do ISO 16750-2
+D2-D30;29;TVS ESD na pinach kostek;Nexperia;PESD1CAN / PESD24VS1UL;SOT-23 / SOD-323;;CAN: PESD1CAN
+F1;1;Bezpiecznik 10 A zasilania zaworów 3-pin;Littelfuse;0154010.DRT (OMNI-BLOK) lub mini ATO w gnieździe;—;;
+F2;1;PTC 0,5 A zasilanie przepływomierza;Bourns;MF-MSMF050-2;1812;;
+F3;1;PTC 0,2 A zasilanie czujnika ciśnienia 5 V;Bourns;MF-MSMF020-2;1812;;
+L1;1;Dławik przetwornicy (wg karty LMR33610);Würth / Bourns;wg kalkulatora TI;—;;
+J1;1;Gniazdo AMPSEAL 35-pin na płytkę (kostka A: sekcje);TE Connectivity;776231-1 (do potwierdzenia);THT;;wtyczka do wiązki: 776164-1
+J2;1;Gniazdo AMPSEAL 23-pin na płytkę (kostka B: zasilanie, lampy, czujniki, CAN);TE Connectivity;770680-1 (do potwierdzenia);THT;;wtyczka do wiązki: 770680-1 / 776087-1
+J3;1;Gniazdo USB-C (tylko USB 2.0);GCT;USB4105-GF-A;SMD;;rezystory 5,1 k na CC1/CC2
+J4;1;Gniazdo SMA na obudowę + pigtail u.FL;—;SMA-K / IPEX;—;;antena GPS magnetyczna 3-5 m kabla
+JP1;1;Zworka terminator CAN 120 Ω;—;2-pin 2,54 mm;THT;;
+JP2;1;Zworka czujnik ciśnienia 0,5-4,5 V / 4-20 mA;—;3-pin 2,54 mm;THT;;
+R_SH;1;Rezystor 150 Ω 0,1 % (4-20 mA);Yageo;RT0805BRD07150RL;0805;;
+LED1,LED2;2;Diody LED zielona / czerwona;—;—;0805;;widoczne przez okienko obudowy
+—;—;Rezystory, kondensatory odsprzęgające i filtrujące wg kart katalogowych;—;—;0603/0805/1206;;uzupełni 16b
