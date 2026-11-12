@@ -18,3 +18,13 @@
   Do zrobienia: ścieżki (ręcznie albo Freerouting: Plik → Eksport → Specctra DSN, potem import SES),
   polygony 20–30 A na F.Cu/B.Cu dla VIN_RAW → Q1 → V12 i U8 → LAMPA_OUT → J2 7–8 (miedź 2 oz),
   wylanie masy na F.Cu/B.Cu, DRC, potem pliki do JLCPCB (Gerber, wiercenia, BOM, CPL).
+
+## Ścieżki automatem (Freerouting) — u siebie, ok. 10 minut
+
+`maszyna.dsn` jest gotowy (wyeksportowany bez wylewek masy na F.Cu/B.Cu — warstwy wewnętrzne to płaszczyzny GND i V12).
+
+1. Zainstaluj Javę 21 i pobierz Freerouting z https://github.com/freerouting/freerouting/releases (plik `freerouting-*.jar`).
+2. `java -jar freerouting.jar -de maszyna.dsn -do maszyna.ses -mp 25`
+3. KiCad → otwórz `maszyna.kicad_pcb` → Plik → Import → Specctra Session → `maszyna.ses`.
+4. Dodaj wylewki masy na F.Cu i B.Cu (B: wypełnij strefy), sprawdź DRC, popraw ścieżki mocy (polygony 20–30 A).
+5. Plik → Fabrication Outputs → Gerbers + Drill; BOM/CPL do JLCPCB.
