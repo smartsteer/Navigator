@@ -73,6 +73,7 @@ enum class Screen(val label: String, val icon: IconKind) {
     Fields("Pola", IconKind.Field),
     Steer("Sterowanie", IconKind.Steer),
     Implement("Maszyna", IconKind.Implement),
+    Sprayer("Opryskiwacz", IconKind.Sprayer),
     Connections("Połączenia", IconKind.Network),
     Settings("Ustawienia", IconKind.Settings),
 }
@@ -138,6 +139,7 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
                         Screen.Fields -> if (hw.hardware) HardwareFieldsScreen(hw) else FieldsScreen(ctrl)
                         Screen.Steer -> if (hw.hardware) HardwareSteerScreen(hw) else SteerScreen(ctrl)
                         Screen.Implement -> if (hw.hardware) HardwareImplementScreen(hw) else ImplementScreen(ctrl)
+                        Screen.Sprayer -> eu.smartsteer.navigator.ui.screens.SprayerScreen(hw)
                         Screen.Connections -> ConnectionsScreen(ctrl, hw)
                         Screen.Settings -> SettingsScreen(hw)
                     }
@@ -417,7 +419,7 @@ private fun NavRail(current: Screen, onClose: () -> Unit, onSelect: (Screen) -> 
             val active = s == current
             val color = if (active) Ss.Accent else Ss.TextMuted
             Column(
-                Modifier.fillMaxWidth().height(68.dp).clip(RoundedCornerShape(12.dp))
+                Modifier.fillMaxWidth().height(62.dp).clip(RoundedCornerShape(12.dp))
                     .background(if (active) Ss.AccentSoft else Ss.Surface)
                     .clickable(role = Role.Tab) { onSelect(s) },
                 horizontalAlignment = Alignment.CenterHorizontally,

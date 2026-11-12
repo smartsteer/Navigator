@@ -9,6 +9,7 @@ import eu.smartsteer.navigator.core.sim.SimReceiver
 import eu.smartsteer.navigator.ui.HardwareController
 import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
+import androidx.compose.foundation.background
 import kotlin.test.Test
 
 /**
@@ -40,8 +41,14 @@ class ScreenshotTest {
             repeat(350) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t += 0.1; feed() }
             // lekki zjazd z linii, żeby lightbar coś pokazywał
             repeat(6) { sim.step(0.1, 6.0); t += 0.1; feed() }
+            // opryskiwacz: sekcje z opryskiwacza, pełny zbiornik, START, kilka sekund pracy na symulatorze
+            hw.updateProfile(hw.sprayer.applyTo(hw.profile))
+            hw.sprayer.setTank(0.0); hw.sprayer.fill(850.0)
+            hw.sprayer.toggleRun()
+            hw.sprayer.cycleOverride(6); hw.sprayer.cycleOverride(6)
+            repeat(80) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t += 0.1; feed(); hw.sprayer.step(100, s.speedKmh) { true } }
 
-            for (screen in listOf(Screen.Map, Screen.Steer, Screen.Implement, Screen.Connections, Screen.Settings)) {
+            for (screen in listOf(Screen.Map, Screen.Steer, Screen.Implement, Screen.Sprayer, Screen.Connections, Screen.Settings)) {
                 val scene = ImageComposeScene(1280, 800, Density(1f)) { App(hw, screen) }
                 try {
                     var img = scene.render(0)
@@ -50,6 +57,20 @@ class ScreenshotTest {
                 } finally {
                     scene.close()
                 }
+            }
+            run {
+                val scene = ImageComposeScene(1280, 800, Density(1f)) {
+                    eu.smartsteer.navigator.ui.theme.SmartSteerTheme {
+                        androidx.compose.foundation.layout.Box(
+                            androidx.compose.ui.Modifier.background(eu.smartsteer.navigator.ui.theme.Ss.Ground),
+                        ) { eu.smartsteer.navigator.ui.screens.SprayerScreen(hw, startInSettings = true) }
+                    }
+                }
+                try {
+                    var img = scene.render(0)
+                    for (k in 1..3) img = scene.render(k * 100_000_000L)
+                    img.encodeToData(EncodedImageFormat.PNG)?.bytes?.let { File(dir, "sprayer_ustawienia.png").writeBytes(it) }
+                } finally { scene.close() }
             }
             // podkład: sprawdzenie adresów kafelków (wynik w kafelki.txt) i zrzuty mapy z podkładem
             val (lat, lon) = s.plane!!.toGeo(s.pivot!!)

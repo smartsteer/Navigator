@@ -87,6 +87,8 @@ class HardwareController {
 
     // ---------------- profile pojazdów ----------------
     private val files = vehicleFiles()
+    /** Komputer opryskiwacza (ekran Opryskiwacz). */
+    val sprayer = SprayerController(files)
     private val profiles = Profiles(files)
     val profilesLocation: String get() = files.location
     var profileName by mutableStateOf("")
@@ -1408,6 +1410,7 @@ class HardwareController {
         }
         while (true) {
             delay(100)
+            sprayer.step(100, if (hardware) session.speedKmh else 0.0) { session.sections.on.getOrElse(it) { false } }
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
             if (exiting) { exitCountdown++; if (exitCountdown >= 8) eu.smartsteer.navigator.ui.power.PowerPlatform.exit(false) }
             powerStep()

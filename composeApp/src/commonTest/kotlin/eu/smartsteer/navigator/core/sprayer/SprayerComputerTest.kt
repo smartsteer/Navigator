@@ -104,3 +104,28 @@ class SprayerComputerTest {
         assertEquals(pos, sim.valvePosition)
     }
 }
+
+class SprayerLiquidTest {
+    @Test
+    fun rsmCorrection() {
+        val water = SprayerConfig()
+        val rsm = SprayerConfig(liquid = Liquid.RSM28, nozzleKind = NozzleKind.RSM_3)
+        // RSM 1,28 kg/l płynie √1,28 = 1,13× wolniej
+        assertTrue(abs(rsm.nozzleFlowAt(3.0) - 1.18 / 1.1314) < 0.001)
+        // ta sama dawka wymaga wyższego ciśnienia: ×1,28
+        assertTrue(abs(rsm.pressureFor(8.0) / water.pressureFor(8.0) - 1.28) < 1e-9)
+        val r = rsm.speedRangeKmh(150.0)
+        assertTrue(r.start < r.endInclusive && r.start > 0)
+    }
+
+    @Test
+    fun configTextRoundTrip() {
+        val c = SprayerConfig(
+            nozzlesPerSection = listOf(5, 6, 6, 8, 6, 6, 5), nozzleSpacingM = 0.5, nozzle = Nozzle.ISO[5],
+            nozzleKind = NozzleKind.RSM_7, liquid = Liquid.RSM32, valveType = ValveType.ARAG_2PIN,
+            flowMode = FlowMode.FLOWMETER, pulsesPerLiter = 255.0, targetLha = 180.0, tankCapacityL = 2500.0,
+        )
+        assertEquals(c, SprayerConfigText.read(SprayerConfigText.write(c)))
+        assertEquals(SprayerConfig(), SprayerConfigText.read("śmieci"))
+    }
+}

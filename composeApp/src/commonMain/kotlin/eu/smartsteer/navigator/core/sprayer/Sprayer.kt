@@ -25,6 +25,26 @@ data class Nozzle(val name: String, val color: String, val lpmAt3Bar: Double) {
     }
 }
 
+/** Rodzaj dyszy — zakres ciśnień roboczych (do podpowiedzi i alarmu). Wydatek wg rozmiaru ISO. */
+enum class NozzleKind(val label: String, val minBar: Double, val maxBar: Double) {
+    FLAT("Płaskostrumieniowa", 1.5, 5.0),
+    AIR_INDUCTION("Eżektorowa (antyznoszeniowa)", 3.0, 8.0),
+    RSM_3("RSM 3‑strumieniowa", 1.0, 3.0),
+    RSM_7("RSM wielootworowa (5–7 otworów)", 1.0, 4.0),
+    RSM_PLATE("RSM płytka kalibrowana / węże", 1.0, 3.0),
+}
+
+/**
+ * Ciecz robocza. Tabele dysz są dla wody — ciecz gęstsza płynie wolniej: przepływ = przepływ wody / √gęstości
+ * (np. RSM 1,28 kg/l → ×0,88). Dawka w kg/ha = l/ha × gęstość.
+ */
+enum class Liquid(val label: String, val density: Double) {
+    WATER("Woda / ciecz robocza", 1.0),
+    RSM28("RSM 28 %", 1.28),
+    RSM30("RSM 30 %", 1.30),
+    RSM32("RSM 32 %", 1.32),
+}
+
 /** Skąd brać przepływ do regulacji. */
 enum class FlowMode(val label: String) {
     PRESSURE("Przepływ z ciśnienia (tabela dysz)"),
@@ -39,6 +59,8 @@ data class SprayerConfig(
     /** Rozstaw dysz, m. */
     val nozzleSpacingM: Double = 0.5,
     val nozzle: Nozzle = Nozzle.ISO[4],
+    val nozzleKind: NozzleKind = NozzleKind.FLAT,
+    val liquid: Liquid = Liquid.WATER,
     val valveType: ValveType = ValveType.ARAG_3PIN,
     val flowMode: FlowMode = FlowMode.PRESSURE_AND_FLOWMETER,
     /** Impulsy przepływomierza na litr (różne u producentów, np. Arag Wolf 255). */
@@ -77,9 +99,24 @@ data class SprayerConfig(
         return if (speedKmh < 0.1 || w <= 0) 0.0 else flowLpm * 600.0 / (speedKmh * w)
     }
 
+    /** Przelicznik przepływu cieczy względem wody (1/√gęstości). */
+    val liquidFactor get() = 1.0 / sqrt(liquid.density)
+
+    /** Wydatek jednej dyszy dla wybranej cieczy przy danym ciśnieniu. */
+    fun nozzleFlowAt(bar: Double) = nozzle.flowAt(bar) * liquidFactor
+
     /** Ciśnienie, przy którym dysza da dawkę przy danej prędkości (do podpowiedzi i alarmu). */
     fun pressureFor(speedKmh: Double, rateLha: Double = targetLha) =
-        nozzle.pressureFor(rateLha * speedKmh * nozzleSpacingM / 600.0)
+        nozzle.pressureFor(rateLha * speedKmh * nozzleSpacingM / 600.0 / liquidFactor)
+
+    /** Zakres prędkości, w którym dysza utrzyma dawkę w swoim zakresie ciśnień. */
+    fun speedRangeKmh(rateLha: Double = targetLha): ClosedFloatingPointRange<Double> {
+        fun v(bar: Double) = nozzleFlowAt(bar) * 600.0 / (rateLha * nozzleSpacingM)
+        return v(nozzleKind.minBar)..v(nozzleKind.maxBar)
+    }
+
+    /** Dysze na metr belki. */
+    val nozzlesPerMeter get() = 1.0 / nozzleSpacingM
 }
 
 /**
@@ -205,7 +242,7 @@ class SprayerComputer(var config: SprayerConfig) {
     )
 
     fun reconfigure(c: SprayerConfig) {
-        val relearn = c.nozzle != config.nozzle || c.nozzlesPerSection != config.nozzlesPerSection
+        val relearn = c.nozzle != config.nozzle || c.nozzlesPerSection != config.nozzlesPerSection || c.liquid != config.liquid
         config = c
         flowMeter.pulsesPerLiter = c.pulsesPerLiter
         tank.capacityL = c.tankCapacityL
@@ -215,7 +252,7 @@ class SprayerComputer(var config: SprayerConfig) {
     /** Przepływ użyty do regulacji wg wybranego trybu. */
     fun measuredFlow(status: SprayerStatus?, sectionMask: Int): Double {
         val p = status?.pressureBar
-        val fromPressure = if (p == null || status.mainOpen.not()) 0.0 else config.openNozzles(sectionMask) * config.nozzle.flowAt(p)
+        val fromPressure = if (p == null || status.mainOpen.not()) 0.0 else config.openNozzles(sectionMask) * config.nozzleFlowAt(p)
         return when (config.flowMode) {
             FlowMode.PRESSURE -> fromPressure
             FlowMode.FLOWMETER -> flowMeter.lpm
@@ -254,4 +291,47 @@ class SprayerComputer(var config: SprayerConfig) {
 
     /** Dawka w tolerancji (±10 %), do alarmu. */
     fun rateOk() = targetLpm <= 0 || abs(flowLpm - targetLpm) <= 0.1 * targetLpm
+}
+
+/** Zapis ustawień opryskiwacza w prostym pliku „klucz=wartość”. */
+object SprayerConfigText {
+    fun write(c: SprayerConfig): String = buildString {
+        appendLine("sekcje=${c.nozzlesPerSection.joinToString(";")}")
+        appendLine("rozstaw=${c.nozzleSpacingM}")
+        appendLine("dysza=${c.nozzle.name}")
+        appendLine("rodzaj=${c.nozzleKind.name}")
+        appendLine("ciecz=${c.liquid.name}")
+        appendLine("zawory=${c.valveType.name}")
+        appendLine("pomiar=${c.flowMode.name}")
+        appendLine("impulsy=${c.pulsesPerLiter}")
+        appendLine("dawka=${c.targetLha}")
+        appendLine("zbiornik=${c.tankCapacityL}")
+        appendLine("rezerwa=${c.tankReserveL}")
+        appendLine("przesuw=${c.valveTravelMs}")
+    }
+
+    fun read(text: String?): SprayerConfig {
+        val d = SprayerConfig()
+        if (text.isNullOrBlank()) return d
+        val m = text.lines().mapNotNull { l -> l.split('=', limit = 2).takeIf { it.size == 2 }?.let { it[0].trim() to it[1].trim() } }.toMap()
+        fun dbl(k: String, def: Double) = m[k]?.toDoubleOrNull() ?: def
+        val sections = m["sekcje"]?.split(';')?.mapNotNull { it.toIntOrNull()?.coerceIn(1, 60) }
+            ?.takeIf { it.size in 1..SprayerPgn.MAX_SECTIONS } ?: d.nozzlesPerSection
+        return runCatching {
+            SprayerConfig(
+                nozzlesPerSection = sections,
+                nozzleSpacingM = dbl("rozstaw", d.nozzleSpacingM).coerceIn(0.1, 2.0),
+                nozzle = Nozzle.ISO.firstOrNull { it.name == m["dysza"] } ?: d.nozzle,
+                nozzleKind = NozzleKind.entries.firstOrNull { it.name == m["rodzaj"] } ?: d.nozzleKind,
+                liquid = Liquid.entries.firstOrNull { it.name == m["ciecz"] } ?: d.liquid,
+                valveType = ValveType.entries.firstOrNull { it.name == m["zawory"] } ?: d.valveType,
+                flowMode = FlowMode.entries.firstOrNull { it.name == m["pomiar"] } ?: d.flowMode,
+                pulsesPerLiter = dbl("impulsy", d.pulsesPerLiter).coerceIn(1.0, 10_000.0),
+                targetLha = dbl("dawka", d.targetLha).coerceIn(10.0, 2000.0),
+                tankCapacityL = dbl("zbiornik", d.tankCapacityL).coerceIn(50.0, 20_000.0),
+                tankReserveL = dbl("rezerwa", d.tankReserveL).coerceAtLeast(0.0),
+                valveTravelMs = dbl("przesuw", d.valveTravelMs.toDouble()).toInt().coerceIn(500, 30_000),
+            )
+        }.getOrDefault(d)
+    }
 }
