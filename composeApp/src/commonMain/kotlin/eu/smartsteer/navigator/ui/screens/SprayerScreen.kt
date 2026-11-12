@@ -43,6 +43,8 @@ import eu.smartsteer.navigator.core.sprayer.Nozzle
 import eu.smartsteer.navigator.core.sprayer.NozzleKind
 import eu.smartsteer.navigator.core.sprayer.SprayerAlarm
 import eu.smartsteer.navigator.core.sprayer.SprayerConfig
+import eu.smartsteer.navigator.core.sprayer.SprayerPgn
+import eu.smartsteer.navigator.core.sprayer.SpeedSource
 import eu.smartsteer.navigator.core.sprayer.ValveType
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.SectionOverride
@@ -95,7 +97,7 @@ fun SprayerScreen(hw: HardwareController, startInSettings: Boolean = false) {
             }
             Box(Modifier.weight(1f))
             Segmented(listOf("PRACA", "USTAWIENIA"), if (settings) 1 else 0, { settings = it == 1 })
-            ActionButton(Modifier.width(150.dp), background = Ss.AccentSoft, contentColor = Ss.Accent, border = Ss.Accent,
+            if (!hw.sprayerOnly) ActionButton(Modifier.width(150.dp), background = Ss.AccentSoft, contentColor = Ss.Accent, border = Ss.Accent,
                 onClick = { sp.navRequest = "Map" }) {
                 NavIcon(IconKind.Map, Ss.Accent)
                 ButtonText("MAPA", Ss.Accent, 16.sp, FontWeight.Bold)
@@ -111,7 +113,7 @@ private fun SprayerWork(hw: HardwareController) {
     val c = sp.config
     val pc = sp.computer
     val st = sp.status
-    val speed = if (hw.hardware) hw.session.speedKmh else 0.0
+    val speed = sp.speedKmh
     val running = pc.running
     val rateOk = pc.rateOk()
     val pressure = st?.pressureBar
@@ -151,12 +153,13 @@ private fun SprayerWork(hw: HardwareController) {
             Label("cel ${pc.targetLpm.pl(1)} l/min", Ss.TextSoft, 14.sp)
             Label(c.flowMode.label, Ss.TextMuted, 12.sp)
         }
-        SprayTile(Modifier.weight(1f), "PRĘDKOŚĆ", Ss.Border) {
+        SprayTile(Modifier.weight(1f), "PRĘDKOŚĆ · ${c.speedSource.label.uppercase()}", Ss.Border) {
             val r = c.speedRangeKmh(pc.targetLha)
             val inRange = speed < 0.5 || speed in r
             BigNumber(speed.pl(1), "km/h", if (inRange) Ss.Text else Ss.Warning)
             Label("dla dawki: ${r.start.pl(1)}–${r.endInclusive.pl(1)} km/h", if (inRange) Ss.TextSoft else Ss.Warning, 13.sp)
-            Label("szer. ${c.openWidthM(sp.mask).pl(1)} z ${c.totalWidthM.pl(1)} m", Ss.TextMuted, 12.sp)
+            if (c.speedSource == SpeedSource.GPS && speed < 0.1 && running) Label("brak prędkości z GPS — ustaw czujnik koła albo stałą", Ss.Warning, 12.sp)
+            else Label("szer. ${c.openWidthM(sp.mask).pl(1)} z ${c.totalWidthM.pl(1)} m", Ss.TextMuted, 12.sp)
         }
         TankTile(hw, Modifier.width(170.dp))
     }
@@ -166,7 +169,7 @@ private fun SprayerWork(hw: HardwareController) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SectionTitle("Sekcje — dotknij, aby przełączyć AUTO / WŁ. / WYŁ.")
             Box(Modifier.weight(1f))
-            Label("Automat sekcji: ${hw.session.sections.mode.label}", Ss.TextMuted, 13.sp)
+            Label(if (hw.sprayerOnly) "Tylko opryskiwacz: AUTO = włączona z przyciskiem START" else "Automat sekcji: ${hw.session.sections.mode.label}", Ss.TextMuted, 13.sp)
         }
         Boom(hw)
     }
@@ -211,7 +214,7 @@ private fun SprayerWork(hw: HardwareController) {
         ) {
             Text(
                 "⚠ " + alarms.joinToString(" · ") { it.text } +
-                    (if (sectionFaults != 0) " (sekcje ${(0 until 9).filter { sectionFaults and (1 shl it) != 0 }.joinToString { "${it + 1}" }})" else ""),
+                    (if (sectionFaults != 0) " (sekcje ${(0 until SprayerPgn.MAX_SECTIONS).filter { sectionFaults and (1 shl it) != 0 }.joinToString { "${it + 1}" }})" else ""),
                 color = if (loud) Color.White else Ss.OnWarning, fontSize = 16.sp, fontWeight = FontWeight.Bold,
             )
         }
@@ -357,12 +360,30 @@ private fun SprayerSettings(hw: HardwareController) {
         Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             LinkPanel(hw)
             Panel(Modifier.fillMaxWidth()) {
+                SectionTitle("Tryb pracy i prędkość")
+                SettingRow("Tryb") {
+                    Segmented(listOf("Nawigacja + oprysk", "Tylko opryskiwacz"), if (hw.sprayerOnly) 1 else 0, { hw.updateSprayerOnly(it == 1) })
+                }
+                Label("„Tylko opryskiwacz” — bez mapy i autosteru; sekcje włączasz przyciskami, START otwiera opryskiwanie.", Ss.TextMuted, 12.sp)
+                SettingRow("Prędkość z") {
+                    Segmented(SpeedSource.entries.map { it.label.substringBefore(" /").substringBefore(" (") }, c.speedSource.ordinal,
+                        { set(c.copy(speedSource = SpeedSource.entries[it])) })
+                }
+                if (c.speedSource == SpeedSource.WHEEL) SettingRow("Impulsy czujnika na 100 m") {
+                    NumberBox("Impulsy na 100 m", c.wheelPulsesPer100m, 0, 1.0, 100_000.0) { set(c.copy(wheelPulsesPer100m = it)) }
+                }
+                if (c.speedSource == SpeedSource.WHEEL) Label("Kalibracja: przejedź odmierzone 100 m i wpisz liczbę impulsów (licznik w płytce).", Ss.TextMuted, 12.sp)
+                if (c.speedSource == SpeedSource.MANUAL) SettingRow("Stała prędkość, km/h") {
+                    NumberBox("Prędkość, km/h", c.manualSpeedKmh, 1, 0.5, 40.0) { set(c.copy(manualSpeedKmh = it)) }
+                }
+            }
+            Panel(Modifier.fillMaxWidth()) {
                 SectionTitle("Belka i sekcje")
                 SettingRow("Liczba sekcji") {
                     SmallStepper("${c.sectionCount}", onMinus = {
                         if (c.sectionCount > 1) set(c.copy(nozzlesPerSection = c.nozzlesPerSection.dropLast(1)))
                     }, onPlus = {
-                        if (c.sectionCount < 9) set(c.copy(nozzlesPerSection = c.nozzlesPerSection + c.nozzlesPerSection.last()))
+                        if (c.sectionCount < SprayerPgn.MAX_SECTIONS) set(c.copy(nozzlesPerSection = c.nozzlesPerSection + c.nozzlesPerSection.last()))
                     })
                 }
                 SettingRow("Rozstaw dysz") {

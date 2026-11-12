@@ -20,14 +20,14 @@ Ramka jak w AgOpenGPS: `0x80 0x81 źródło PGN długość dane CRC`, CRC = mło
 |---|---|
 | 0 | licznik 0–255, rośnie z każdą ramką |
 | 1 | bit0 zawór główny otwarty, bit1 oświetlenie robocze, bit2 zawory Arag 3‑pin (0 = 2‑pin) |
-| 2–3 | maska sekcji, bit0 = sekcja 1 … bit8 = sekcja 9; 1 = otwarta |
-| 4 | liczba sekcji 1–9 |
+| 2–3 | maska sekcji, bit0 = sekcja 1 … bit12 = sekcja 13; 1 = otwarta |
+| 4 | liczba sekcji 1–13 (ustawiana w Navigatorze; płytka uniwersalna ma 13 kanałów) |
 | 5 | czas zasilania zaworu 2‑pin po przestawieniu ×100 ms (0 = 3 s) |
 | 6–7 | impuls zaworu regulacyjnego w ms (int16): + więcej cieczy, − mniej; wykonywany **raz na licznik** |
 
 Regulacja dawki (PID, uczenie zaworu) liczy się w Navigatorze — płytka tylko wykonuje impulsy.
 
-### PGN 161 (0xA1) — stan, maszyna → Navigator, co 100 ms (16 bajtów)
+### PGN 161 (0xA1) — stan, maszyna → Navigator, co 100 ms (24 bajty; starsze 16 bajtów bez czujnika koła też czytane)
 
 | bajt | znaczenie |
 |---|---|
@@ -39,6 +39,8 @@ Regulacja dawki (PID, uczenie zaworu) liczy się w Navigatorze — płytka tylko
 | 12–13 | maska błędów wyjść sekcji (przerwa / zwarcie) |
 | 14 | błędy: bit0 zawór główny, bit1 zawór regulacyjny, bit2 oświetlenie, bit3 napięcie zasilania |
 | 15 | napięcie zasilania ×0,1 V |
+| 16–19 | licznik impulsów czujnika koła / radaru (uint32) |
+| 20–23 | czas między impulsami koła, µs (0 = stoi) — prędkość bez GPS: km/h = 3,6·10⁸ / (czas × impulsy na 100 m) |
 
 Przepływ [l/min] = 60 000 000 / (czas między impulsami µs × impulsy na litr). Impulsy na litr wpisywane w Navigatorze (różne u producentów, np. Arag Wolf 255).
 
@@ -52,6 +54,7 @@ Przepływ [l/min] = 60 000 000 / (czas między impulsami µs × impulsy na litr)
 | 0x301 | Ster → Maszyna | bajt 0 licznik, 1–2 impuls zaworu regulacyjnego (int16 ms) |
 | 0x380 | Maszyna → Ster | bajty 2–9 PGN 161 (impulsy, czas między impulsami) |
 | 0x381 | Maszyna → Ster | bajt 0 licznik, 1 flagi, 2–3 ciśnienie, 4–5 błędy sekcji, 6 błędy, 7 napięcie |
+| 0x383 | Maszyna → Ster | bajty 16–23 PGN 161 (czujnik koła) |
 | 0x382 | — | rezerwa: zasuwy rozsiewacza |
 
 Płytka Ster składa 0x380 + 0x381 w PGN 161 (bit0 „łączność” = ramki z płytki Maszyna w ostatnich 0,5 s).

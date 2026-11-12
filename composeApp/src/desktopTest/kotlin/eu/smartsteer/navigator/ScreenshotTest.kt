@@ -72,6 +72,17 @@ class ScreenshotTest {
                     img.encodeToData(EncodedImageFormat.PNG)?.bytes?.let { File(dir, "sprayer_ustawienia.png").writeBytes(it) }
                 } finally { scene.close() }
             }
+            // tryb „tylko opryskiwacz”
+            hw.updateSprayerOnly(true)
+            run {
+                val scene = ImageComposeScene(1280, 800, Density(1f)) { App(hw, Screen.Sprayer) }
+                try {
+                    var img = scene.render(0)
+                    for (k in 1..4) img = scene.render(k * 100_000_000L)
+                    img.encodeToData(EncodedImageFormat.PNG)?.bytes?.let { File(dir, "tylko_oprysk.png").writeBytes(it) }
+                } finally { scene.close() }
+            }
+            hw.updateSprayerOnly(false)
             // podkład: sprawdzenie adresów kafelków (wynik w kafelki.txt) i zrzuty mapy z podkładem
             val (lat, lon) = s.plane!!.toGeo(s.pivot!!)
             val z = 18

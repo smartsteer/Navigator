@@ -15,7 +15,7 @@ object SprayerPgn {
     const val COMMAND = 0xA0   // 160: Navigator -> Ster -> Maszyna, co 100 ms
     const val STATUS = 0xA1    // 161: Maszyna -> Ster -> Navigator, co 100 ms
 
-    const val MAX_SECTIONS = 9
+    const val MAX_SECTIONS = 13
 
     /** Identyfikatory CAN (11 bit) — płytka Ster i Maszyna. */
     const val CAN_CMD = 0x300
@@ -36,8 +36,8 @@ enum class ValveType { ARAG_2PIN, ARAG_3PIN }
  *
  * [0] licznik (0–255, rośnie z każdą ramką)
  * [1] flagi: bit0 zawór główny otwarty, bit1 oświetlenie robocze, bit2 zawory 3‑pin (0 = 2‑pin)
- * [2..3] maska sekcji (bit0 = sekcja 1 … bit8 = sekcja 9), 1 = otwarta
- * [4] liczba sekcji 1–9
+ * [2..3] maska sekcji (bit0 = sekcja 1 … bit12 = sekcja 13), 1 = otwarta
+ * [4] liczba sekcji 1–13
  * [5] czas zasilania zaworu 2‑pin po przestawieniu, ×100 ms (0 = domyślnie 3 s)
  * [6..7] impuls zaworu regulacyjnego w ms, ze znakiem: + otwiera (więcej cieczy), − zamyka.
  *        Wykonywany raz dla danego licznika (powtórzona ramka nie dubluje impulsu).
@@ -53,7 +53,7 @@ data class SprayerCommand(
     val regPulseMs: Int = 0,
 ) {
     init {
-        require(sectionCount in 1..SprayerPgn.MAX_SECTIONS) { "Liczba sekcji 1–9: $sectionCount" }
+        require(sectionCount in 1..SprayerPgn.MAX_SECTIONS) { "Liczba sekcji 1–13: $sectionCount" }
     }
 
     fun data(): ByteArray {
@@ -113,6 +113,8 @@ data class SprayerCommand(
  * [12..13] maska błędów wyjść sekcji (przerwa lub zwarcie)
  * [14] błędy: bit0 zawór główny, bit1 zawór regulacyjny, bit2 oświetlenie, bit3 napięcie zasilania
  * [15] napięcie zasilania ×0,1 V
+ * [16..19] licznik impulsów czujnika koła/radaru (uint32), [20..23] czas między impulsami koła µs (0 = stoi)
+ *          — opcjonalne (ramka 16 albo 24 bajty), do pracy bez GPS
  */
 data class SprayerStatus(
     val counter: Int,
@@ -126,9 +128,11 @@ data class SprayerStatus(
     val sectionFaults: Int = 0,
     val faults: Int = 0,
     val supplyVolts: Double = 0.0,
+    val wheelCount: Long = 0,
+    val wheelPeriodUs: Long = 0,
 ) {
     fun data(): ByteArray {
-        val d = ByteArray(16)
+        val d = ByteArray(24)
         d[0] = (counter and 0xFF).toByte()
         var f = 0
         if (linkOk) f = f or 1
@@ -143,10 +147,16 @@ data class SprayerStatus(
         d[12] = (sectionFaults and 0xFF).toByte(); d[13] = (sectionFaults shr 8 and 0xFF).toByte()
         d[14] = faults.toByte()
         d[15] = (supplyVolts * 10).toInt().coerceIn(0, 255).toByte()
+        putU32(d, 16, wheelCount)
+        putU32(d, 20, wheelPeriodUs)
         return d
     }
 
     fun toFrame(source: Int = 0x7E): ByteArray = AogFrame.build(SprayerPgn.STATUS, data(), source)
+
+    /** Prędkość z czujnika koła/radaru: [pulsesPer100m] impulsów na 100 m. */
+    fun wheelKmh(pulsesPer100m: Double): Double =
+        if (wheelPeriodUs <= 0 || pulsesPer100m <= 0) 0.0 else 3.6e8 / (wheelPeriodUs * pulsesPer100m)
 
     /** Przepływ w l/min z czasu między impulsami (szybka odpowiedź także przy małym przepływie). */
     fun flowLpm(pulsesPerLiter: Double): Double =
@@ -175,6 +185,8 @@ data class SprayerStatus(
                 sectionFaults = d[12].u8() or (d[13].u8() shl 8),
                 faults = d[14].u8(),
                 supplyVolts = d[15].u8() / 10.0,
+                wheelCount = if (d.size >= 24) u32(d, 16) else 0,
+                wheelPeriodUs = if (d.size >= 24) u32(d, 20) else 0,
             )
         }
 

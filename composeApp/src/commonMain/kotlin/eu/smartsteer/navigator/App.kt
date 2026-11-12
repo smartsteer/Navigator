@@ -87,6 +87,8 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
         val upd = remember { UpdateController() }
         val hw = remember { hwIn ?: HardwareController() }
         // miniatura opryskiwacza na Mapie ↔ ekran Opryskiwacz
+        // tryb „tylko opryskiwacz”: od razu ekran opryskiwacza, menu tylko Oprysk i Ustawienia
+        LaunchedEffect(hw.sprayerOnly) { if (hw.sprayerOnly && screen != Screen.Settings) screen = Screen.Sprayer }
         LaunchedEffect(hw.sprayer.navRequest) {
             hw.sprayer.navRequest?.let { n -> Screen.entries.firstOrNull { it.name == n }?.let { screen = it }; hw.sprayer.navRequest = null }
         }
@@ -133,10 +135,10 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
             val scale = (if (DisplayPrefs.tablet) fit.coerceAtMost(2.5f) else minOf(1f, fit)).coerceAtLeast(0.35f)
             CompositionLocalProvider(LocalDensity provides Density(d.density * scale, d.fontScale)) {
         Column(Modifier.fillMaxSize().background(Ss.Ground)) {
-            TopBar(ctrl, hw)
+            if (!hw.sprayerOnly) TopBar(ctrl, hw)
             UpdateBar(upd, ctrl, hw)
             Row(Modifier.fillMaxSize()) {
-                NavRail(screen, onClose = { hw.closeApp() }) { screen = it }
+                NavRail(screen, if (hw.sprayerOnly) listOf(Screen.Sprayer, Screen.Settings) else Screen.entries, onClose = { hw.closeApp() }) { screen = it }
                 Box(Modifier.fillMaxSize()) {
                     when (screen) {
                         Screen.Map -> if (hw.hardware) HardwareMapScreen(hw) else MapScreen(ctrl)
@@ -414,12 +416,12 @@ private fun LightBar(xteCm: Double, modifier: Modifier) {
 }
 
 @Composable
-private fun NavRail(current: Screen, onClose: () -> Unit, onSelect: (Screen) -> Unit) {
+private fun NavRail(current: Screen, items: List<Screen>, onClose: () -> Unit, onSelect: (Screen) -> Unit) {
     Column(
         Modifier.width(88.dp).fillMaxHeight().background(Ss.Surface).padding(vertical = 10.dp, horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Screen.entries.forEach { s ->
+        items.forEach { s ->
             val active = s == current
             val color = if (active) Ss.Accent else Ss.TextMuted
             Column(

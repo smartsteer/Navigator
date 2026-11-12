@@ -45,6 +45,13 @@ enum class Liquid(val label: String, val density: Double) {
     RSM32("RSM 32 %", 1.32),
 }
 
+/** Skąd brać prędkość do dawki. */
+enum class SpeedSource(val label: String) {
+    GPS("GPS"),
+    WHEEL("Czujnik koła / radar"),
+    MANUAL("Stała (wpisana)"),
+}
+
 /** Skąd brać przepływ do regulacji. */
 enum class FlowMode(val label: String) {
     PRESSURE("Przepływ z ciśnienia (tabela dysz)"),
@@ -54,7 +61,7 @@ enum class FlowMode(val label: String) {
 
 /** Ustawienia opryskiwacza. */
 data class SprayerConfig(
-    /** Liczba dysz w każdej sekcji (rozmiar listy = liczba sekcji 1–9). */
+    /** Liczba dysz w każdej sekcji (rozmiar listy = liczba sekcji 1–13). */
     val nozzlesPerSection: List<Int> = List(7) { 6 },
     /** Rozstaw dysz, m. */
     val nozzleSpacingM: Double = 0.5,
@@ -73,13 +80,18 @@ data class SprayerConfig(
     val minSpeedKmh: Double = 1.0,
     /** Czas pełnego przesuwu zaworu regulacyjnego, ms (punkt startowy uczenia). */
     val valveTravelMs: Int = 4000,
+    val speedSource: SpeedSource = SpeedSource.GPS,
+    /** Impulsy czujnika koła na 100 m (kalibracja przejazdem 100 m). */
+    val wheelPulsesPer100m: Double = 1000.0,
+    /** Prędkość przy źródle „stała”, km/h. */
+    val manualSpeedKmh: Double = 8.0,
     /** Pojemność zbiornika, l. */
     val tankCapacityL: Double = 1000.0,
     /** Próg rezerwy, l. */
     val tankReserveL: Double = 100.0,
 ) {
     init {
-        require(nozzlesPerSection.size in 1..SprayerPgn.MAX_SECTIONS) { "Liczba sekcji 1–9" }
+        require(nozzlesPerSection.size in 1..SprayerPgn.MAX_SECTIONS) { "Liczba sekcji 1–13" }
     }
 
     val sectionCount get() = nozzlesPerSection.size
@@ -308,6 +320,9 @@ object SprayerConfigText {
         appendLine("zbiornik=${c.tankCapacityL}")
         appendLine("rezerwa=${c.tankReserveL}")
         appendLine("przesuw=${c.valveTravelMs}")
+        appendLine("predkosc=${c.speedSource.name}")
+        appendLine("kolo=${c.wheelPulsesPer100m}")
+        appendLine("stala=${c.manualSpeedKmh}")
     }
 
     fun read(text: String?): SprayerConfig {
@@ -331,6 +346,9 @@ object SprayerConfigText {
                 tankCapacityL = dbl("zbiornik", d.tankCapacityL).coerceIn(50.0, 20_000.0),
                 tankReserveL = dbl("rezerwa", d.tankReserveL).coerceAtLeast(0.0),
                 valveTravelMs = dbl("przesuw", d.valveTravelMs.toDouble()).toInt().coerceIn(500, 30_000),
+                speedSource = SpeedSource.entries.firstOrNull { it.name == m["predkosc"] } ?: d.speedSource,
+                wheelPulsesPer100m = dbl("kolo", d.wheelPulsesPer100m).coerceIn(1.0, 100_000.0),
+                manualSpeedKmh = dbl("stala", d.manualSpeedKmh).coerceIn(0.5, 40.0),
             )
         }.getOrDefault(d)
     }

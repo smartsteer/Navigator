@@ -89,6 +89,15 @@ class HardwareController {
     private val files = vehicleFiles()
     /** Komputer opryskiwacza (ekran Opryskiwacz). */
     val sprayer = SprayerController(files)
+    /** Tryb „tylko opryskiwacz”: bez nawigacji i autosteru — sam komputer opryskiwacza (sekcje z przycisków). */
+    var sprayerOnly by mutableStateOf(runCatching { files.read("tryb_pracy.cfg")?.trim() == "oprysk" }.getOrDefault(false))
+        private set
+
+    fun updateSprayerOnly(on: Boolean) {
+        sprayerOnly = on
+        runCatching { files.write("tryb_pracy.cfg", if (on) "oprysk" else "nawigacja") }
+        tick++
+    }
     private val profiles = Profiles(files)
     val profilesLocation: String get() = files.location
     var profileName by mutableStateOf("")
@@ -1413,7 +1422,7 @@ class HardwareController {
         }
         while (true) {
             delay(100)
-            val sprayEvents = sprayer.step(100, if (hardware) session.speedKmh else 0.0, session.fieldName) { session.sections.on.getOrElse(it) { false } }
+            val sprayEvents = sprayer.step(100, if (hardware) session.speedKmh else 0.0, session.fieldName) { i -> sprayerOnly || session.sections.on.getOrElse(i) { false } }
             if (soundOn && sprayEvents.isNotEmpty()) SoundPlayer.play(if (sprayEvents.any { it.loud }) SoundKind.ALARM else SoundKind.WARNING)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
             if (exiting) { exitCountdown++; if (exitCountdown >= 8) eu.smartsteer.navigator.ui.power.PowerPlatform.exit(false) }

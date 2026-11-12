@@ -60,3 +60,21 @@ class SprayReportTest {
         )
     }
 }
+
+class WheelSpeedTest {
+    @Test
+    fun wheelFromStatusAndSim() {
+        val s = SprayerStatus(0, true, true, false, false, 0, 0, null, wheelCount = 5, wheelPeriodUs = 45_000)
+        val back = SprayerStatus.from(eu.smartsteer.navigator.core.aog.AogFrame.parse(s.toFrame())!!)!!
+        assertEquals(s, back)
+        // 1000 imp./100 m, impuls co 45 ms → 0,1 m / 0,045 s = 2,22 m/s = 8 km/h
+        assertTrue(kotlin.math.abs(back.wheelKmh(1000.0) - 8.0) < 0.01)
+        val sim = SprayerSim().apply { groundSpeedKmh = 12.0 }
+        sim.receive(SprayerCommand(1, true, 1, 1)); repeat(100) { sim.step(10) }
+        assertTrue(kotlin.math.abs(sim.status().wheelKmh(1000.0) - 12.0) < 0.05)
+        assertTrue(kotlin.math.abs(sim.status().wheelCount - 33) <= 1)
+        // stara ramka 16 bajtów (bez koła) nadal czytana
+        val f = eu.smartsteer.navigator.core.aog.AogFrame.build(SprayerPgn.STATUS, s.data().copyOf(16))
+        assertEquals(0L, SprayerStatus.from(eu.smartsteer.navigator.core.aog.AogFrame.parse(f)!!)!!.wheelPeriodUs)
+    }
+}

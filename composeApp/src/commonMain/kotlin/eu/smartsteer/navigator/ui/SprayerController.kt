@@ -60,7 +60,7 @@ class SprayerController(private val files: TextFiles) {
     var status: SprayerStatus? by mutableStateOf(null); private set
     /** Prośba o przejście do ekranu (nazwa z enum Screen) — miniatura na Mapie ↔ ekran Opryskiwacz. */
     var navRequest: String? by mutableStateOf(null)
-    var overrides by mutableStateOf(List(9) { SectionOverride.AUTO }); private set
+    var overrides by mutableStateOf(List(SprayerPgn.MAX_SECTIONS) { SectionOverride.AUTO }); private set
     /** Maska sekcji faktycznie wysłana (bit0 = sekcja 1). */
     var mask by mutableStateOf(0); private set
     var tick by mutableStateOf(0L); private set
@@ -85,7 +85,11 @@ class SprayerController(private val files: TextFiles) {
 
     private fun newSim(c: SprayerConfig) = SprayerSim(
         nozzlesPerSection = c.nozzlesPerSection.first(), nozzleLpmAt3Bar = c.nozzle.lpmAt3Bar * c.liquidFactor, pulsesPerLiter = c.pulsesPerLiter,
+        wheelPulsesPer100m = c.wheelPulsesPer100m,
     )
+
+    /** Prędkość użyta do dawki (wg źródła z ustawień). */
+    var speedKmh by mutableStateOf(0.0); private set
 
     fun update(c: SprayerConfig) {
         if (c == config) return
@@ -161,7 +165,15 @@ class SprayerController(private val files: TextFiles) {
      * Krok co [dtMs]: [autoOn] — stan sekcji z automatu Navigatora, [field] — otwarte pole (zużycie liczone na pole).
      * Zwraca nowo włączone alarmy (do dźwięku).
      */
-    fun step(dtMs: Int, speedKmh: Double, field: String? = null, autoOn: (Int) -> Boolean): List<SprayerAlarm> {
+    fun step(dtMs: Int, gpsSpeedKmh: Double, field: String? = null, autoOn: (Int) -> Boolean): List<SprayerAlarm> {
+        val speedKmh = when (config.speedSource) {
+            eu.smartsteer.navigator.core.sprayer.SpeedSource.GPS -> gpsSpeedKmh
+            eu.smartsteer.navigator.core.sprayer.SpeedSource.MANUAL -> config.manualSpeedKmh
+            eu.smartsteer.navigator.core.sprayer.SpeedSource.WHEEL -> status?.wheelKmh(config.wheelPulsesPer100m) ?: 0.0
+        }
+        this.speedKmh = speedKmh
+        // symulator: koło kręci się z prędkością GPS, a bez GPS — z prędkością „stałą” (do nauki obsługi)
+        sim.groundSpeedKmh = if (gpsSpeedKmh > 0.3) gpsSpeedKmh else config.manualSpeedKmh
         if (field != fieldName) { fieldName = field; fieldUsedL = 0.0 }
         if (source == SprayerSource.USB && link == null && ++reconnectCountdown >= 30) { reconnectCountdown = 0; connectUsb() }
         val n = config.sectionCount

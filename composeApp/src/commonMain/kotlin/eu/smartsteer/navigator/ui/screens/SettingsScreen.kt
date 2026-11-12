@@ -96,6 +96,7 @@ fun SettingsScreen(hw: HardwareController) {
             ) {
                 when (tab) {
                     Tab.Vehicle -> {
+                        Choice("Tryb pracy", listOf("Nawigacja + opryskiwacz", "Tylko opryskiwacz"), if (hw.sprayerOnly) 1 else 0) { hw.updateSprayerOnly(it == 1) }
                         Choice("Dźwięki (autoster, alarmy, zawrót, sekcje)", listOf("WŁ.", "WYŁ."), if (hw.soundOn) 0 else 1) { hw.setSound(it == 0) }
                         Choice("Ekran", listOf("Zwykły", "Tablet (powiększony)"), if (DisplayPrefs.tablet) 1 else 0) { DisplayPrefs.updateTablet(it == 1) }
                         Choice("Kolory", listOf("Noc (ciemne)", "Dzień (jasne)"), if (DisplayPrefs.day) 1 else 0) { DisplayPrefs.updateDay(it == 1) }
