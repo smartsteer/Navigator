@@ -138,7 +138,7 @@ class SprayerController(private val files: TextFiles) {
     /** Przełącznik sekcji: AUTO (sekcje z automatu, dotknięcie wyłącza/przywraca) albo RĘCZNIE (dotknięcie wł./wył.). */
     var sectionsAuto by mutableStateOf(true); private set
 
-    fun setSectionsAuto(auto: Boolean) {
+    fun switchSectionsAuto(auto: Boolean) {
         if (auto == sectionsAuto) return
         sectionsAuto = auto
         // przy zmianie trybu wyłączone zostają wyłączone, reszta: AUTO ↔ WŁ.

@@ -180,7 +180,7 @@ private fun SprayerWork(hw: HardwareController) {
             Box(Modifier.width(8.dp))
             ActionButton(Modifier.height(52.dp), onClick = { sp.setAllSections(false) }) { ButtonText("ŻADNA") }
             Box(Modifier.width(12.dp))
-            Segmented(listOf("AUTO", "RĘCZNIE"), if (sp.sectionsAuto) 0 else 1, { sp.setSectionsAuto(it == 0) },
+            Segmented(listOf("AUTO", "RĘCZNIE"), if (sp.sectionsAuto) 0 else 1, { sp.switchSectionsAuto(it == 0) },
                 selectedColor = { if (it == 0) Ss.Accent else Ss.Warning })
         }
         Boom(hw)
