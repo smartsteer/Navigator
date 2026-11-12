@@ -25,6 +25,9 @@
 
 1. Zainstaluj Javę 21 i pobierz Freerouting z https://github.com/freerouting/freerouting/releases (plik `freerouting-*.jar`).
 2. `java -jar freerouting.jar -de maszyna.dsn -do maszyna.ses -mp 25`
+   (w DSN są już klasy: Moc20A 3 mm — VIN_RAW, V12, V12_ZAWORY, LAMPA_OUT; Moc2A 1 mm — sekcje, zawory, rezerwa; Zasilanie 0,6 mm.
+   GPS_RF jest poprowadzony ręcznie 0,36 mm i zablokowany. Pary USB_DP/USB_DM i CANH/CANL najlepiej poprowadzić ręcznie —
+   w GUI Freeroutingu można je odznaczyć przed routingiem.)
 3. KiCad → otwórz `maszyna.kicad_pcb` → Plik → Import → Specctra Session → `maszyna.ses`.
 4. Dodaj wylewki masy na F.Cu i B.Cu (B: wypełnij strefy), sprawdź DRC, popraw ścieżki mocy (polygony 20–30 A).
 5. Plik → Fabrication Outputs → Gerbers + Drill; BOM/CPL do JLCPCB.

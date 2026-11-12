@@ -17875,6 +17875,12 @@
   (gr_line (start 0 0) (end 165 0)
     (stroke (width 0.1) (type default)) (layer "Edge.Cuts") (tstamp da7d3496-1da0-4262-9d94-9de7febd87ee))
 
+  (segment locked (start 144.85 55.3) (end 150.35 55.3) (width 0.36) (layer "F.Cu") (net 76) (tstamp 0431bbc5-c0ea-4f1f-a7e7-15d07babfe5c))
+  (segment locked (start 150.35 54.51) (end 152.5 54.51) (width 0.36) (layer "F.Cu") (net 76) (tstamp 1db2bfd6-1b94-4dc8-b16a-290b4920423a))
+  (segment locked (start 152.5 54.51) (end 156.95 50.06) (width 0.36) (layer "F.Cu") (net 76) (tstamp 4ad8ec3c-947d-4063-aabd-9567dbb6006b))
+  (segment locked (start 156.95 50.06) (end 156.95 50) (width 0.36) (layer "F.Cu") (net 76) (tstamp 8ba714be-2d17-413b-ac35-a71563d17613))
+  (segment locked (start 150.35 55.3) (end 150.35 54.51) (width 0.36) (layer "F.Cu") (net 76) (tstamp aabce052-759c-4600-ba93-23bd2280e67c))
+
   (zone (net 74) (net_name "GND") (layer "F.Cu") (tstamp 55ca5809-17e7-4316-babf-bd48e84aa899) (hatch edge 0.5)
     (connect_pads (clearance 0.5))
     (min_thickness 0.25) (filled_areas_thickness no)
