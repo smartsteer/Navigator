@@ -256,6 +256,9 @@ maszyna = SchLib(tool=SKIDL).add_parts(*[
             Pin(num='16',name='RES16',func=pin_types.PASSIVE),
             Pin(num='17',name='RES17',func=pin_types.PASSIVE),
             Pin(num='18',name='SET',func=pin_types.PASSIVE)] }),
+        Part(**{ 'name':'FerriteBead', 'dest':TEMPLATE, 'tool':SKIDL, 'aliases':Alias({'FerriteBead'}), 'ref_prefix':'FB', 'fplist':[''], 'footprint':'Inductor_SMD:L_0603_1608Metric', 'keywords':'L ferrite bead inductor filter', 'description':'', 'datasheet':'~', 'pins':[
+            Pin(num='1',name='~',func=pin_types.PASSIVE,unit=1),
+            Pin(num='2',name='~',func=pin_types.PASSIVE,unit=1)], 'unit_defs':[] }),
         Part(**{ 'name':'Conn_Coaxial', 'dest':TEMPLATE, 'tool':SKIDL, 'aliases':Alias({'Conn_Coaxial'}), 'ref_prefix':'J', 'fplist':[''], 'footprint':'Connector_Coaxial:U.FL_Hirose_U.FL-R-SMT-1_Vertical', 'keywords':'BNC SMA SMB SMC LEMO coaxial connector CINCH RCA MCX MMCX U.FL UMRF', 'description':'', 'datasheet':' ~', 'pins':[
             Pin(num='1',name='In',func=pin_types.PASSIVE,unit=1),
             Pin(num='2',name='Ext',func=pin_types.PASSIVE,unit=1)], 'unit_defs':[] }),

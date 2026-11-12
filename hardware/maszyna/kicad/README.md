@@ -3,7 +3,7 @@
 | Plik | Co to |
 |---|---|
 | `maszyna.py` | schemat jako kod (SKiDL) — źródło prawdy; `python3 maszyna.py` → `maszyna.net` + `piny.tsv` |
-| `maszyna.net` | netlista KiCad (274 elementy) |
+| `maszyna.net` | netlista KiCad (279 elementów) |
 | `maszyna.kicad_pro` / `.kicad_pcb` | projekt i płytka: 165 × 120 mm, 4 warstwy (F.Cu sygnały, In1 masa, In2 +12 V, B.Cu sygnały), elementy **rozmieszczone, bez ścieżek** |
 | `place.py` / `netclass.py` | skrypty rozmieszczenia i klas połączeń (Moc20A 3 mm, Moc2A 1 mm, Zasilanie 0,6 mm) |
 | `review.py` → `../przeglad_schematu.pdf` | raport połączeń do przeglądu (pin → sieć → z czym połączony) |
@@ -28,3 +28,30 @@
 3. KiCad → otwórz `maszyna.kicad_pcb` → Plik → Import → Specctra Session → `maszyna.ses`.
 4. Dodaj wylewki masy na F.Cu i B.Cu (B: wypełnij strefy), sprawdź DRC, popraw ścieżki mocy (polygony 20–30 A).
 5. Plik → Fabrication Outputs → Gerbers + Drill; BOM/CPL do JLCPCB.
+
+## Przegląd zewnętrzny 2026-11-12 — co zmieniono, co nie
+
+Wprowadzone:
+- GPS (L76K): zasilanie VCC/V_BCKP przez koralik ferrytowy 600 Ω + 10 µF + 100 nF (sieć V3V3_GPS).
+- ADS1115: zasilanie przez filtr RC 10 Ω + 1 µF (V3V3_ADC).
+- Pomiar prądu lamp: R_IS 2,2 kΩ (20 A → ~2,0 V), do ADC przez 10 kΩ + 100 nF (ochrona przy sygnale błędu na IS).
+- Nazwy sieci pompy ładunkowej DRV8962: DRVk_VCP / DRVk_CPL / DRVk_CPH (wcześniej mylące Uk_…).
+
+Nie zmieniono (uzasadnienie):
+- OCPM do DVDD: wg karty TI stan wysoki = **automatyczny restart** po przeciążeniu (stan niski = zatrzaśnięcie) — zostawione;
+  firmware i tak czyta nFAULT przez 74HC165 i może dać impuls nSLEEP.
+- GPS_BIAS: zasilanie anteny aktywnej idzie z pinu **VDD_RF** modułu (wyjście = VCC) przez 10 Ω i 47 nH do RF_IN —
+  połączenie z V3V3 nie jest potrzebne (do potwierdzenia w L76K Hardware Design).
+- Dławik CMC na CAN — opcjonalny; do decyzji przy długiej wiązce (pinout dławika trzeba wtedy sprawdzić z kartą).
+- Footprint J2 „P0.4mm” to nazwa z biblioteki KiCad; pady faktycznie co 4,0 mm.
+
+## Wytyczne do prowadzenia ścieżek (z przeglądu)
+
+- VIN_RAW (J2 1–3 → Q1, D1) i V12 do U8/mostków: wylewki 5–8 mm na F.Cu i B.Cu, przelotki co 3–4 mm; LAMPA_OUT (U8 piny 5–7 → J2 7–8): wylewka ≥ 4–5 mm.
+- Wyjścia mostków: 3 piny OUTx połączone szerokim polem przy układzie, dalej 1,2–1,5 mm; diody TVS przy pinach złączy.
+- Pod padem każdego DRV8962: 18–24 przelotki termiczne (0,3/0,6 mm) do masy i odkryta maska od spodu; pod LMR33610 6–9 przelotek.
+- Kondensatory 10 nF / 10 µF przy pinach VM–PGND, 100 nF CPH–CPL i 1 µF VCP–VM tuż przy pinach 1, 43, 44.
+- Przetwornica: zwarta pętla Cin → VIN → SW → L1 → Cout → GND; BUCK_FB z dala od L1 i węzła SW.
+- GPS_RF (U10 pin 11 → J7): 50 Ω, ok. 0,35–0,38 mm przy prepregu 0,2 mm nad masą (sprawdzić w kalkulatorze JLCPCB dla wybranego stosu), bez przelotek, płot z przelotek GND.
+- USB_DP/DM para 90 Ω, CANH/CANL para 120 Ω. Antena ESP32 poza miedzią wszystkich warstw (strefa zakazu jest w projekcie).
+- Masa jedna, ciągła (In1) — bez cięcia; podział stref fizyczny: moc (dół/środek, złącza), cyfrowe/RF (prawa strona).

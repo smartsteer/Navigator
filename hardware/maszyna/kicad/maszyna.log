@@ -8,554 +8,564 @@ WARNING: fp-lib-table file was not found. Component footprints are not available
 WARNING: fp-lib-table file was not found. Component footprints are not available.
 WARNING: fp-lib-table file was not found. Component footprints are not available.
 WARNING: Missing tag on AMPSEAL_35 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:56.
-WARNING: Random tag wiLcnHIfOh generated for AMPSEAL_35.
+WARNING: Random tag SSS2FKCuqt generated for AMPSEAL_35.
 WARNING: Missing tag on AMPSEAL_23 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:58.
-WARNING: Random tag iflntmbKHP generated for AMPSEAL_23.
+WARNING: Random tag GteyRG8uLA generated for AMPSEAL_23.
 WARNING: Missing tag on LM74700 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:75.
-WARNING: Random tag w5DMZuyAUt generated for LM74700.
+WARNING: Random tag Pumnludq7y generated for LM74700.
 WARNING: Missing tag on NMOS_LFPAK56 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:76.
-WARNING: Random tag Ef1Kljg2Ng generated for NMOS_LFPAK56.
+WARNING: Random tag oJuqPNGWhz generated for NMOS_LFPAK56.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag uFYY0p3l1t generated for C.
+WARNING: Random tag oSJXhbztqn generated for C.
 WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:93.
-WARNING: Random tag eBUjxbQIJm generated for D_TVS.
+WARNING: Random tag Wm74fPGcnH generated for D_TVS.
 WARNING: Missing tag on C_Polarized instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:97.
-WARNING: Random tag O0Ey7662SW generated for C_Polarized.
+WARNING: Random tag hHflrRVt1e generated for C_Polarized.
 WARNING: Missing tag on C_Polarized instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:97.
-WARNING: Random tag Uh507ufqEz generated for C_Polarized.
+WARNING: Random tag oDlWgA3Xy5 generated for C_Polarized.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag VGLGEYYCqf generated for C.
+WARNING: Random tag uK09c_HpXD generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag aNVESCzvgD generated for C.
+WARNING: Random tag VFOSCXygBA generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag nZ6Jt8UWAt generated for C.
+WARNING: Random tag y0YPkqTsIL generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag f4vcRHVA64 generated for C.
+WARNING: Random tag sR6DsKEkuh generated for C.
 WARNING: Missing tag on Fuse instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:104.
-WARNING: Random tag wA0gzTbx6T generated for Fuse.
+WARNING: Random tag BiARyWaYpB generated for Fuse.
 WARNING: Missing tag on LMR33610ADDAR instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:109.
-WARNING: Random tag zFp_UUCn42 generated for LMR33610ADDAR.
+WARNING: Random tag zZwTmYPX97 generated for LMR33610ADDAR.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag _cozXuiB_b generated for C.
+WARNING: Random tag fX0nW42D_S generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag lKDGGfzUVa generated for C.
+WARNING: Random tag 49cAtwjf3a generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag OaOPHq0PCg generated for C.
+WARNING: Random tag v_yfZjhjUO generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag XPzsnDEzY0 generated for C.
+WARNING: Random tag veBjaMyIuI generated for C.
 WARNING: Missing tag on L instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:123.
-WARNING: Random tag S7bPJ5YmWc generated for L.
+WARNING: Random tag znmrBQ26LN generated for L.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag YM1AEJlDq1 generated for R.
+WARNING: Random tag R5yaJRyWaM generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag tOag09ZG32 generated for R.
+WARNING: Random tag d5eNWO4ygS generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag zuJtkqTY06 generated for C.
+WARNING: Random tag ZRQDN7mOQX generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag LhYm9mbxPz generated for C.
+WARNING: Random tag xxrhEB61xE generated for C.
 WARNING: Missing tag on AMS1117-3.3 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:132.
-WARNING: Random tag VkYjOCvo98 generated for AMS1117-3.3.
+WARNING: Random tag m2yRYg2KWH generated for AMS1117-3.3.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag JS526Pu9FF generated for C.
+WARNING: Random tag CRsU1711yx generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag l_nl02F00n generated for C.
+WARNING: Random tag f7rv5cH3qx generated for C.
 WARNING: Missing tag on ESP32-WROOM-32E instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:140.
-WARNING: Random tag BvmU3ovI7Z generated for ESP32-WROOM-32E.
+WARNING: Random tag kxz21Zdjb7 generated for ESP32-WROOM-32E.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag pNnNI0GG85 generated for C.
+WARNING: Random tag R9_duTxBqw generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag yc_mbD1QDX generated for C.
+WARNING: Random tag AVZoqCuH4t generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag ooIQTppUoh generated for R.
+WARNING: Random tag SjGDS728j6 generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag VRuTXYUbgn generated for C.
+WARNING: Random tag Hgn3Yapqsd generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag _AhpP_c33d generated for R.
+WARNING: Random tag 6HyL4aeReU generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 4omQ2HYASU generated for R.
+WARNING: Random tag OtVrs0ZQwr generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag OGSe67Um2E generated for R.
+WARNING: Random tag klCzCz1jLS generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag aIaAOEvenm generated for R.
+WARNING: Random tag NebiQXjEIA generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag pr3ln2JMgn generated for R.
+WARNING: Random tag U4kXwVOUez generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag RtiDWKdnQA generated for R.
+WARNING: Random tag IYLf6rW_wk generated for R.
 WARNING: Missing tag on Conn_01x02 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:192.
-WARNING: Random tag ZkARXNzwAO generated for Conn_01x02.
+WARNING: Random tag 3p9640povo generated for Conn_01x02.
 WARNING: Missing tag on LED instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:197.
-WARNING: Random tag srBvEZIXlO generated for LED.
+WARNING: Random tag tyka0h2x86 generated for LED.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag TGAufDDl6_ generated for R.
+WARNING: Random tag 6yTdgpU5ye generated for R.
 WARNING: Missing tag on LED instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:197.
-WARNING: Random tag S7Ks2bb7ka generated for LED.
+WARNING: Random tag IeiaNiAp4i generated for LED.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag x778xXneRK generated for R.
+WARNING: Random tag 2rvOoCPiSb generated for R.
 WARNING: Missing tag on USB_C_Receptacle_USB2.0_16P instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:204.
-WARNING: Random tag B2P_dGxTYT generated for USB_C_Receptacle_USB2.0_16P.
+WARNING: Random tag Xo09ItbFFy generated for USB_C_Receptacle_USB2.0_16P.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag l1PnXrgYQk generated for C.
+WARNING: Random tag TTdnfv7TDw generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag QlTBsyCBSP generated for R.
+WARNING: Random tag V_gUVm7euf generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 1k6XJV4aBb generated for R.
+WARNING: Random tag sAf9mKh1jp generated for R.
 WARNING: Missing tag on CH340C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:223.
-WARNING: Random tag tejuuVF7PJ generated for CH340C.
+WARNING: Random tag uTKheLHH4m generated for CH340C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag G_5esHTL3O generated for C.
+WARNING: Random tag aFcVuZFHzN generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag xHSMVIeBpc generated for R.
+WARNING: Random tag t6ogXG7eCp generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag x0ANvITG6_ generated for R.
+WARNING: Random tag Qa364NrauS generated for R.
 WARNING: Missing tag on MMBT3904 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:238.
-WARNING: Random tag m4bJqjvHxL generated for MMBT3904.
+WARNING: Random tag yzUM8AiZ_D generated for MMBT3904.
 WARNING: Missing tag on MMBT3904 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:239.
-WARNING: Random tag jCfReKg_tZ generated for MMBT3904.
+WARNING: Random tag Unt8urfQR0 generated for MMBT3904.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 42cTP5xP9K generated for R.
+WARNING: Random tag SsiieO245y generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag js4wz7ovtB generated for R.
+WARNING: Random tag tcuEq0IT1D generated for R.
 WARNING: Missing tag on TJA1051T-3 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:251.
-WARNING: Random tag UoDFoRrSYL generated for TJA1051T-3.
+WARNING: Random tag UUhTqBW7C1 generated for TJA1051T-3.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 4wo3kWlFV0 generated for C.
+WARNING: Random tag QSaJ1oQXLI generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag ekmVzmvmpp generated for C.
+WARNING: Random tag wmdblrRJVf generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag vO8ZyNh7RK generated for R.
+WARNING: Random tag D5yUkTW2Gq generated for R.
 WARNING: Missing tag on Conn_01x02 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:265.
-WARNING: Random tag 0ShGHhLsFb generated for Conn_01x02.
+WARNING: Random tag sfqIZUfcez generated for Conn_01x02.
 WARNING: Missing tag on PESD2CAN instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:269.
-WARNING: Random tag h7wzYc_SGb generated for PESD2CAN.
+WARNING: Random tag HWT0Dfw3oO generated for PESD2CAN.
 WARNING: Missing tag on ADS1115IDGS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:279.
-WARNING: Random tag FBiUUskFTT generated for ADS1115IDGS.
+WARNING: Random tag 5kqjZOMRE3 generated for ADS1115IDGS.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
+WARNING: Random tag V27SikuNyr generated for R.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
+WARNING: Random tag EAQtNqtAwd generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 0eYKZMeA6o generated for C.
+WARNING: Random tag RJhJ5of0oC generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag el9beTJzzE generated for R.
+WARNING: Random tag 5P_596X_VR generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag HChFBj194k generated for R.
-WARNING: Missing tag on Polyfuse instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:290.
-WARNING: Random tag d1vbCm0izd generated for Polyfuse.
+WARNING: Random tag IXMAyexOVU generated for R.
+WARNING: Missing tag on Polyfuse instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:293.
+WARNING: Random tag eE3tiemWJ4 generated for Polyfuse.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag g54iAgGakX generated for R.
+WARNING: Random tag IPB5VETeNt generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag JV11WGqqR6 generated for R.
+WARNING: Random tag oPtD744Cnn generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag nlgMzR2JmU generated for C.
-WARNING: Missing tag on Conn_01x02 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:300.
-WARNING: Random tag NSJgs3dkDC generated for Conn_01x02.
+WARNING: Random tag eD6t_HrJiU generated for C.
+WARNING: Missing tag on Conn_01x02 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:303.
+WARNING: Random tag CVFNUBhphW generated for Conn_01x02.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag CGtjFkOFdt generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:305.
-WARNING: Random tag NjM6EKnGI1 generated for D_TVS.
+WARNING: Random tag s2cLjv19uB generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:308.
+WARNING: Random tag RQQ3l6o7ch generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag au3Wwb9lJp generated for R.
+WARNING: Random tag bsLwOz9d6V generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag xd2h7MZ1tz generated for R.
+WARNING: Random tag mBIupCMru7 generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag gU00lKyM5u generated for C.
-WARNING: Missing tag on BTS50010-1TAD instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:321.
-WARNING: Random tag CoekAKfiGZ generated for BTS50010-1TAD.
+WARNING: Random tag qdhLVR9j7E generated for C.
+WARNING: Missing tag on BTS50010-1TAD instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:324.
+WARNING: Random tag Z52n68vnv0 generated for BTS50010-1TAD.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag CyibCUb2G1 generated for R.
+WARNING: Random tag aBPmiLdXE0 generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag y1m5TxPaAS generated for R.
+WARNING: Random tag q0G1f_DO0q generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag X3X4hiMB2r generated for R.
-WARNING: Missing tag on Polyfuse instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:335.
-WARNING: Random tag E7KKv0KdWZ generated for Polyfuse.
+WARNING: Random tag RjEb864Ues generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
+WARNING: Random tag glBXFZlPAV generated for R.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
+WARNING: Random tag 5frSael313 generated for C.
+WARNING: Missing tag on Polyfuse instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:341.
+WARNING: Random tag M9FpzC2sw0 generated for Polyfuse.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag lGkIZDIqe8 generated for R.
+WARNING: Random tag 5_RG8G3qy3 generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag V5OKtfRtOL generated for R.
+WARNING: Random tag WO7FlBzfJB generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag lK8ukhTx71 generated for R.
+WARNING: Random tag YVVT38yC6J generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag fV6RXkkpil generated for C.
-WARNING: Missing tag on 74LVC1G17 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:346.
-WARNING: Random tag afwz7cD7FP generated for 74LVC1G17.
+WARNING: Random tag xFixsI39pq generated for C.
+WARNING: Missing tag on 74LVC1G17 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:352.
+WARNING: Random tag BUqdcYjsUY generated for 74LVC1G17.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag On_CPstmDb generated for C.
-WARNING: Missing tag on L76K instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:355.
-WARNING: Random tag zZUeNX4yEf generated for L76K.
+WARNING: Random tag 7nbkGgGdly generated for C.
+WARNING: Missing tag on L76K instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:361.
+WARNING: Random tag qgdmIkPvrk generated for L76K.
+WARNING: Missing tag on FerriteBead instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:369.
+WARNING: Random tag _PVnsRKb0e generated for FerriteBead.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag fhvuNC1UL2 generated for C.
+WARNING: Random tag K5uCl7oCKe generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag Ypf8G42aHP generated for C.
+WARNING: Random tag Ptx2q8zbv_ generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag G4WJKA_QP_ generated for R.
-WARNING: Missing tag on L instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:375.
-WARNING: Random tag l3NfnWqe4G generated for L.
+WARNING: Random tag 9HuSPPOZbX generated for R.
+WARNING: Missing tag on L instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:385.
+WARNING: Random tag InKUEoQsZ4 generated for L.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag zqBwsNfDWz generated for C.
-WARNING: Missing tag on Conn_Coaxial instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:379.
-WARNING: Random tag ScP2M7UKzX generated for Conn_Coaxial.
-WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:388.
-WARNING: Random tag XMro798Yyd generated for 74HC595.
+WARNING: Random tag l4rkR2hsc9 generated for C.
+WARNING: Missing tag on Conn_Coaxial instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:389.
+WARNING: Random tag fiwVohxJWU generated for Conn_Coaxial.
+WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:398.
+WARNING: Random tag 82DMEip76v generated for 74HC595.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag PEI98olGKA generated for C.
-WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:388.
-WARNING: Random tag zXN1PXYhua generated for 74HC595.
+WARNING: Random tag eBQURSGpQg generated for C.
+WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:398.
+WARNING: Random tag nxb1ClUnnx generated for 74HC595.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag LILb6CEEua generated for C.
-WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:388.
-WARNING: Random tag oGsomSFBZG generated for 74HC595.
+WARNING: Random tag SEjXF_ci5o generated for C.
+WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:398.
+WARNING: Random tag KOvin92Rhh generated for 74HC595.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag OmyYPSGVw5 generated for C.
-WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:388.
-WARNING: Random tag ohV2c2nXta generated for 74HC595.
+WARNING: Random tag yS7EzaZD8c generated for C.
+WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:398.
+WARNING: Random tag 5HiujL_UVN generated for 74HC595.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag DIYSAfCW5v generated for C.
-WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:388.
-WARNING: Random tag 1JAmcY2RGJ generated for 74HC595.
+WARNING: Random tag T3Ij5Kg7P7 generated for C.
+WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:398.
+WARNING: Random tag 3SOAssmZvn generated for 74HC595.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag qLp1wStoKF generated for C.
-WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:388.
-WARNING: Random tag ICO7ZytlUy generated for 74HC595.
+WARNING: Random tag GKBcpfpTCx generated for C.
+WARNING: Missing tag on 74HC595 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:398.
+WARNING: Random tag jeIyx6m2sc generated for 74HC595.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag vVe9kpPidI generated for C.
-WARNING: Missing tag on 74HC165 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:405.
-WARNING: Random tag hMpeifa8ca generated for 74HC165.
+WARNING: Random tag 9FhRsOqx5v generated for C.
+WARNING: Missing tag on 74HC165 instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:415.
+WARNING: Random tag IxEKOGewgS generated for 74HC165.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag e2jELM5d2Q generated for C.
-WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:432.
-WARNING: Random tag HL1x9fMkIf generated for DRV8962DDW.
+WARNING: Random tag hUJuJk3Bc_ generated for C.
+WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:442.
+WARNING: Random tag PwqbRHk011 generated for DRV8962DDW.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag IZJFNMgrlA generated for R.
+WARNING: Random tag ncOzSftgfz generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag gSS1cmkjMz generated for C.
+WARNING: Random tag C3AgOYgjy8 generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag C3uJL6Ssdf generated for C.
+WARNING: Random tag XzzcZiROAo generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag NdG2ksWkiy generated for C.
+WARNING: Random tag 9gpsX7lx5s generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag zS79cZhJgT generated for C.
+WARNING: Random tag o7JR0NM2mM generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag zafGWB51vB generated for R.
+WARNING: Random tag ASJfyKp_Id generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag XjOfCrSVok generated for R.
+WARNING: Random tag hWCNy4A_zG generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag CUlStMSrPh generated for C.
+WARNING: Random tag TQd_9I8x3u generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag H1NZaFagvZ generated for C.
+WARNING: Random tag 4IHfHovByQ generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag vilLRrkSvk generated for C.
+WARNING: Random tag pyicJqpxIt generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag BQoI7gXEQz generated for R.
+WARNING: Random tag sfHSgswiSM generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag KYlSmYEBlo generated for R.
+WARNING: Random tag 3bATUZbT6H generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag c7TndJB5NV generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag ngOnGHUJAr generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag vjydsjtRzh generated for D_TVS.
+WARNING: Random tag Y6a2hleCVn generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag tXN2g4XlCi generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag dQopkg8TUs generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag ndcgo0FZFn generated for R.
+WARNING: Random tag a2TZVrbSzY generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag ZvRjSgxwSL generated for R.
+WARNING: Random tag b1WJ252Xux generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag Qx3Gyxt8zf generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag tn4BSBT0UU generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag al7BDOLXYL generated for D_TVS.
-WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:432.
-WARNING: Random tag sSVSm0hUVp generated for DRV8962DDW.
+WARNING: Random tag ks0tPOgOT_ generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag oHqWuREpaQ generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag 25Bko1Imrv generated for D_TVS.
+WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:442.
+WARNING: Random tag t0tDcSY8oc generated for DRV8962DDW.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag LZp3NKVBJd generated for R.
+WARNING: Random tag xEKo6YQSIh generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag xrKkUFbXfl generated for C.
+WARNING: Random tag 96t9tQS3Kc generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag BHpkrgudCQ generated for C.
+WARNING: Random tag RUr6rFAt_J generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag NYyBgW2PXG generated for C.
+WARNING: Random tag jjRtWeV1Ej generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 26JsaovXgg generated for C.
+WARNING: Random tag zDQaonkCmJ generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag XyGmvpybq5 generated for R.
+WARNING: Random tag 6frTbr5A9v generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag gq8MGxRVXM generated for R.
+WARNING: Random tag pLkiK77auq generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 5DYg9TPqx0 generated for C.
+WARNING: Random tag RIo7DGorNy generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag eEOAlEEtoU generated for C.
+WARNING: Random tag 4ajJ_H6OGb generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag tFIvcWlKve generated for C.
+WARNING: Random tag pAYLJISyAg generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag WbUeVm1dfq generated for R.
+WARNING: Random tag 7KxylIn5Mo generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag WuUnsJk0EC generated for R.
+WARNING: Random tag pTyJQVLGQz generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag Oc9pGqp7Bw generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag FwB3Cgcv2T generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag rtVlxmZdND generated for D_TVS.
+WARNING: Random tag eakogYNBiU generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag Hq7zzNo3xl generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag l80nMKht_Z generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag YJ7ignxHOP generated for R.
+WARNING: Random tag HcDxZfXuig generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag WxPfbipwIk generated for R.
+WARNING: Random tag dcHm9GV1r2 generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag wm67qwQ0E_ generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag jugzJ7KvHk generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag B9rA0qCK3j generated for D_TVS.
-WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:432.
-WARNING: Random tag ufhZt7hggz generated for DRV8962DDW.
+WARNING: Random tag FVKSoewUdr generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag BzGGW0oMDp generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag kCbj7u_lbg generated for D_TVS.
+WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:442.
+WARNING: Random tag 6RZ0AKQbDD generated for DRV8962DDW.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 5xYBkA7tIh generated for R.
+WARNING: Random tag LbfUX9zNHL generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag BwPOUIhc4U generated for C.
+WARNING: Random tag UokDlzOSK9 generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag xhKTIRUDCs generated for C.
+WARNING: Random tag H1AlR0kSFi generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 28aRbgNDoa generated for C.
+WARNING: Random tag DrWFkUnCjg generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag pnEYTGWW5o generated for C.
+WARNING: Random tag Ehmg0vwaPC generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag sAsPapF7_3 generated for R.
+WARNING: Random tag ISjLNLWrVc generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag az3BuZB7IV generated for R.
+WARNING: Random tag PuC9VEWiIl generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag rRodFTGysN generated for C.
+WARNING: Random tag HHUH7wye_b generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag _DFg7yRod4 generated for C.
+WARNING: Random tag 0DrazWS1qy generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 1gRTccBp_A generated for C.
+WARNING: Random tag mzAa6Zx6ks generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag Pu6aS3v5At generated for R.
+WARNING: Random tag 6EHkOKhFdg generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag caeEgnTMlq generated for R.
+WARNING: Random tag lr0KdiVomC generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag hXPzBJmOb2 generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag qBEQPpK0Qk generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag c6q_NuVuob generated for D_TVS.
+WARNING: Random tag GxZOGtNYxe generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag W3_TWO8rJP generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag Q2Fz1kPJwY generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag GZNOhLdc_O generated for R.
+WARNING: Random tag svCVxCpCkI generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag LeWet1Hwnw generated for R.
+WARNING: Random tag 69MJP01bbG generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag aLfhSLu1s7 generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag vBkPBoMT6D generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag sgd2BFgWFG generated for D_TVS.
-WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:432.
-WARNING: Random tag qTX5WV_12J generated for DRV8962DDW.
+WARNING: Random tag WCduJhsttS generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag 70Evpa11sw generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag tZqqONC69H generated for D_TVS.
+WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:442.
+WARNING: Random tag cRGs0uFT4Y generated for DRV8962DDW.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag U6XvKgld34 generated for R.
+WARNING: Random tag dPc1dPA5zU generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag ckTFH0xD5m generated for C.
+WARNING: Random tag xXYaVwsFyG generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag OBoDXCoiQL generated for C.
+WARNING: Random tag 6dQbCWU8Px generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag dkNYaGVMhI generated for C.
+WARNING: Random tag EJDOVDxnEk generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag Qibn_6tlUS generated for C.
+WARNING: Random tag kPnp_UCCNX generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 1asdPQNv7D generated for R.
+WARNING: Random tag sZlWiW484d generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag yYMU4o8wwm generated for R.
+WARNING: Random tag p4mze9kF4S generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 3_qkBjddS8 generated for C.
+WARNING: Random tag xS0SsMk75r generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag HAD8cPEiHy generated for C.
+WARNING: Random tag s_5ae1py0y generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag bNJFi_aTnh generated for C.
+WARNING: Random tag twJ1cNOHDU generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag E76URf0j4Q generated for R.
+WARNING: Random tag wLQcce8sPF generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 18kduJlu0u generated for R.
+WARNING: Random tag qi6eg1AMsV generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag aesJPPLhHF generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag Jq3NBbd315 generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag iu8T6hARoh generated for D_TVS.
+WARNING: Random tag BLwhj3PW3C generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag JV0tO29pc7 generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag QGnKffkzj2 generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag w68xhFb1w2 generated for R.
+WARNING: Random tag 4cZZ93s1fl generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag rx9_FNF5xX generated for R.
+WARNING: Random tag lUXmzr3fBB generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag pTgHH5nMua generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag GxtDYDsqJG generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag fmJdj8du6Z generated for D_TVS.
-WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:432.
-WARNING: Random tag LUzvEg20ZW generated for DRV8962DDW.
+WARNING: Random tag 96sFutl36M generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag ZNnx35qs9G generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag 3cGbqtXhw2 generated for D_TVS.
+WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:442.
+WARNING: Random tag 2sSP0sWA49 generated for DRV8962DDW.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag SFbvTSz7N5 generated for R.
+WARNING: Random tag IfFul3rcVQ generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag WhKr_Tl5sN generated for C.
+WARNING: Random tag 1CMadMnlyF generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag XpmHVUvt6_ generated for C.
+WARNING: Random tag aRqTXPJJKG generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 7O_AgmVVNd generated for C.
+WARNING: Random tag F5o7OddunF generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag qdIHo0BUKu generated for C.
+WARNING: Random tag YdMeSizvw4 generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag btjpU8pxif generated for R.
+WARNING: Random tag kranDlByfH generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag Gl8_YWZ2FT generated for R.
+WARNING: Random tag lrvpW9E0MD generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 1S5t4L4rQm generated for C.
+WARNING: Random tag Wc21FLZtDK generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag v9Oqh8FcZQ generated for C.
+WARNING: Random tag d6O7pMYe9e generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag VFg3KhVhTm generated for C.
+WARNING: Random tag H0e2Sl6s4o generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag MBYmXHCU0r generated for R.
+WARNING: Random tag dK7jfn86Nu generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag IdGWIKch7E generated for R.
+WARNING: Random tag _7qYYYDn44 generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag A4SxCjrwDG generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag AwHJ_js5b9 generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag j58yMNkp9y generated for D_TVS.
+WARNING: Random tag kCH2jYgEBe generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag ztHTt4xNw_ generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag cOh77DEs25 generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag lAGASZ_so9 generated for R.
+WARNING: Random tag 7oRaNARV2Y generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag _zCTXzmdBc generated for R.
+WARNING: Random tag 67usERUHjC generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag JWcqNP5Mdm generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag 1Qy2DnUSGu generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag u5TCbAyTA7 generated for D_TVS.
-WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:432.
-WARNING: Random tag 347OxEwjOo generated for DRV8962DDW.
+WARNING: Random tag YHywLlEkpn generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag is2_bNjn08 generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag lQRTbFktdj generated for D_TVS.
+WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:442.
+WARNING: Random tag jyNpgBMPo2 generated for DRV8962DDW.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 35mdha9JBI generated for R.
+WARNING: Random tag LaMTHD7bmV generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 3mGtvmsXhU generated for C.
+WARNING: Random tag cDRsm7_ok0 generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag KnZUAfqsL9 generated for C.
+WARNING: Random tag 2TUgssPDE0 generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag H4f6HwZLMh generated for C.
+WARNING: Random tag suCsJWI9F1 generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 8tsgxpsli7 generated for C.
+WARNING: Random tag akEG4Kka1c generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag CCVxpQnjXh generated for R.
+WARNING: Random tag 7JEMqy2dy7 generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag VPULdOMGgs generated for R.
+WARNING: Random tag glqTBq5ADq generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag jkgEqPRjaU generated for C.
+WARNING: Random tag 8QRvExEx3B generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag LNzYEu_k9M generated for C.
+WARNING: Random tag f1LQr1MSSB generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 2K6EvGmwpU generated for C.
+WARNING: Random tag 40bNjMVcJs generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 4T56YbIbU0 generated for R.
+WARNING: Random tag Xuk2oZ4Dlp generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag BRDcIuu_Ht generated for R.
+WARNING: Random tag EHyJ_YQWJq generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag KNAFuboA5k generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag 0kFnRd3ICI generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag Qwe5kcL6zw generated for D_TVS.
+WARNING: Random tag BaTrx4x8Ye generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag c8yZVXOHuf generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag 7NBvP5vQjH generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 9VaWzFF00z generated for R.
+WARNING: Random tag yDoUImsN4s generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag al3WZXB7Bg generated for R.
+WARNING: Random tag 3PgRiKHjJB generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag BvlNMYthFA generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag tctzm3qy0H generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag 1Zv4kFOjOr generated for D_TVS.
-WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:432.
-WARNING: Random tag CFrrq18Ls3 generated for DRV8962DDW.
+WARNING: Random tag 5j5rWLfmb4 generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag T_H6Riq2MD generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag OBNq5X5_D7 generated for D_TVS.
+WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:442.
+WARNING: Random tag UuA3B02TZN generated for DRV8962DDW.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag _mZZLLvoYk generated for R.
+WARNING: Random tag pqQXGDX0o1 generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 0hbzYcFJUz generated for C.
+WARNING: Random tag W9Fc3_1yf0 generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag hT7XRGXPk9 generated for C.
+WARNING: Random tag YdWv5IDUyP generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag khJD9QltML generated for C.
+WARNING: Random tag SZzJ4ZEhcT generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag RjLkv4JnMh generated for C.
+WARNING: Random tag YRwsEqnvVp generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag L5HowGaZCP generated for R.
+WARNING: Random tag fMPSJIrLg5 generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag RYBDeINZoa generated for R.
+WARNING: Random tag BnEw9JYlid generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag 4DSKPUffER generated for C.
+WARNING: Random tag 5xlPUV3AbM generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag YhKtYeW2Ex generated for C.
+WARNING: Random tag S7uo_lJF7I generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag OM3Gs4XhrL generated for C.
+WARNING: Random tag VOCXAzcIZn generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag RlKCzcWMks generated for R.
+WARNING: Random tag 6cS11YWEcN generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 7lKLEtTN8v generated for R.
+WARNING: Random tag ktJXGKzULG generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag PjYvGzMHFs generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag OsrnATL46N generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag 77Cr0NVXKe generated for D_TVS.
+WARNING: Random tag 9gSXSo3b5Z generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag zlI9AutNpS generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag caea9CMBbt generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag wvS7tSbyrb generated for R.
+WARNING: Random tag G9isiK8Ile generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag nNiTiNsbQi generated for R.
+WARNING: Random tag bbVDOJuqnI generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag NKRaCupGnh generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag JYm6VxIWmr generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag FQjc6prr1g generated for D_TVS.
-WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:432.
-WARNING: Random tag 31vDTzVT3s generated for DRV8962DDW.
+WARNING: Random tag gqJOHl9OpU generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag ft_aCQWgHj generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag wGJVjw0RRC generated for D_TVS.
+WARNING: Missing tag on DRV8962DDW instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:442.
+WARNING: Random tag PLsonfKHWm generated for DRV8962DDW.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 3ohVNcEHf2 generated for R.
+WARNING: Random tag S8t6R5XA5R generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag XLiLghHIS_ generated for C.
+WARNING: Random tag 6ZGFvChvOA generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag QhaXFuSwXA generated for C.
+WARNING: Random tag zXES1_Z9H0 generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag PiCbb8EqAV generated for C.
+WARNING: Random tag QJ6zXwxKEQ generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag kDFifLb0Uc generated for C.
+WARNING: Random tag a_a9HobarO generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag DODPnqoqW3 generated for R.
+WARNING: Random tag gZs1d44GA7 generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag v04klqWtet generated for R.
+WARNING: Random tag GnNfAS_v7l generated for R.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag vk0fbda5IF generated for C.
+WARNING: Random tag ITDX761fbX generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag ogROtiWL_F generated for C.
+WARNING: Random tag bi4Gh934vB generated for C.
 WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:39.
-WARNING: Random tag meqx6LFiT2 generated for C.
+WARNING: Random tag EbbmUtFK3e generated for C.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag tr5x9LeeK0 generated for R.
+WARNING: Random tag 0Qcwy3VsNe generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 8lTRmzwYPh generated for R.
+WARNING: Random tag Po6Ao6r_hh generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag FZcP0f8PXg generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag fcSjLMJ6BA generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag FRSfMgPl_5 generated for D_TVS.
+WARNING: Random tag U50JhwMyGK generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag svect6edc2 generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag 2t1y2vcAz8 generated for D_TVS.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag SmyepH7sTY generated for R.
+WARNING: Random tag hh3XsjeGh9 generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag 17u7T5XoXG generated for R.
+WARNING: Random tag RTt4vBsevX generated for R.
 WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:32.
-WARNING: Random tag OlvbHrtYRJ generated for R.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag 868eKdtcOv generated for D_TVS.
-WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:487.
-WARNING: Random tag PmzEwOtun7 generated for D_TVS.
+WARNING: Random tag Ma4XA98hZb generated for R.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag ST3Fthr2X7 generated for D_TVS.
+WARNING: Missing tag on D_TVS instantiated at /home/claude/navigator/hardware/maszyna/kicad/maszyna.py:497.
+WARNING: Random tag rQ55v6nMGw generated for D_TVS.
 WARNING: Missing tag on  instantiated at /home/claude/navigator/hardware/maszyna/kicad/<frozen importlib._bootstrap>:488.
-INFO: 553 warnings found while generating netlist.
+INFO: 563 warnings found while generating netlist.
 INFO: 0 errors found while generating netlist.
 

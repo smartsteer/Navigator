@@ -277,13 +277,16 @@ J2[20] += CANL
 
 # ---------------------------------------------------------------- przetwornik A/C (ciśnienie, napięcie, prąd lamp)
 U_ADC = Part("Analog_ADC", "ADS1115IDGS", value="ADS1115IDGSR")
-U_ADC["VDD"] += V3
+V3_ADC = Net("V3V3_ADC")        # filtr RC: mniej szumu od ESP32 (przegląd 2026-11-12)
+R("10", V3, V3_ADC)
+C("1u", V3_ADC, GND)
+U_ADC["VDD"] += V3_ADC
 U_ADC["GND"] += GND
 U_ADC["ADDR"] += GND
 U_ADC["SDA"] += SDA
 U_ADC["SCL"] += SCL
 U_ADC["ALERT/RDY"] += Net("ADC_RDY")
-C("100n", V3, GND)
+C("100n", V3_ADC, GND)
 R("4k7", V3, SDA)
 R("4k7", V3, SCL)
 # ciśnienie: kostka B 16 +5 V (PTC), 17 sygnał, 18 masa
@@ -326,8 +329,11 @@ lamp_gnd = Net("LAMP_GND")
 U_LAMP["GND"] += lamp_gnd
 R("47", lamp_gnd, GND)
 R("4k7", LAMP_IN, U_LAMP["IN"])
-R("1k2", U_LAMP["IS"], GND)
-U_LAMP["IS"] += ain2
+is_net = Net("LAMP_IS")
+U_LAMP["IS"] += is_net
+R("2k2", is_net, GND)          # k_ILIS ≈ 22000: 20 A → ~2,0 V
+R("10k", is_net, ain2)         # ograniczenie prądu do ADC przy sygnale błędu IS
+C("100n", ain2, GND)
 J2[7] += LAMPA
 J2[8] += LAMPA
 
@@ -359,18 +365,22 @@ U_GPS = Part(tool=SKIDL, name="L76K", ref_prefix="U", footprint="RF_GPS:Quectel_
                  (16, "RES16"), (17, "RES17"), (18, "SET")]])
 for p in (1, 10, 12):
     U_GPS[p] += GND
-U_GPS["VCC"] += V3
-U_GPS["V_BCKP"] += V3
+V3_GPS = Net("V3V3_GPS")        # koralik ferrytowy: odcięcie szpilek prądu ESP32 (przegląd 2026-11-12)
+fb = Part("Device", "FerriteBead", footprint="Inductor_SMD:L_0603_1608Metric", value="600R@100MHz")
+fb[1] += V3
+fb[2] += V3_GPS
+U_GPS["VCC"] += V3_GPS
+U_GPS["V_BCKP"] += V3_GPS
 U_GPS["TXD"] += GPS_RX
 U_GPS["RXD"] += GPS_TX
 for p in (4, 5, 7, 9, 13, 15, 16, 17, 18):
     U_GPS[p] += Net(f"NC_GPS{p}")
-C("10u", V3, GND, "Capacitor_SMD:C_0805_2012Metric")
-C("100n", V3, GND)
+C("10u", V3_GPS, GND, "Capacitor_SMD:C_0805_2012Metric")
+C("100n", V3_GPS, GND)
 rf = Net("GPS_RF")
 U_GPS["RF_IN"] += rf
 vrf, vrf2 = Net("GPS_VDD_RF"), Net("GPS_BIAS")
-U_GPS["VDD_RF"] += vrf
+U_GPS["VDD_RF"] += vrf          # VDD_RF = WYJŚCIE modułu (zasilanie anteny aktywnej, = VCC) — bias przez R/L do RF_IN
 R("10", vrf, vrf2)
 Lb = Part("Device", "L", footprint="Inductor_SMD:L_0603_1608Metric", value="47nH")
 Lb[1] += vrf2
@@ -439,7 +449,7 @@ for k in range(8):
             p += GND
         if p.name.startswith("IPROPI"):
             p += GND          # bez regulacji prądu (ochrona nadprądowa w układzie zostaje)
-    vcp, cpl, cph, dvdd, vref = Net(f"U{k}_VCP"), Net(f"U{k}_CPL"), Net(f"U{k}_CPH"), Net(f"DRV{k}_DVDD"), Net(f"DRV{k}_VREF")
+    vcp, cpl, cph, dvdd, vref = Net(f"DRV{k}_VCP"), Net(f"DRV{k}_CPL"), Net(f"DRV{k}_CPH"), Net(f"DRV{k}_DVDD"), Net(f"DRV{k}_VREF")
     u["VCP"] += vcp
     u["CPL"] += cpl
     u["CPH"] += cph
