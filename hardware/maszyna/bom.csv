@@ -1,6 +1,9 @@
 Oznaczenie;Ilosc;Opis;Producent;MPN (do sprawdzenia);Obudowa;LCSC;Uwagi
 U10;1;Moduł Wi-Fi/Bluetooth Classic (SPP), CAN TWAI;Espressif;ESP32-WROOM-32E-N8;moduł SMD;;antena przy krawędzi płytki
-U1,U2,U3;3;Sterownik 12 półmostków, SPI, diagnostyka (automotive);Texas Instruments;DRV8912QPWPRQ1;HTSSOP-28 PowerPAD;;13 sekcji + główny + regulacyjny; sprawdzić prąd zaworów
+U1-U8;8;Sterownik 4 półmostków 5 A szczyt., ~50 mOhm (2 pełne mostki po 2 A ciągłe);Texas Instruments;DRV8962 (wersja i obudowa do potwierdzenia);HTSSOP PowerPAD;;16 mostków: 13 sekcji + główny + regulacyjny + rezerwa; zamiennik ST VNH7070AS
+U5x;4;Rejestr przesuwny 8 bit (IN/EN mostków);Nexperia;74HC595PW-Q100;TSSOP-16;;nOE podciągnięty: po resecie wszystko wyłączone
+U6x;1;Rejestr wejściowy 8 bit (nFAULT);Nexperia;74HC165PW-Q100;TSSOP-16;;
+R_PD;32;Rezystory 10 k do masy na wejściach mostków;Yageo;RC0603FR-0710KL;0603;;
 U20;1;Klucz mocy high-side 20 A z pomiarem prądu (lampy);Infineon;BTS50015-1TAD;PG-TO263-7;;miedź 2 oz, pole chłodzące
 U30;1;Przetwornica 12->5 V 1 A, 36 V wej.;Texas Instruments;LMR33610ADDAR;SO-8 PowerPAD;;wersja -Q1 do rozważenia
 U31;1;LDO 3,3 V 1 A;Diodes Inc.;AP2114H-3.3TRG1;SOT-223;;ESP32 do 500 mA szczytowo

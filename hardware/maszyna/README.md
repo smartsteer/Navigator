@@ -12,9 +12,9 @@ Licencja: GPLv3 (sprzęt opisany otwarcie, jak cały projekt).
 
 | Funkcja | Ile | Uwagi |
 |---|---|---|
-| Sekcje (zawory Arag 2‑pin lub 3‑pin) | **13** | każda jako pełny mostek (2 półmostki) — zmiana biegunowości dla 2‑pin, sygnał dla 3‑pin; diagnostyka przerwy/zwarcia |
-| Zawór główny | 1 | pełny mostek |
-| Zawór regulacyjny (silnik) | 1 | pełny mostek, impulsy ms z Navigatora |
+| Sekcje (zawory Arag 2‑pin lub 3‑pin) | **13** | każda jako pełny mostek **2 A ciągłe** (decyzja właściciela: wszystkie wyjścia zaworów 2 A, z zapasem) — zmiana biegunowości dla 2‑pin, sygnał dla 3‑pin; diagnostyka przerwy/zwarcia |
+| Zawór główny | 1 | pełny mostek 2 A |
+| Zawór regulacyjny (silnik) | 1 | pełny mostek 2 A, impulsy ms z Navigatora |
 | Oświetlenie robocze | 1 | **20 A ciągłe**, klucz mocy z pomiarem prądu i zabezpieczeniem |
 | Przepływomierz | 1 | wejście impulsowe 12 V (otwarty kolektor / push‑pull), zasilanie czujnika 12 V z bezpiecznikiem |
 | Czujnik ciśnienia | 1 | 0,5–4,5 V (zasilanie 5 V) **albo** 4–20 mA — zworka |
@@ -35,12 +35,12 @@ po resecie są wyłączone (zawór zostaje, ale główny 3‑pin — jeśli taki
    ├─ bezpiecznik główny 30 A (w wiązce) ─ ochrona: MOSFET‑P przeciw odwrotnej polaryzacji + TVS 26 V (zrzut obciążenia)
    │
    ├──────────────► BTS50015 (20 A) ──────────────► lampy robocze (kostka B, 2 piny)
-   ├──────────────► 3 × DRV8912‑Q1 (36 półmostków) ─► 13 sekcji + główny + regulacyjny (kostki A i B)
+   ├──────────────► 8 × DRV8962 (16 pełnych mostków po 2 A) ─► 13 sekcji + główny + regulacyjny + rezerwa
    ├─ PTC 0,5 A ──► zasilanie przepływomierza 12 V
    └─ przetwornica 12→5 V (LMR33610) ─┬─► czujnik ciśnienia 5 V, CH340C, moduł GPS
                                       └─ LDO 3,3 V (AP2114H) ─► ESP32, TJA1051, ADS1115
 
- ESP32‑WROOM‑32E ── SPI ──► DRV8912 ×3 (łańcuch)
+ ESP32‑WROOM‑32E ── SPI ──► 4 × 74HC595 (32 wyjścia: IN/EN mostków) + 1 × 74HC165 (8 × nFAULT)
                  ── I²C ──► ADS1115 (ciśnienie, napięcie zasilania, prąd lamp, rezerwa)
                  ── UART2 ─► GPS (Quectel L76K) ── u.FL ─► gniazdo SMA na obudowie
                  ── UART0 ─► CH340C ─► USB‑C (tablet / programowanie, auto‑reset)
@@ -53,9 +53,11 @@ po resecie są wyłączone (zawór zostaje, ale główny 3‑pin — jeśli taki
 
 | GPIO | Funkcja |
 |---|---|
-| 18 / 23 / 19 / 5 | SPI: SCK / MOSI / MISO / CS sterowników DRV8912 (łańcuch daisy‑chain) |
-| 4 | nSLEEP sterowników (stan niski po resecie = wyjścia wyłączone) |
-| 34 | nFAULT sterowników (wejście) |
+| 18 / 23 / 19 | SPI: SCK / MOSI (→ 74HC595) / MISO (← 74HC165) |
+| 5 | RCLK 74HC595 (zatrzaśnięcie wyjść) |
+| 4 | nOE 74HC595 — podciągnięty do 3,3 V: po resecie wyjścia rejestrów odcięte, wejścia mostków ściągnięte do masy = **wszystko wyłączone** |
+| 2 | PL 74HC165 (odczyt nFAULT) |
+| 34 | nFAULT zbiorczo (OR na drucie, szybki alarm) |
 | 21 / 22 | I²C SDA / SCL (ADS1115) |
 | 32 / 33 | CAN TX / RX (TWAI → TJA1051T/3) |
 | 16 / 17 | UART2 RX / TX ← GPS |
@@ -65,22 +67,30 @@ po resecie są wyłączone (zawór zostaje, ale główny 3‑pin — jeśli taki
 | 25 | IN klucza lamp BTS50015 |
 | 26 / 27 | dioda LED zielona (praca/łączność) / czerwona (błąd) |
 | 13 / 14 | rezerwa (rozsiewacz) — wyprowadzone na kostkę B przez zabezpieczenie |
-| 36 / 39 | rezerwa wejścia |
-| 15 | zworka „CAN / tylko BT” (odczyt przy starcie) |
+| 39 | rezerwa wejście |
+| 36 | zworka „CAN / tylko BT” (odczyt przy starcie) |
 
 ADS1115: AIN0 ciśnienie, AIN1 napięcie zasilania (dzielnik 100k/15k), AIN2 prąd lamp (wyjście IS BTS50015), AIN3 rezerwa.
 
-## Wyjścia mostków (DRV8912‑Q1 ×3 = 36 półmostków, użyte 30)
+## Wyjścia zaworów — 16 pełnych mostków po 2 A (8 × DRV8962)
 
-| Kanał | Półmostki | Sterownik |
+DRV8962 (TI): 4 niezależne półmostki 5 A szczytowo, ~50 mΩ na klucz — przy 2 A ciągłych ~0,2 W na mostek, czyli chłodno
+i z dużym zapasem (wymaganie „ma być wieczne”). Każdy układ = 2 pełne mostki. Wbudowane: zabezpieczenie nadprądowe,
+termiczne, podnapięciowe, sygnał nFAULT.
+
+| Mostek | Układ | Funkcja |
 |---|---|---|
-| Sekcja 1–4 | OUT1–8 | U1 |
-| Sekcja 5–8 | OUT1–8 | U2 |
-| Sekcja 9–12 | OUT1–8 | U3 |
-| Sekcja 13 | U1 OUT9–10 | U1 |
-| Zawór główny | U2 OUT9–10 | U2 |
-| Zawór regulacyjny | U3 OUT9–12 (po 2 półmostki równolegle na stronę) | U3 |
-| Rezerwa | U1 OUT11–12, U2 OUT11–12 | — |
+| 1–13 | U1–U7 | sekcje 1–13 |
+| 14 | U7 (2. mostek) | zawór główny |
+| 15 | U8 (1. mostek) | zawór regulacyjny |
+| 16 | U8 (2. mostek) | rezerwa (np. mieszadło / zasuwa rozsiewacza) |
+
+Sterowanie: 32 sygnały IN/EN z 4 rejestrów 74HC595 (SPI), błędy z 74HC165. Wyjścia rejestrów po resecie odcięte,
+rezystory 10 k do masy na wejściach mostków → przy starcie i przy zawieszeniu procesora (watchdog) **nic się nie włącza samo**.
+
+Budżet prądu: wszystkie wyjścia 2 A to 32 A naraz — w praktyce zawory pracują przez 1–3 s przy przestawianiu,
+więc firmware przestawia sekcje **kolejno, z odstępem ~50 ms** (szczyt ≤ 6–8 A), a bezpiecznik główny 30 A wystarcza
+dla lamp 20 A + zaworów.
 
 Zawór **2‑pin**: A/B = +12/0 (otwórz) albo 0/+12 (zamknij), zasilany przez ustawiony czas (domyślnie 3 s), potem oba wyłączone.
 Zawór **3‑pin** (Arag: brązowy +12, niebieski masa, czarny sygnał): brązowy i niebieski ze wspólnych pinów zasilania kostki A,
@@ -124,12 +134,21 @@ Dodatkowo na obudowie: USB‑C (z zaślepką), gniazdo SMA anteny GPS, dioda LED
   (dla 20 A i przyrostu temperatury ~20 °C przy 2 oz), jak najkrótsza; tak samo wejście zasilania (do 30 A łącznie) — ≥ 12 mm.
 - Straty klucza ~0,6 W przy 20 A — pole miedzi pod obudową TO‑263 jako radiator.
 
+## Trwałość („ma być wieczne”)
+
+- Części w wersjach samochodowych / przemysłowych (−40…+105 °C), kondensatory ceramiczne X7R zamiast elektrolitów
+  tam, gdzie się da; elektrolity tylko 105 °C, 5000 h+.
+- Każde wyjście 2 A pracuje z ≥ 2× zapasem prądu i bez radiatora; lampy 20 A na kluczu 1,5 mΩ.
+- Płytka lakierowana (lakier ochronny / conformal coating — opcja w JLCPCB), obudowa szczelna IP67, odpowietrznik membranowy.
+- Wszystkie piny kostek z diodami TVS, wejścia z filtrami RC, ochrona przed odwrotną polaryzacją i zrzutem obciążenia.
+- Złącza AMPSEAL (IP67, samochodowe), styki cynowane / złocone wg wiązki.
+
 ## Lista części (BOM) — w pliku [bom.csv](bom.csv)
 
 ## Do sprawdzenia przez elektronika (przed zamówieniem)
 
-1. Prąd zaworów Arag (sekcyjnych, głównego, regulacyjnego) przy rozruchu i zablokowaniu — DRV8912‑Q1 ma ~1 A na półmostek.
-   Jeśli zawory biorą więcej: zawór regulacyjny/główny na osobnym DRV8876 (3,5 A) albo równoległe półmostki.
+1. DRV8962: wersja i obudowa (HTSSOP PowerPAD) oraz chłodzenie przez miedź; zamiennik przy braku: ST VNH7070AS
+   (pełny mostek, PowerSSO‑36) — 15 sztuk, większa płytka.
 2. Ochrona wejścia 12 V: zrzut obciążenia (ISO 7637‑2 / ISO 16750‑2) — TVS i dobór MOSFET‑a przeciw odwrotnej polaryzacji.
 3. Ścieżki 20–30 A, grubość miedzi, nagrzewanie BTS50015 w zamkniętej obudowie.
 4. Antena Bluetooth ESP32: moduł przy krawędzi płytki, bez miedzi pod anteną; obudowa z tworzywa (nie metal), okienko w ramie.
