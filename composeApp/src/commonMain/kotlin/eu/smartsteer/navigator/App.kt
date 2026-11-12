@@ -73,7 +73,7 @@ enum class Screen(val label: String, val icon: IconKind) {
     Fields("Pola", IconKind.Field),
     Steer("Sterowanie", IconKind.Steer),
     Implement("Maszyna", IconKind.Implement),
-    Sprayer("Opryskiwacz", IconKind.Sprayer),
+    Sprayer("Oprysk", IconKind.Sprayer),
     Connections("Połączenia", IconKind.Network),
     Settings("Ustawienia", IconKind.Settings),
 }

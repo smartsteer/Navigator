@@ -397,7 +397,7 @@ private fun SprayerSettings(hw: HardwareController) {
                         val sel = n == c.nozzle
                         val shape = RoundedCornerShape(10.dp)
                         Column(
-                            Modifier.weight(1f).height(66.dp).clip(shape).background(if (sel) Ss.AccentSoft else Ss.Ground)
+                            Modifier.weight(1f).height(76.dp).clip(shape).background(if (sel) Ss.AccentSoft else Ss.Ground)
                                 .border(if (sel) 2.dp else 1.dp, if (sel) Ss.Accent else Ss.Border, shape)
                                 .clickable(role = Role.Button) { set(c.copy(nozzle = n)) }.padding(4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
