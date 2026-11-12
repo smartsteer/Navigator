@@ -95,6 +95,9 @@ class HardwareController {
 
     fun updateSprayerOnly(on: Boolean) {
         sprayerOnly = on
+        // wersja bez autosteru: prędkość z GPS płytki opryskiwacza (przez USB), chyba że wybrano stałą
+        if (on && sprayer.config.speedSource == eu.smartsteer.navigator.core.sprayer.SpeedSource.GPS)
+            sprayer.update(sprayer.config.copy(speedSource = eu.smartsteer.navigator.core.sprayer.SpeedSource.BOARD_GPS))
         runCatching { files.write("tryb_pracy.cfg", if (on) "oprysk" else "nawigacja") }
         tick++
     }
