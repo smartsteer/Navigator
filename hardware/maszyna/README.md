@@ -161,4 +161,4 @@ Dodatkowo na obudowie: USB‑C (z zaślepką), gniazdo SMA anteny GPS, dioda LED
 
 - **16b:** schemat i PCB w KiCad (hardware/maszyna/kicad), pliki Gerber + BOM/CPL dla JLCPCB.
 - **16c:** obudowa do druku 3D (STL + źródło OpenSCAD) z otworami na dwie kostki, USB‑C, SMA, LED i uszczelką.
-- **18:** firmware ESP32 (PGN 160/161 przez Bluetooth SPP / USB / CAN, sterowanie DRV8912, PCNT, ADS1115, GPS).
+- **18:** firmware ESP32 (PGN 160/161 przez Bluetooth SPP / USB / CAN, sterowanie mostków DRV8962 przez 74HC595, PCNT, ADS1115, GPS).
