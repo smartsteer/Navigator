@@ -1,0 +1,47 @@
+ERC WARNING: Only one pin (INPUT pin 10/~{DSR} of CH340C/U5) attached to net NC_CH340_10.
+ERC WARNING: No drivers for net NC_CH340_10.
+ERC WARNING: Insufficient drive current on net NC_CH340_10 for pin INPUT pin 10/~{DSR} of CH340C/U5.
+ERC WARNING: Insufficient drive current on net VIN_RAW for pin POWER-IN pin 6/ANODE of LM74700/U1.
+ERC WARNING: Only one pin (OUTPUT pin 9/QH' of 74HC595/U16) attached to net SR_CHAIN5.
+ERC WARNING: Only one pin (NO-CONNECT pin 7/NC of CH340C/U5) attached to net NC_CH340_7.
+ERC WARNING: No drivers for net NC_CH340_7.
+ERC WARNING: Only one pin (INPUT pin 15/R232 of CH340C/U5) attached to net NC_CH340_15.
+ERC WARNING: No drivers for net NC_CH340_15.
+ERC WARNING: Insufficient drive current on net NC_CH340_15 for pin INPUT pin 15/R232 of CH340C/U5.
+ERC WARNING: Only one pin (PASSIVE pin 18/SET of L76K/U10) attached to net NC_GPS18.
+ERC WARNING: Only one pin (OUTPUT pin 2/ALERT/RDY of ADS1115IDGS/U7) attached to net ADC_RDY.
+ERC WARNING: Only one pin (OUTPUT pin 8/~{OUT}/~{DTR} of CH340C/U5) attached to net NC_CH340_8.
+ERC WARNING: Insufficient drive current on net LAMP_GND for pin POWER-IN pin 1/GND of BTS50010-1TAD/U8.
+ERC WARNING: Only one pin (PASSIVE pin 9/RESET_N of L76K/U10) attached to net NC_GPS9.
+ERC WARNING: Only one pin (PASSIVE pin 7/RES7 of L76K/U10) attached to net NC_GPS7.
+ERC WARNING: Only one pin (INPUT pin 9/~{CTS} of CH340C/U5) attached to net NC_CH340_9.
+ERC WARNING: No drivers for net NC_CH340_9.
+ERC WARNING: Insufficient drive current on net NC_CH340_9 for pin INPUT pin 9/~{CTS} of CH340C/U5.
+ERC WARNING: Only one pin (NO-CONNECT pin 1/NC of 74LVC1G17/U9) attached to net NC_SCH.
+ERC WARNING: No drivers for net NC_SCH.
+ERC ERROR: Pin conflict on net V3V3, POWER-OUT pin 4/V3 of CH340C/U5 <==> POWER-OUT pin 2/VO of AMS1117-3.3/U3 (POWER-OUT connected to POWER-OUT)
+ERC WARNING: Only one pin (PASSIVE pin 16/RES16 of L76K/U10) attached to net NC_GPS16.
+ERC WARNING: Only one pin (BIDIRECTIONAL pin A8/SBU1 of USB_C_Receptacle_USB2.0_16P/J4) attached to net NC_A8.
+ERC WARNING: Only one pin (PASSIVE pin 5/WAKE_UP of L76K/U10) attached to net NC_GPS5.
+ERC WARNING: Only one pin (BIDIRECTIONAL pin B8/SBU2 of USB_C_Receptacle_USB2.0_16P/J4) attached to net NC_B8.
+ERC WARNING: Only one pin (PASSIVE pin 15/RES15 of L76K/U10) attached to net NC_GPS15.
+ERC WARNING: Only one pin (OPEN-COLLECTOR pin 4/PG of LMR33610ADDAR/U2) attached to net BUCK_PG.
+ERC WARNING: Only one pin (OUTPUT pin 7/~{Q7} of 74HC165/U17) attached to net NC_Q7N.
+ERC WARNING: Only one pin (PASSIVE pin 17/RES17 of L76K/U10) attached to net NC_GPS17.
+ERC WARNING: Only one pin (INPUT pin 12/~{DCD} of CH340C/U5) attached to net NC_CH340_12.
+ERC WARNING: No drivers for net NC_CH340_12.
+ERC WARNING: Insufficient drive current on net NC_CH340_12 for pin INPUT pin 12/~{DCD} of CH340C/U5.
+ERC WARNING: Only one pin (PASSIVE pin 4/1PPS of L76K/U10) attached to net NC_GPS4.
+ERC WARNING: Only one pin (INPUT pin 11/~{RI} of CH340C/U5) attached to net NC_CH340_11.
+ERC WARNING: No drivers for net NC_CH340_11.
+ERC WARNING: Insufficient drive current on net NC_CH340_11 for pin INPUT pin 11/~{RI} of CH340C/U5.
+ERC WARNING: Only one pin (PASSIVE pin 13/ANTON of L76K/U10) attached to net NC_GPS13.
+ERC WARNING: Unconnected pin: BIDIRECTIONAL pin 13/IO14 of ESP32-WROOM-32E/U4.
+ERC WARNING: Unconnected pin: BIDIRECTIONAL pin 23/IO15 of ESP32-WROOM-32E/U4.
+ERC WARNING: Unconnected pin: INPUT pin 5/SENSOR_VN of ESP32-WROOM-32E/U4.
+ERC WARNING: Unconnected pin: INPUT pin 6/IO34 of ESP32-WROOM-32E/U4.
+ERC WARNING: Incorrectly connected pin: NO-CONNECT pin 7/NC of CH340C/U5 should not be connected to a net (NC_CH340_7).
+ERC WARNING: Incorrectly connected pin: NO-CONNECT pin 1/NC of 74LVC1G17/U9 should not be connected to a net (NC_SCH).
+ERC INFO: 43 warnings found while running ERC.
+ERC INFO: 1 errors found while running ERC.
+

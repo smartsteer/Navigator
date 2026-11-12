@@ -32,15 +32,15 @@ po resecie są wyłączone (zawór zostaje, ale główny 3‑pin — jeśli taki
 ```
  12 V z ciągnika (kostka B, 3 piny +, 3 piny −)
    │
-   ├─ bezpiecznik główny 30 A (w wiązce) ─ ochrona: MOSFET‑P przeciw odwrotnej polaryzacji + TVS 26 V (zrzut obciążenia)
+   ├─ bezpiecznik główny 30 A (w wiązce) ─ idealna dioda LM74700‑Q1 + MOSFET‑N BUK7J1R4‑40H (odwrotna polaryzacja) + TVS 26 V
    │
    ├──────────────► BTS50015 (20 A) ──────────────► lampy robocze (kostka B, 2 piny)
    ├──────────────► 8 × DRV8962 (16 pełnych mostków po 2 A) ─► 13 sekcji + główny + regulacyjny + rezerwa
    ├─ PTC 0,5 A ──► zasilanie przepływomierza 12 V
-   └─ przetwornica 12→5 V (LMR33610) ─┬─► czujnik ciśnienia 5 V, CH340C, moduł GPS
-                                      └─ LDO 3,3 V (AP2114H) ─► ESP32, TJA1051, ADS1115
+   └─ przetwornica 12→5 V (LMR33610) ─┬─► czujnik ciśnienia 5 V, TJA1051 (VCC)
+                                      └─ LDO 3,3 V (AMS1117) ─► ESP32, CH340C, GPS, ADS1115, rejestry
 
- ESP32‑WROOM‑32E ── SPI ──► 4 × 74HC595 (32 wyjścia: IN/EN mostków) + 1 × 74HC165 (8 × nFAULT)
+ ESP32‑WROOM‑32E ── SPI ──► 6 × 74HC595 (48 wyjść: IN_A, IN_B, EN każdego mostka) + 1 × 74HC165 (8 × nFAULT)
                  ── I²C ──► ADS1115 (ciśnienie, napięcie zasilania, prąd lamp, rezerwa)
                  ── UART2 ─► GPS (Quectel L76K) ── u.FL ─► gniazdo SMA na obudowie
                  ── UART0 ─► CH340C ─► USB‑C (tablet / programowanie, auto‑reset)
@@ -55,9 +55,9 @@ po resecie są wyłączone (zawór zostaje, ale główny 3‑pin — jeśli taki
 |---|---|
 | 18 / 23 / 19 | SPI: SCK / MOSI (→ 74HC595) / MISO (← 74HC165) |
 | 5 | RCLK 74HC595 (zatrzaśnięcie wyjść) |
-| 4 | nOE 74HC595 — podciągnięty do 3,3 V: po resecie wyjścia rejestrów odcięte, wejścia mostków ściągnięte do masy = **wszystko wyłączone** |
-| 2 | PL 74HC165 (odczyt nFAULT) |
-| 34 | nFAULT zbiorczo (OR na drucie, szybki alarm) |
+| 4 | nSLEEP wszystkich DRV8962 — rezystor 100 k do masy: po resecie / przy zawieszeniu mostki uśpione = **wszystko wyłączone** |
+| 13 | PL 74HC165 (odczyt nFAULT) |
+| 2, 12 | nieużywane, 10 k do masy (piny startowe ESP32) |
 | 21 / 22 | I²C SDA / SCL (ADS1115) |
 | 32 / 33 | CAN TX / RX (TWAI → TJA1051T/3) |
 | 16 / 17 | UART2 RX / TX ← GPS |
@@ -85,8 +85,8 @@ termiczne, podnapięciowe, sygnał nFAULT.
 | 15 | U8 (1. mostek) | zawór regulacyjny |
 | 16 | U8 (2. mostek) | rezerwa (np. mieszadło / zasuwa rozsiewacza) |
 
-Sterowanie: 32 sygnały IN/EN z 4 rejestrów 74HC595 (SPI), błędy z 74HC165. Wyjścia rejestrów po resecie odcięte,
-rezystory 10 k do masy na wejściach mostków → przy starcie i przy zawieszeniu procesora (watchdog) **nic się nie włącza samo**.
+Sterowanie: 48 sygnałów (IN_A, IN_B, wspólne EN na mostek) z 6 rejestrów 74HC595 (SPI), błędy z 74HC165. Wyjścia rejestrów po resecie odcięte,
+rezystory 10 k do masy na wejściach mostków + nSLEEP ściągnięty do masy → przy starcie i przy zawieszeniu procesora (watchdog) **nic się nie włącza samo**.
 
 Budżet prądu: wszystkie wyjścia 2 A to 32 A naraz — w praktyce zawory pracują przez 1–3 s przy przestawianiu,
 więc firmware przestawia sekcje **kolejno, z odstępem ~50 ms** (szczyt ≤ 6–8 A), a bezpiecznik główny 30 A wystarcza
@@ -98,7 +98,7 @@ czarny = wyjście A kanału (+12 otwarty, 0 zamknięty), wyjście B nieużywane.
 
 ## Złącza (dwie kostki — decyzja właściciela)
 
-**Kostka A — sekcje: AMPSEAL 35‑pin** (gniazdo na płytkę, TE 776231‑1 lub odpowiednik — do potwierdzenia)
+**Kostka A — sekcje: AMPSEAL 35‑pin** (gniazdo kątowe TE 776231‑1, wtyczka do wiązki 776164‑1; footprint wyprowadzony z 23‑pin — sprawdzić z rysunkiem TE)
 
 | Piny | Sygnał |
 |---|---|
@@ -107,7 +107,7 @@ czarny = wyjście A kanału (+12 otwarty, 0 zamknięty), wyjście B nieużywane.
 | 31–34 | masa wspólna zaworów |
 | 35 | ekran / masa |
 
-**Kostka B — reszta: AMPSEAL 23‑pin** (TE 770680‑1 lub odpowiednik — do potwierdzenia)
+**Kostka B — reszta: AMPSEAL 23‑pin** (gniazdo kątowe TE 1‑776087‑1, wtyczka do wiązki 770680‑1)
 
 | Piny | Sygnał |
 |---|---|
@@ -119,7 +119,7 @@ czarny = wyjście A kanału (+12 otwarty, 0 zamknięty), wyjście B nieużywane.
 | 13–15 | przepływomierz: +12 V / sygnał / masa |
 | 16–18 | czujnik ciśnienia: +5 V / sygnał / masa |
 | 19–20 | CAN‑H / CAN‑L |
-| 21–22 | rezerwa (rozsiewacz) |
+| 21–22 | mostek 16 — rezerwa (np. mieszadło), 2 A |
 | 23 | masa sygnałowa |
 
 Styki AMPSEAL ~17 A na pin — dlatego zasilanie i lampy po kilka pinów równolegle. **Do sprawdzenia:** prąd dopuszczalny styku
@@ -156,6 +156,14 @@ Dodatkowo na obudowie: USB‑C (z zaślepką), gniazdo SMA anteny GPS, dioda LED
 6. Czujnik ciśnienia 4–20 mA: rezystor 150 Ω 0,1 % + ochrona wejścia ADS1115.
 7. Złącza AMPSEAL: dokładne numery gniazd na płytkę (proste/kątowe) i obciążalność styków.
 8. ESD/EMC na wszystkich pinach kostek (diody TVS, filtry RC na wejściach).
+
+## Schemat i płytka w KiCad (etap 16b)
+
+- `kicad/maszyna.py` — **schemat jako kod** (SKiDL): każdy blok opisany komentarzem, wyprowadzenia DRV8962 i L76K z kart katalogowych.
+  `python3 maszyna.py` → `maszyna.net` (netlista KiCad, 274 elementy) + sprawdzenie ERC.
+- `kicad/maszyna.kicad_pcb` — płytka z wszystkimi footprintami i połączeniami (jeszcze **nierozmieszczona i bez ścieżek**).
+- `kicad/smartsteer.pretty` — własny footprint AMPSEAL 35.
+- ERC: 1 „błąd” znany i poprawny (pin V3 CH340C połączony z 3,3 V — tak każe karta przy zasilaniu 3,3 V).
 
 ## Dalej
 

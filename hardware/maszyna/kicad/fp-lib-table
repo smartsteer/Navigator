@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "smartsteer")(type "KiCad")(uri "${KIPRJMOD}/smartsteer.pretty")(options "")(descr "Footprinty SmartSteer"))
+)
