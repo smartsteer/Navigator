@@ -42,35 +42,77 @@ put([r for r, f in fp.items() if f.GetValue().startswith("AMPSEAL 35")][0], 56, 
 put([r for r, f in fp.items() if f.GetValue().startswith("AMPSEAL 23")][0], 110, 36, 180)
 put([r for r, f in fp.items() if f.GetValue().startswith("ESP32")][0], 148, 20, -90)
 put([r for r, f in fp.items() if f.GetValue().startswith("Quectel")][0], 140, 52)
-put([r for r, f in fp.items() if f.GetValue().startswith("U.FL")][0], 158, 50)
+# U.FL na linii pinu 11 (RF_IN) modułu GPS — ścieżka 50 Ω prosto, bez owijania (przegląd 2026-11-12)
+put([r for r, f in fp.items() if f.GetValue().startswith("U.FL")][0], 156, 55.3)
 put([r for r, f in fp.items() if f.GetValue() == "USB-C"][0], 160, 76, 90)
-put([r for r, f in fp.items() if f.GetValue() == "CH340C"][0], 146, 76)
-put([r for r, f in fp.items() if f.GetValue().startswith("TJA1051")][0], 140, 92)
-put([r for r, f in fp.items() if f.GetValue().startswith("ADS1115")][0], 152, 100)
+put([r for r, f in fp.items() if f.GetValue() == "CH340C"][0], 145, 76)
+put([r for r, f in fp.items() if f.GetValue().startswith("TJA1051")][0], 140, 93)
+put([r for r, f in fp.items() if f.GetValue().startswith("ADS1115")][0], 152, 101)
 put([r for r, f in fp.items() if f.GetValue().startswith("74LVC1G17")][0], 128, 104)
+# sterowniki zaworów: rząd odsunięty od H1 (+2,5 mm) i od kostek (+3,5 mm) — miejsce na rząd diod TVS pod złączami
 for i, r in enumerate(ref_of("DRV8962")):
-    put(r, 9 + i * 14, 58)
+    put(r, 13.5 + i * 13.5, 63.5)
 regs = ref_of("74HC595") + ref_of("74HC165")
 for i, r in enumerate(regs):
-    put(r, 9 + i * 13, 82)
-# zasilanie i lampy (dół, przy kostce B — piny zasilania J2 1–6, lampy 7–8 po prawej stronie gniazda)
-put([r for r, f in fp.items() if f.GetValue().startswith("BTS500")][0], 100, 100, 0)
-put([r for r, f in fp.items() if f.GetValue().startswith("BUK7J")][0], 116, 92, 0)
-put([r for r, f in fp.items() if f.GetValue().startswith("LM74700")][0], 124, 86)
-put([r for r, f in fp.items() if f.GetValue() == "SMDJ26A"][0], 116, 102, 0)
+    put(r, 12 + i * 13, 88)
+# blok wejściowy tuż pod pinami zasilania kostki B (J2 1–6) i klucz lamp pod pinami 7–8 — krótka droga prądu 20–30 A
+put([r for r, f in fp.items() if f.GetValue().startswith("BTS500")][0], 89, 47, 0)
+put([r for r, f in fp.items() if f.GetValue().startswith("BUK7J")][0], 105, 43, 0)
+put([r for r, f in fp.items() if f.GetValue().startswith("LM74700")][0], 113, 42)
+put([r for r, f in fp.items() if f.GetValue() == "SMDJ26A"][0], 109, 51, 0)
+put([r for r, f in fp.items() if f.GetValue() == "10A mini"][0], 35, 50.2, 0)   # bezpiecznik zaworów 3-pin przy pinach J1 27–30
 for i, r in enumerate(sorted(r for r, f in fp.items() if f.GetValue().startswith("220u"))):
-    put(r, 70 + i * 13, 110)
-put([r for r, f in fp.items() if f.GetValue() == "10A mini"][0], 116, 113)
-put([r for r, f in fp.items() if f.GetValue().startswith("LMR33610")][0], 30, 100)
-put([r for r, f in fp.items() if f.GetValue() == "10uH 2A"][0], 42, 100)
-put([r for r, f in fp.items() if f.GetValue().startswith("AMS1117")][0], 55, 100)
+    put(r, 80 + i * 14, 111)
+put([r for r, f in fp.items() if f.GetValue().startswith("LMR33610")][0], 30, 104)
+put([r for r, f in fp.items() if f.GetValue() == "10uH 2A"][0], 42, 104)
+put([r for r, f in fp.items() if f.GetValue().startswith("AMS1117")][0], 56, 104)
+# tor RF GPS: U10 pin 11 → L2 (bias) → J7 pin 1 w jednej linii
+u10 = [f for f in fp.values() if f.GetValue().startswith("Quectel")][0]
+p11 = [p for p in u10.Pads() if p.GetNumber() == "11"][0].GetPosition()
+j7 = [f for f in fp.values() if f.GetValue().startswith("U.FL")][0]
+for rot in (0, 90, 180, 270):
+    j7.SetOrientationDegrees(rot)
+    j7.SetPosition(pcbnew.VECTOR2I(MM(155), p11.y))
+    q = [p for p in j7.Pads() if p.GetNumber() == "1"][0].GetPosition()
+    g = [p for p in j7.Pads() if p.GetNumber() == "2"][0].GetPosition()
+    if g.x > q.x + MM(0.5):     # masa po prawej, sygnał patrzy w lewo (na U10)
+        break
+j7.SetPosition(pcbnew.VECTOR2I(j7.GetPosition().x, j7.GetPosition().y + (p11.y - q.y)))
+l2 = [f for f in fp.values() if f.GetValue() == "47nH"][0]
+for rot in (90, 270):
+    l2.SetOrientationDegrees(rot)
+    l2.SetPosition(pcbnew.VECTOR2I(MM(150), p11.y))
+    pd = [p for p in l2.Pads() if p.GetNumber() == "2"][0].GetPosition()
+    l2.SetPosition(pcbnew.VECTOR2I(MM(150), l2.GetPosition().y + (p11.y - pd.y)))
+    pd1 = [p for p in l2.Pads() if p.GetNumber() == "1"][0].GetPosition()
+    if pd1.y > p11.y:          # pad 1 (zasilanie anteny) poniżej linii RF
+        break
+l2.SetLocked(True)
+j7.SetLocked(True)
+q1 = [p for p in j7.Pads() if p.GetNumber() == "1"][0].GetPosition()
+rfn = B.FindNet("GPS_RF")
+t = pcbnew.PCB_TRACK(B)
+t.SetStart(p11)
+t.SetEnd(q1)
+t.SetWidth(MM(0.36))
+t.SetLayer(pcbnew.F_Cu)
+t.SetNet(rfn)
+t.SetLocked(True)
+B.Add(t)
+
+# diody TVS wyjść mostków: równe rzędy tuż pod pinami kostek
+tvs = sorted([r for r, f in fp.items() if f.GetValue() == "PESD24VS1UL"], key=lambda r: int(r[1:]))
+for n, r in enumerate(tvs[:26]):           # sekcje 1–13 → pod J1, dwa rzędy
+    put(r, 10 + (n % 13) * 4.1, 41 + (n // 13) * 3.4, 90)
+for n, r in enumerate(tvs[26:]):           # zawór główny, regulacyjny, rezerwa → pod J2, lewa strona
+    put(r, 72.5 + (n % 2) * 3.0, 41 + (n // 2) * 3.4, 90)
 # zworki i diody LED przy prawej krawędzi
 for i, r in enumerate(sorted(r for r, f in fp.items() if f.GetValue().startswith("JP "))):
     put(r, 132 + i * 8, 114)
 for i, r in enumerate(sorted(r for r, f in fp.items() if f.GetValue().startswith("LED "))):
     put(r, 160, 88 + i * 4, 90)
 # otwory montażowe M3 (zgodne z obudową)
-HOLES = [(4, 46), (161, 40), (4, 116), (161, 116)]
+HOLES = [(4, 46), (161, 48), (4, 116), (161, 116)]
 for x, y in HOLES:
     m = pcbnew.FootprintLoad("/usr/share/kicad/footprints/MountingHole.pretty", "MountingHole_3.2mm_M3")
     m.SetPosition(pcbnew.VECTOR2I(MM(x), MM(y)))
@@ -83,13 +125,21 @@ POWER = {"GND", "V12", "V3V3", "V5", "V12_ZAWORY", "VIN_RAW"}
 placed = [f for f in fp.values() if f.IsLocked()] + [f for f in B.GetFootprints() if f.GetReference().startswith("H")]
 
 
-def bbox(f, margin=0.25):
+def bbox(f, margin=0.15):
+    f.BuildCourtyardCaches()
+    cy = f.GetCourtyard(pcbnew.B_CrtYd if f.IsFlipped() else pcbnew.F_CrtYd)
+    if cy.OutlineCount() > 0:
+        bb = cy.BBox()
+        if f.GetReference().startswith("H"):
+            margin = 2.0          # podkładka śruby M3
+        return (bb.GetLeft() / 1e6 - margin, bb.GetTop() / 1e6 - margin, bb.GetRight() / 1e6 + margin, bb.GetBottom() / 1e6 + margin)
     bb = f.GetBoundingBox(False, False)
     return (bb.GetLeft() / 1e6 - margin, bb.GetTop() / 1e6 - margin, bb.GetRight() / 1e6 + margin, bb.GetBottom() / 1e6 + margin)
 
 
 boxes = [bbox(f) for f in placed]
 KEEP = [(130, 8, 165, 32)]  # antena ESP32 + moduł
+KEEP.append((p11.x / 1e6 - 0.5, p11.y / 1e6 - 0.8, q1.x / 1e6 + 0.5, p11.y / 1e6 + 0.8))  # tor RF GPS
 
 
 def free(b):

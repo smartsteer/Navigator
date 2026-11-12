@@ -8,7 +8,7 @@ czesc = "oba";            // "spod", "pokrywa", "oba" (podgląd)
 // --- płytka ---
 pcb = [165, 120, 1.6];    // wymiary płytki (KiCad: hardware/maszyna/kicad)
 pcb_z = 6;                // wysokość płytki nad dnem (słupki)
-pcb_otw = [[4,46],[161,40],[4,116],[161,116]];   // otwory M3 w płytce (jak w KiCad, od lewego górnego rogu = ściana złączy)
+pcb_otw = [[4,46],[161,48],[4,116],[161,116]];   // otwory M3 w płytce (jak w KiCad, od lewego górnego rogu = ściana złączy)
 
 // --- obudowa ---
 sc = 3;                   // ścianka
