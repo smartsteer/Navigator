@@ -29,6 +29,8 @@ class SprayerController(private val files: TextFiles) {
     val simulated get() = true
 
     var status: SprayerStatus? by mutableStateOf(null); private set
+    /** Prośba o przejście do ekranu (nazwa z enum Screen) — miniatura na Mapie ↔ ekran Opryskiwacz. */
+    var navRequest: String? by mutableStateOf(null)
     var overrides by mutableStateOf(List(9) { SectionOverride.AUTO }); private set
     /** Maska sekcji faktycznie wysłana (bit0 = sekcja 1). */
     var mask by mutableStateOf(0); private set

@@ -134,6 +134,7 @@ fun HardwareMapScreen(hw: HardwareController) {
         }
 
         if (hw.simulating) SimControls(hw, locked, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 190.dp))
+        SprayerMini(hw, Modifier.align(Alignment.TopEnd).padding(top = 424.dp, end = 12.dp))
         HwSectionsBar(hw, locked, Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
         HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))
         if (hw.session.steerBlockedReason == null) SteerButton(hw, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))

@@ -86,6 +86,10 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
         var screen by remember { mutableStateOf(startScreen) }
         val upd = remember { UpdateController() }
         val hw = remember { hwIn ?: HardwareController() }
+        // miniatura opryskiwacza na Mapie ↔ ekran Opryskiwacz
+        LaunchedEffect(hw.sprayer.navRequest) {
+            hw.sprayer.navRequest?.let { n -> Screen.entries.firstOrNull { it.name == n }?.let { screen = it }; hw.sprayer.navRequest = null }
+        }
         // X w oknie / przycisk Zamknij: najpierw zapis pola i wyłączenie autosteru
         LaunchedEffect(hw) { eu.smartsteer.navigator.ui.power.AppExit.onRequest = { hw.closeApp() } }
 

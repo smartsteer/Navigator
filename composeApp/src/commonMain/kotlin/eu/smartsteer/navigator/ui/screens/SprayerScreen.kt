@@ -89,6 +89,11 @@ fun SprayerScreen(hw: HardwareController, startInSettings: Boolean = false) {
             if (sp.simulated) Pill("SYMULATOR — płytka Maszyna jeszcze niepodłączona", Ss.Warning)
             Box(Modifier.weight(1f))
             Segmented(listOf("PRACA", "USTAWIENIA"), if (settings) 1 else 0, { settings = it == 1 })
+            ActionButton(Modifier.width(150.dp), background = Ss.AccentSoft, contentColor = Ss.Accent, border = Ss.Accent,
+                onClick = { sp.navRequest = "Map" }) {
+                NavIcon(IconKind.Map, Ss.Accent)
+                ButtonText("MAPA", Ss.Accent, 16.sp, FontWeight.Bold)
+            }
         }
         if (settings) SprayerSettings(hw) else SprayerWork(hw)
     }
@@ -483,4 +488,57 @@ private fun NumberBox(title: String, value: Double, decimals: Int, min: Double, 
             },
         contentAlignment = Alignment.Center,
     ) { Text(value.pl(decimals), color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold) }
+}
+
+/**
+ * Miniatura opryskiwacza na Mapie: dawka, ciśnienie, zbiornik, sekcje, START/STOP.
+ * Dotknięcie → ekran Opryskiwacz (tam przycisk MAPA wraca). Widoczna, gdy maszyna to opryskiwacz albo trwa oprysk.
+ */
+@Composable
+fun SprayerMini(hw: HardwareController, modifier: Modifier = Modifier) {
+    val sp = hw.sprayer
+    sp.tick
+    val pc = sp.computer
+    if (!hw.profile.isSprayer && !pc.running) return
+    val c = sp.config
+    val running = pc.running
+    val ok = pc.rateOk()
+    val low = pc.tank.liters <= c.tankReserveL
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier.width(200.dp).clip(shape).background(Ss.Surface.copy(alpha = 0.94f))
+            .border(if (running && !ok) 2.dp else 1.dp, if (running && !ok) Ss.Warning else Ss.Border, shape),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().clickable(role = Role.Button) { sp.navRequest = "Sprayer" }.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NavIcon(IconKind.Sprayer, Ss.TextMuted, 16.dp)
+                Text("  OPRYSK", color = Ss.TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text("ustawienia ›", color = Ss.Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(if (running) pc.actualLha.pl(0) else "—", color = if (!running) Ss.TextMuted else if (ok) Ss.Accent else Ss.Warning,
+                    fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                Text(" / ${pc.targetLha.pl(0)} l/ha", color = Ss.TextSoft, fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
+            }
+            Text(
+                "${sp.status?.pressureBar?.pl(1) ?: "—"} bar · ${pc.flowLpm.pl(1)} l/min",
+                color = Ss.TextSoft, fontSize = 13.sp,
+            )
+            Text("zbiornik ${pc.tank.liters.pl(0)} l" + (if (low) " · REZERWA" else ""), color = if (low) Ss.Warning else Ss.Info, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Row(Modifier.fillMaxWidth().height(10.dp).padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                for (i in 0 until c.sectionCount) {
+                    val on = running && sp.mask and (1 shl i) != 0
+                    Box(Modifier.weight(c.nozzlesPerSection[i].toFloat()).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(if (on) Ss.Accent else Ss.SurfaceHigh))
+                }
+            }
+        }
+        Box(
+            Modifier.fillMaxWidth().height(52.dp).background(if (running) Ss.Danger else Ss.Accent)
+                .clickable(role = Role.Button) { sp.toggleRun() },
+            contentAlignment = Alignment.Center,
+        ) { Text(if (running) "STOP" else "START OPRYSKU", color = if (running) Color.White else Ss.OnAccent, fontSize = 18.sp, fontWeight = FontWeight.Black) }
+    }
 }
