@@ -26,11 +26,70 @@ actual object SprayerPorts {
     private fun key(d: UsbDevice) = "%04X:%04X".format(d.vendorId, d.productId)
 
     actual fun list(): List<String> {
-        val m = usb() ?: return emptyList()
-        return m.deviceList.values.map { d -> "USB: ${d.productName ?: d.deviceName} — ${key(d)}" }
+        val usbList = usb()?.deviceList?.values?.map { d -> "USB: ${d.productName ?: d.deviceName} — ${key(d)}" }.orEmpty()
+        // sparowane urządzenia Bluetooth (płytka na opryskiwaczu, profil szeregowy SPP)
+        val bt = runCatching { SerialPorts.list() }.getOrDefault(emptyList()).filter { it.startsWith("BT: ") && it.contains(" — ") }
+        return usbList + bt
     }
 
-    actual fun create(): ByteLink = CdcLink()
+    actual fun create(): ByteLink = object : ByteLink {
+        private var inner: ByteLink? = null
+        override fun open(port: String, onBytes: (ByteArray, Int) -> Unit, onClosed: (String?) -> Unit): String? {
+            val l = if (port.startsWith("BT: ")) BtLink() else CdcLink()
+            inner = l
+            return l.open(port, onBytes, onClosed)
+        }
+        override fun write(bytes: ByteArray) { inner?.write(bytes) }
+        override fun close() { inner?.close() }
+    }
+
+    private val SPP: java.util.UUID = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+
+    /** Płytka na Bluetooth (SPP): tylko zasilanie z ciągnika, dane bez kabla. */
+    @android.annotation.SuppressLint("MissingPermission")
+    private class BtLink : ByteLink {
+        @Volatile private var socket: android.bluetooth.BluetoothSocket? = null
+        @Volatile private var out: java.io.OutputStream? = null
+        @Volatile private var closed = false
+
+        override fun open(port: String, onBytes: (ByteArray, Int) -> Unit, onClosed: (String?) -> Unit): String? {
+            val c = ctx() ?: return "Brak aplikacji"
+            val addr = port.substringAfterLast(" — ").trim()
+            val bt = (c.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager)?.adapter ?: return "Tablet nie ma Bluetooth"
+            if (!bt.isEnabled) return "Włącz Bluetooth"
+            val dev = runCatching { bt.getRemoteDevice(addr) }.getOrNull() ?: return "Nie znam urządzenia $addr — sparuj płytkę w ustawieniach Bluetooth"
+            closed = false
+            Thread({
+                var err: String? = null
+                try {
+                    runCatching { bt.cancelDiscovery() }
+                    val s = dev.createRfcommSocketToServiceRecord(SPP)
+                    socket = s
+                    s.connect()
+                    out = s.outputStream
+                    val inp = s.inputStream
+                    val buf = ByteArray(512)
+                    while (!closed) {
+                        val n = inp.read(buf)
+                        if (n < 0) break
+                        if (n > 0) onBytes(buf, n)
+                    }
+                    if (!closed) err = "Płytka Bluetooth rozłączona"
+                } catch (e: Exception) {
+                    if (!closed) err = "Bluetooth: ${e.message ?: "nie udało się połączyć"} (płytka zasilona i w zasięgu?)"
+                } finally {
+                    runCatching { socket?.close() }
+                    socket = null; out = null
+                    onClosed(if (closed) null else err)
+                }
+            }, "oprysk-bt").apply { isDaemon = true }.start()
+            return null
+        }
+
+        override fun write(bytes: ByteArray) { runCatching { out?.write(bytes); out?.flush() } }
+
+        override fun close() { closed = true; runCatching { socket?.close() } }
+    }
 
     private class CdcLink : ByteLink {
         @Volatile private var conn: UsbDeviceConnection? = null

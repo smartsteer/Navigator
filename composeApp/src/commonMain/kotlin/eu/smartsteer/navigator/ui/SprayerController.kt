@@ -24,7 +24,7 @@ import kotlin.time.TimeSource
 enum class SectionOverride(val label: String) { AUTO("AUTO"), ON("WŁ."), OFF("WYŁ.") }
 
 /** Skąd przychodzi opryskiwacz: symulator, płytka Maszyna na USB, płytka Ster w sieci (CAN). */
-enum class SprayerSource(val label: String) { SIM("Symulator"), USB("Płytka Maszyna — USB"), NET("Płytka Ster — sieć (CAN)") }
+enum class SprayerSource(val label: String) { SIM("Symulator"), USB("Płytka Maszyna — USB / Bluetooth"), NET("Płytka Ster — sieć (CAN)") }
 
 /**
  * Komputer opryskiwacza w aplikacji: ustawienia (opryskiwacz.cfg), połączenie (opryskiwacz_polaczenie.cfg),

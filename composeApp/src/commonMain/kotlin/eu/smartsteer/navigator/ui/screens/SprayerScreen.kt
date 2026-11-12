@@ -485,9 +485,10 @@ private fun LinkPanel(hw: HardwareController) {
         }
         OptionRow("Symulator (bez płytki — nauka obsługi)", sp.source == SprayerSource.SIM) { sp.setSource(SprayerSource.SIM) }
         ports.forEach { port ->
-            OptionRow("Płytka Maszyna na USB: $port", sp.source == SprayerSource.USB && sp.usbPort == port) { sp.setSource(SprayerSource.USB, port) }
+            OptionRow((if (port.startsWith("BT: ")) "Płytka Maszyna na Bluetooth: " else "Płytka Maszyna na USB: ") + port.removePrefix("BT: ").removePrefix("USB: "),
+                sp.source == SprayerSource.USB && sp.usbPort == port) { sp.setSource(SprayerSource.USB, port) }
         }
-        if (ports.isEmpty()) Label("Nie widzę portów USB — podłącz płytkę kablem i naciśnij „Odśwież porty”.", Ss.TextMuted, 13.sp)
+        if (ports.isEmpty()) Label("Nie widzę portów — podłącz płytkę kablem USB albo sparuj ją przez Bluetooth (Windows: port COM Bluetooth) i naciśnij „Odśwież porty”.", Ss.TextMuted, 13.sp)
         OptionRow("Płytka Ster w sieci (CAN, zestaw z autosterem)", sp.source == SprayerSource.NET) { sp.setSource(SprayerSource.NET) }
         if (!sp.simulated) Text(
             if (sp.linkOk) "Łączność z płytką: OK" else "Brak odpowiedzi płytki" + (if (sp.linkStatus.isNotEmpty()) " — ${sp.linkStatus}" else ""),

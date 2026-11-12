@@ -8,7 +8,7 @@ Implementacja w Navigatorze: `core/sprayer/SprayerProtocol.kt` (kodowanie/dekodo
 Tablet (Navigator) ──UDP 192.168.5.x──► płytka Ster ──CAN 250 kbit/s──► płytka Maszyna (opryskiwacz)
 ```
 
-Wersja **bez autosteru** (mniejsze gospodarstwa): tylko płytka Maszyna, podłączona do tabletu **kablem USB‑C** (port szeregowy, te same ramki co po UDP). Port: USB CDC ACM (Windows: port COM bez sterowników, Android: USB host — zgoda w okienku systemu przy pierwszym podłączeniu), 115200 8N1 (przy CDC prędkość i tak nie ma znaczenia). Navigator wybiera źródło w Oprysk → Ustawienia → Połączenie: Symulator / USB / Płytka Ster (sieć). GPS z tabletu/telefonu albo z odbiornika na Bluetooth — Navigator już to obsługuje. Do kontroli sekcji zalecany odbiornik z dokładnością ≤ 1 m (GPS telefonu ~3–5 m da zakładki i luki na granicy).
+Wersja **bez autosteru** (mniejsze gospodarstwa): tylko płytka Maszyna, podłączona do tabletu **kablem USB‑C** (port szeregowy, te same ramki co po UDP). Port: USB CDC ACM (Windows: port COM bez sterowników, Android: USB host — zgoda w okienku systemu przy pierwszym podłączeniu), 115200 8N1 (przy CDC prędkość i tak nie ma znaczenia). Navigator wybiera źródło w Oprysk → Ustawienia → Połączenie: Symulator / USB / Płytka Ster (sieć). **Albo Bluetooth (SPP)** — płytka zostaje na opryskiwaczu, z ciągnika idzie tylko zasilanie: Android łączy się ze sparowaną płytką „BT: nazwa — adres”, Windows przez port COM Bluetooth. Te same ramki; przy zerwaniu łącza płytka po 0,5 s zamyka zawory. GPS z tabletu/telefonu albo z odbiornika na Bluetooth — Navigator już to obsługuje. Do kontroli sekcji zalecany odbiornik z dokładnością ≤ 1 m (GPS telefonu ~3–5 m da zakładki i luki na granicy).
 
 ## Ramki Navigator ↔ Ster (UDP) / Navigator ↔ Maszyna (USB)
 
