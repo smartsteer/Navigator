@@ -1,0 +1,993 @@
+<!doctype html><meta charset="utf-8"><title>Płytka Maszyna — przegląd schematu</title><style>
+body{font:11px/1.35 sans-serif;margin:18px;color:#111} h1{font-size:18px} h2{font-size:14px;margin:18px 0 4px;border-bottom:1px solid #888}
+table{border-collapse:collapse;width:100%;margin:4px 0 10px} td,th{border:1px solid #ccc;padding:2px 4px;vertical-align:top} th{background:#eee;text-align:left}
+.m{color:#555}</style>
+<h1>SmartSteer — płytka Maszyna (opryskiwacz): przegląd połączeń</h1>
+<p>Wygenerowane z netlisty <code>maszyna.net</code> (źródło: <code>maszyna.py</code>, SKiDL → KiCad 7). Specyfikacja, wyprowadzenia złączy i lista „do sprawdzenia”: <code>hardware/maszyna/README.md</code>. Dla każdego układu: pin → sieć → co jeszcze jest w tej sieci. Elementy bierne (R, C, D, L, F) na końcu.</p>
+<h2>J1 — AMPSEAL 35 (sekcje) <span class=m>(TE_AMPSEAL_776231-1_3Rows_35_P4mm_Horizontal)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>P1</td><td><b>SEKCJA1_A</b></td><td>D6.A1, U18.OUT1, U18.OUT1, U18.OUT1</td></tr>
+<tr><td>2</td><td>P2</td><td><b>SEKCJA1_B</b></td><td>D7.A1, U18.OUT2, U18.OUT2, U18.OUT2</td></tr>
+<tr><td>3</td><td>P3</td><td><b>SEKCJA2_A</b></td><td>D8.A1, U18.OUT3, U18.OUT3, U18.OUT3</td></tr>
+<tr><td>4</td><td>P4</td><td><b>SEKCJA2_B</b></td><td>D9.A1, U18.OUT4, U18.OUT4, U18.OUT4</td></tr>
+<tr><td>5</td><td>P5</td><td><b>SEKCJA3_A</b></td><td>D10.A1, U19.OUT1, U19.OUT1, U19.OUT1</td></tr>
+<tr><td>6</td><td>P6</td><td><b>SEKCJA3_B</b></td><td>D11.A1, U19.OUT2, U19.OUT2, U19.OUT2</td></tr>
+<tr><td>7</td><td>P7</td><td><b>SEKCJA4_A</b></td><td>D12.A1, U19.OUT3, U19.OUT3, U19.OUT3</td></tr>
+<tr><td>8</td><td>P8</td><td><b>SEKCJA4_B</b></td><td>D13.A1, U19.OUT4, U19.OUT4, U19.OUT4</td></tr>
+<tr><td>9</td><td>P9</td><td><b>SEKCJA5_A</b></td><td>D14.A1, U20.OUT1, U20.OUT1, U20.OUT1</td></tr>
+<tr><td>10</td><td>P10</td><td><b>SEKCJA5_B</b></td><td>D15.A1, U20.OUT2, U20.OUT2, U20.OUT2</td></tr>
+<tr><td>11</td><td>P11</td><td><b>SEKCJA6_A</b></td><td>D16.A1, U20.OUT3, U20.OUT3, U20.OUT3</td></tr>
+<tr><td>12</td><td>P12</td><td><b>SEKCJA6_B</b></td><td>D17.A1, U20.OUT4, U20.OUT4, U20.OUT4</td></tr>
+<tr><td>13</td><td>P13</td><td><b>SEKCJA7_A</b></td><td>D18.A1, U21.OUT1, U21.OUT1, U21.OUT1</td></tr>
+<tr><td>14</td><td>P14</td><td><b>SEKCJA7_B</b></td><td>D19.A1, U21.OUT2, U21.OUT2, U21.OUT2</td></tr>
+<tr><td>15</td><td>P15</td><td><b>SEKCJA8_A</b></td><td>D20.A1, U21.OUT3, U21.OUT3, U21.OUT3</td></tr>
+<tr><td>16</td><td>P16</td><td><b>SEKCJA8_B</b></td><td>D21.A1, U21.OUT4, U21.OUT4, U21.OUT4</td></tr>
+<tr><td>17</td><td>P17</td><td><b>SEKCJA9_A</b></td><td>D22.A1, U22.OUT1, U22.OUT1, U22.OUT1</td></tr>
+<tr><td>18</td><td>P18</td><td><b>SEKCJA9_B</b></td><td>D23.A1, U22.OUT2, U22.OUT2, U22.OUT2</td></tr>
+<tr><td>19</td><td>P19</td><td><b>SEKCJA10_A</b></td><td>D24.A1, U22.OUT3, U22.OUT3, U22.OUT3</td></tr>
+<tr><td>20</td><td>P20</td><td><b>SEKCJA10_B</b></td><td>D25.A1, U22.OUT4, U22.OUT4, U22.OUT4</td></tr>
+<tr><td>21</td><td>P21</td><td><b>SEKCJA11_A</b></td><td>D26.A1, U23.OUT1, U23.OUT1, U23.OUT1</td></tr>
+<tr><td>22</td><td>P22</td><td><b>SEKCJA11_B</b></td><td>D27.A1, U23.OUT2, U23.OUT2, U23.OUT2</td></tr>
+<tr><td>23</td><td>P23</td><td><b>SEKCJA12_A</b></td><td>D28.A1, U23.OUT3, U23.OUT3, U23.OUT3</td></tr>
+<tr><td>24</td><td>P24</td><td><b>SEKCJA12_B</b></td><td>D29.A1, U23.OUT4, U23.OUT4, U23.OUT4</td></tr>
+<tr><td>25</td><td>P25</td><td><b>SEKCJA13_A</b></td><td>D30.A1, U24.OUT1, U24.OUT1, U24.OUT1</td></tr>
+<tr><td>26</td><td>P26</td><td><b>SEKCJA13_B</b></td><td>D31.A1, U24.OUT2, U24.OUT2, U24.OUT2</td></tr>
+<tr><td>27</td><td>P27</td><td><b>V12_ZAWORY</b></td><td>F1.~</td></tr>
+<tr><td>28</td><td>P28</td><td><b>V12_ZAWORY</b></td><td>F1.~</td></tr>
+<tr><td>29</td><td>P29</td><td><b>V12_ZAWORY</b></td><td>F1.~</td></tr>
+<tr><td>30</td><td>P30</td><td><b>V12_ZAWORY</b></td><td>F1.~</td></tr>
+<tr><td>31</td><td>P31</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>P32</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>P33</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+<tr><td>34</td><td>P34</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+<tr><td>35</td><td>P35</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+</table>
+<h2>J2 — AMPSEAL 23 (zasilanie, czujniki) <span class=m>(TE_AMPSEAL_1-776087-x_3Rows_23_P0.4mm_Horizontal)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>P1</td><td><b>VIN_RAW</b></td><td>C1.~, Q1.S, Q1.S, Q1.S, U1.EN, U1.ANODE</td></tr>
+<tr><td>2</td><td>P2</td><td><b>VIN_RAW</b></td><td>C1.~, Q1.S, Q1.S, Q1.S, U1.EN, U1.ANODE</td></tr>
+<tr><td>3</td><td>P3</td><td><b>VIN_RAW</b></td><td>C1.~, Q1.S, Q1.S, Q1.S, U1.EN, U1.ANODE</td></tr>
+<tr><td>4</td><td>P4</td><td><b>GND</b></td><td>321 połączeń (zasilanie)</td></tr>
+<tr><td>5</td><td>P5</td><td><b>GND</b></td><td>321 połączeń (zasilanie)</td></tr>
+<tr><td>6</td><td>P6</td><td><b>GND</b></td><td>321 połączeń (zasilanie)</td></tr>
+<tr><td>7</td><td>P7</td><td><b>LAMPA_OUT</b></td><td>U8.OUT, U8.OUT, U8.OUT</td></tr>
+<tr><td>8</td><td>P8</td><td><b>LAMPA_OUT</b></td><td>U8.OUT, U8.OUT, U8.OUT</td></tr>
+<tr><td>9</td><td>P9</td><td><b>ZAW_GLOWNY_A</b></td><td>D32.A1, U24.OUT3, U24.OUT3, U24.OUT3</td></tr>
+<tr><td>10</td><td>P10</td><td><b>ZAW_GLOWNY_B</b></td><td>D33.A1, U24.OUT4, U24.OUT4, U24.OUT4</td></tr>
+<tr><td>11</td><td>P11</td><td><b>ZAW_REG_A</b></td><td>D34.A1, U25.OUT1, U25.OUT1, U25.OUT1</td></tr>
+<tr><td>12</td><td>P12</td><td><b>ZAW_REG_B</b></td><td>D35.A1, U25.OUT2, U25.OUT2, U25.OUT2</td></tr>
+<tr><td>13</td><td>P13</td><td><b>N$8</b></td><td>F3.~, R29.~</td></tr>
+<tr><td>14</td><td>P14</td><td><b>PRZEPL_SYG</b></td><td>R29.~, R30.~</td></tr>
+<tr><td>15</td><td>P15</td><td><b>GND</b></td><td>321 połączeń (zasilanie)</td></tr>
+<tr><td>16</td><td>P16</td><td><b>N$5</b></td><td>F2.~</td></tr>
+<tr><td>17</td><td>P17</td><td><b>CISN_SYG</b></td><td>D5.A1, J6.Pin_1, R21.~</td></tr>
+<tr><td>18</td><td>P18</td><td><b>GND</b></td><td>321 połączeń (zasilanie)</td></tr>
+<tr><td>19</td><td>P19</td><td><b>CANH</b></td><td>D4.L1, R18.~, U6.CANH</td></tr>
+<tr><td>20</td><td>P20</td><td><b>CANL</b></td><td>D4.L2, J5.Pin_2, U6.CANL</td></tr>
+<tr><td>21</td><td>P21</td><td><b>REZERWA_A</b></td><td>D36.A1, U25.OUT3, U25.OUT3, U25.OUT3</td></tr>
+<tr><td>22</td><td>P22</td><td><b>REZERWA_B</b></td><td>D37.A1, U25.OUT4, U25.OUT4, U25.OUT4</td></tr>
+<tr><td>23</td><td>P23</td><td><b>GND</b></td><td>321 połączeń (zasilanie)</td></tr>
+</table>
+<h2>J3 — JP CAN/BT <span class=m>(PinHeader_1x02_P2.54mm_Vertical)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>Pin_1</td><td><b>JP_CAN</b></td><td>R9.~, U4.SENSOR_VP</td></tr>
+<tr><td>2</td><td>Pin_2</td><td><b>GND</b></td><td>326 połączeń (zasilanie)</td></tr>
+</table>
+<h2>J4 — USB-C <span class=m>(USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>A1</td><td>GND</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+<tr><td>A12</td><td>GND</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+<tr><td>A4</td><td>VBUS</td><td><b>USB_VBUS</b></td><td>C19.~</td></tr>
+<tr><td>A5</td><td>CC1</td><td><b>N$1</b></td><td>R12.~</td></tr>
+<tr><td>A6</td><td>D+</td><td><b>USB_DP</b></td><td>U5.UD+</td></tr>
+<tr><td>A7</td><td>D-</td><td><b>USB_DM</b></td><td>U5.UD-</td></tr>
+<tr><td>A8</td><td>SBU1</td><td><b>NC_A8</b></td><td></td></tr>
+<tr><td>A9</td><td>VBUS</td><td><b>USB_VBUS</b></td><td>C19.~</td></tr>
+<tr><td>B1</td><td>GND</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+<tr><td>B12</td><td>GND</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+<tr><td>B4</td><td>VBUS</td><td><b>USB_VBUS</b></td><td>C19.~</td></tr>
+<tr><td>B5</td><td>CC2</td><td><b>N$2</b></td><td>R13.~</td></tr>
+<tr><td>B6</td><td>D+</td><td><b>USB_DP</b></td><td>U5.UD+</td></tr>
+<tr><td>B7</td><td>D-</td><td><b>USB_DM</b></td><td>U5.UD-</td></tr>
+<tr><td>B8</td><td>SBU2</td><td><b>NC_B8</b></td><td></td></tr>
+<tr><td>B9</td><td>VBUS</td><td><b>USB_VBUS</b></td><td>C19.~</td></tr>
+<tr><td>S1</td><td>SHIELD</td><td><b>GND</b></td><td>322 połączeń (zasilanie)</td></tr>
+</table>
+<h2>J5 — JP terminator CAN <span class=m>(PinHeader_1x02_P2.54mm_Vertical)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>Pin_1</td><td><b>CAN_TERM</b></td><td>R18.~</td></tr>
+<tr><td>2</td><td>Pin_2</td><td><b>CANL</b></td><td>D4.L2, J2.P20, U6.CANL</td></tr>
+</table>
+<h2>J6 — JP 4-20mA <span class=m>(PinHeader_1x02_P2.54mm_Vertical)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>Pin_1</td><td><b>CISN_SYG</b></td><td>D5.A1, J2.P17, R21.~</td></tr>
+<tr><td>2</td><td>Pin_2</td><td><b>CISN_SHUNT</b></td><td>R23.~</td></tr>
+</table>
+<h2>J7 — U.FL → SMA <span class=m>(U.FL_Hirose_U.FL-R-SMT-1_Vertical)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>In</td><td><b>GPS_RF</b></td><td>L2.2, U10.RF_IN</td></tr>
+<tr><td>2</td><td>Ext</td><td><b>GND</b></td><td>326 połączeń (zasilanie)</td></tr>
+</table>
+<h2>Q1 — BUK7J1R4-40H <span class=m>(LFPAK56)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>S</td><td><b>VIN_RAW</b></td><td>C1.~, J2.P1, J2.P2, J2.P3, U1.EN, U1.ANODE</td></tr>
+<tr><td>2</td><td>S</td><td><b>VIN_RAW</b></td><td>C1.~, J2.P1, J2.P2, J2.P3, U1.EN, U1.ANODE</td></tr>
+<tr><td>3</td><td>S</td><td><b>VIN_RAW</b></td><td>C1.~, J2.P1, J2.P2, J2.P3, U1.EN, U1.ANODE</td></tr>
+<tr><td>4</td><td>G</td><td><b>ID_GATE</b></td><td>U1.GATE</td></tr>
+<tr><td>5</td><td>D</td><td><b>V12</b></td><td>80 połączeń (zasilanie)</td></tr>
+</table>
+<h2>Q2 — MMBT3904 <span class=m>(SOT-23)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>B</td><td><b>AR_B1</b></td><td>R16.~</td></tr>
+<tr><td>2</td><td>E</td><td><b>USB_RTS</b></td><td>R17.~, U5.~{RTS}</td></tr>
+<tr><td>3</td><td>C</td><td><b>ESP_EN</b></td><td>C18.~, R3.~, U4.EN</td></tr>
+</table>
+<h2>Q3 — MMBT3904 <span class=m>(SOT-23)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>B</td><td><b>AR_B2</b></td><td>R17.~</td></tr>
+<tr><td>2</td><td>E</td><td><b>USB_DTR</b></td><td>R16.~, U5.~{DTR}</td></tr>
+<tr><td>3</td><td>C</td><td><b>ESP_IO0</b></td><td>R4.~, U4.IO0</td></tr>
+</table>
+<h2>U1 — LM74700-Q1 <span class=m>(SOT-23-6)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCAP</td><td><b>ID_VCAP</b></td><td>C1.~</td></tr>
+<tr><td>2</td><td>GND</td><td><b>GND</b></td><td>326 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>EN</td><td><b>VIN_RAW</b></td><td>C1.~, J2.P1, J2.P2, J2.P3, Q1.S, Q1.S, Q1.S</td></tr>
+<tr><td>4</td><td>CATHODE</td><td><b>V12</b></td><td>80 połączeń (zasilanie)</td></tr>
+<tr><td>5</td><td>GATE</td><td><b>ID_GATE</b></td><td>Q1.G</td></tr>
+<tr><td>6</td><td>ANODE</td><td><b>VIN_RAW</b></td><td>C1.~, J2.P1, J2.P2, J2.P3, Q1.S, Q1.S, Q1.S</td></tr>
+</table>
+<h2>U2 — LMR33610ADDAR <span class=m>(Texas_HSOP-8-1EP_3.9x4.9mm_P1.27mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>2</td><td>VIN</td><td><b>V12</b></td><td>79 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>EN</td><td><b>V12</b></td><td>79 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>PG</td><td><b>BUCK_PG</b></td><td></td></tr>
+<tr><td>5</td><td>FB</td><td><b>BUCK_FB</b></td><td>R1.~, R2.~</td></tr>
+<tr><td>6</td><td>VCC</td><td><b>BUCK_VCC</b></td><td>C11.~</td></tr>
+<tr><td>7</td><td>BOOT</td><td><b>BUCK_BOOT</b></td><td>C10.~</td></tr>
+<tr><td>8</td><td>SW</td><td><b>BUCK_SW</b></td><td>C10.~, L1.1</td></tr>
+<tr><td>9</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U3 — AMS1117-3.3 <span class=m>(SOT-223-3_TabPin2)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>GND</td><td><b>GND</b></td><td>326 połączeń (zasilanie)</td></tr>
+<tr><td>2</td><td>VO</td><td><b>V3V3</b></td><td>51 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>VI</td><td><b>V5</b></td><td>8 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U4 — ESP32-WROOM-32E-N8 <span class=m>(ESP32-WROOM-32D)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>GND</td><td><b>GND</b></td><td>323 połączeń (zasilanie)</td></tr>
+<tr><td>2</td><td>VDD</td><td><b>V3V3</b></td><td>51 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>EN</td><td><b>ESP_EN</b></td><td>C18.~, Q2.C, R3.~</td></tr>
+<tr><td>4</td><td>SENSOR_VP</td><td><b>JP_CAN</b></td><td>J3.Pin_1, R9.~</td></tr>
+<tr><td>7</td><td>IO35</td><td><b>FLOW_3V3</b></td><td>U9.~</td></tr>
+<tr><td>8</td><td>IO32</td><td><b>CAN_TX</b></td><td>U6.TXD</td></tr>
+<tr><td>9</td><td>IO33</td><td><b>CAN_RX</b></td><td>U6.RXD</td></tr>
+<tr><td>10</td><td>IO25</td><td><b>LAMP_IN</b></td><td>R27.~</td></tr>
+<tr><td>11</td><td>IO26</td><td><b>LED_ZIELONA</b></td><td>R10.~</td></tr>
+<tr><td>12</td><td>IO27</td><td><b>LED_CZERWONA</b></td><td>R11.~</td></tr>
+<tr><td>14</td><td>IO12</td><td><b>ESP_IO12</b></td><td>R6.~</td></tr>
+<tr><td>15</td><td>GND</td><td><b>GND</b></td><td>323 połączeń (zasilanie)</td></tr>
+<tr><td>16</td><td>IO13</td><td><b>FLT_PL</b></td><td>R8.~, U17.~{PL}</td></tr>
+<tr><td>24</td><td>IO2</td><td><b>ESP_IO2</b></td><td>R5.~</td></tr>
+<tr><td>25</td><td>IO0</td><td><b>ESP_IO0</b></td><td>Q3.C, R4.~</td></tr>
+<tr><td>26</td><td>IO4</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U18.nSLEEP, U19.nSLEEP, U20.nSLEEP, U21.nSLEEP, U22.nSLEEP, U23.nSLEEP, U24.nSLEEP, U25.nSLEEP</td></tr>
+<tr><td>27</td><td>IO16</td><td><b>GPS_TXD</b></td><td>U10.TXD</td></tr>
+<tr><td>28</td><td>IO17</td><td><b>GPS_RXD</b></td><td>U10.RXD</td></tr>
+<tr><td>29</td><td>IO5</td><td><b>REG_RCLK</b></td><td>U11.RCLK, U12.RCLK, U13.RCLK, U14.RCLK, U15.RCLK, U16.RCLK</td></tr>
+<tr><td>30</td><td>IO18</td><td><b>SPI_SCK</b></td><td>U11.SRCLK, U12.SRCLK, U13.SRCLK, U14.SRCLK, U15.SRCLK, U16.SRCLK, U17.CP</td></tr>
+<tr><td>31</td><td>IO19</td><td><b>SPI_MISO</b></td><td>U17.Q7</td></tr>
+<tr><td>33</td><td>IO21</td><td><b>I2C_SDA</b></td><td>R19.~, U7.SDA</td></tr>
+<tr><td>34</td><td>RXD0/IO3</td><td><b>U0RXD</b></td><td>R14.~</td></tr>
+<tr><td>35</td><td>TXD0/IO1</td><td><b>U0TXD</b></td><td>R15.~</td></tr>
+<tr><td>36</td><td>IO22</td><td><b>I2C_SCL</b></td><td>R20.~, U7.SCL</td></tr>
+<tr><td>37</td><td>IO23</td><td><b>SPI_MOSI</b></td><td>U11.SER</td></tr>
+<tr><td>38</td><td>GND</td><td><b>GND</b></td><td>323 połączeń (zasilanie)</td></tr>
+<tr><td>39</td><td>GND</td><td><b>GND</b></td><td>323 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U5 — CH340C <span class=m>(SOIC-16_3.9x9.9mm_P1.27mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>GND</td><td><b>GND</b></td><td>326 połączeń (zasilanie)</td></tr>
+<tr><td>2</td><td>TXD</td><td><b>N$3</b></td><td>R14.~</td></tr>
+<tr><td>3</td><td>RXD</td><td><b>N$4</b></td><td>R15.~</td></tr>
+<tr><td>4</td><td>V3</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>5</td><td>UD+</td><td><b>USB_DP</b></td><td>J4.A6, J4.B6</td></tr>
+<tr><td>6</td><td>UD-</td><td><b>USB_DM</b></td><td>J4.A7, J4.B7</td></tr>
+<tr><td>7</td><td>NC</td><td><b>NC_CH340_7</b></td><td></td></tr>
+<tr><td>8</td><td>~{OUT}/~{DTR}</td><td><b>NC_CH340_8</b></td><td></td></tr>
+<tr><td>9</td><td>~{CTS}</td><td><b>NC_CH340_9</b></td><td></td></tr>
+<tr><td>10</td><td>~{DSR}</td><td><b>NC_CH340_10</b></td><td></td></tr>
+<tr><td>11</td><td>~{RI}</td><td><b>NC_CH340_11</b></td><td></td></tr>
+<tr><td>12</td><td>~{DCD}</td><td><b>NC_CH340_12</b></td><td></td></tr>
+<tr><td>13</td><td>~{DTR}</td><td><b>USB_DTR</b></td><td>Q3.E, R16.~</td></tr>
+<tr><td>14</td><td>~{RTS}</td><td><b>USB_RTS</b></td><td>Q2.E, R17.~</td></tr>
+<tr><td>15</td><td>R232</td><td><b>NC_CH340_15</b></td><td></td></tr>
+<tr><td>16</td><td>VCC</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U6 — TJA1051T/3 <span class=m>(SOIC-8_3.9x4.9mm_P1.27mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>TXD</td><td><b>CAN_TX</b></td><td>U4.IO32</td></tr>
+<tr><td>2</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>VCC</td><td><b>V5</b></td><td>8 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>RXD</td><td><b>CAN_RX</b></td><td>U4.IO33</td></tr>
+<tr><td>5</td><td>VIO</td><td><b>V3V3</b></td><td>51 połączeń (zasilanie)</td></tr>
+<tr><td>6</td><td>CANL</td><td><b>CANL</b></td><td>D4.L2, J2.P20, J5.Pin_2</td></tr>
+<tr><td>7</td><td>CANH</td><td><b>CANH</b></td><td>D4.L1, J2.P19, R18.~</td></tr>
+<tr><td>8</td><td>S</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U7 — ADS1115IDGSR <span class=m>(TSSOP-10_3x3mm_P0.5mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>ADDR</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>2</td><td>ALERT/RDY</td><td><b>ADC_RDY</b></td><td></td></tr>
+<tr><td>3</td><td>GND</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>AIN0</td><td><b>ADC_AIN0</b></td><td>C24.~, R21.~, R22.~</td></tr>
+<tr><td>5</td><td>AIN1</td><td><b>ADC_AIN1</b></td><td>C25.~, R24.~, R25.~</td></tr>
+<tr><td>6</td><td>AIN2</td><td><b>ADC_AIN2</b></td><td>R28.~, U8.IS</td></tr>
+<tr><td>7</td><td>AIN3</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>8</td><td>VDD</td><td><b>V3V3</b></td><td>51 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>SDA</td><td><b>I2C_SDA</b></td><td>R19.~, U4.IO21</td></tr>
+<tr><td>10</td><td>SCL</td><td><b>I2C_SCL</b></td><td>R20.~, U4.IO22</td></tr>
+</table>
+<h2>U8 — BTS50015-1TAD <span class=m>(TO-263-7_TabPin4)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>GND</td><td><b>LAMP_GND</b></td><td>R26.~</td></tr>
+<tr><td>2</td><td>IN</td><td><b>N$6</b></td><td>R27.~</td></tr>
+<tr><td>3</td><td>IS</td><td><b>ADC_AIN2</b></td><td>R28.~, U7.AIN2</td></tr>
+<tr><td>4</td><td>Vbb</td><td><b>V12</b></td><td>80 połączeń (zasilanie)</td></tr>
+<tr><td>5</td><td>OUT</td><td><b>LAMPA_OUT</b></td><td>J2.P7, J2.P8</td></tr>
+<tr><td>6</td><td>OUT</td><td><b>LAMPA_OUT</b></td><td>J2.P7, J2.P8</td></tr>
+<tr><td>7</td><td>OUT</td><td><b>LAMPA_OUT</b></td><td>J2.P7, J2.P8</td></tr>
+</table>
+<h2>U9 — 74LVC1G17 <span class=m>(SOT-353_SC-70-5)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>NC</td><td><b>NC_SCH</b></td><td></td></tr>
+<tr><td>2</td><td>~</td><td><b>PRZEPL_DZ</b></td><td>C26.~, R30.~, R31.~</td></tr>
+<tr><td>3</td><td>GND</td><td><b>GND</b></td><td>326 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>~</td><td><b>FLOW_3V3</b></td><td>U4.IO35</td></tr>
+<tr><td>5</td><td>VCC</td><td><b>V3V3</b></td><td>51 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U10 — Quectel L76K <span class=m>(Quectel_L76)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>GND</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>2</td><td>TXD</td><td><b>GPS_TXD</b></td><td>U4.IO16</td></tr>
+<tr><td>3</td><td>RXD</td><td><b>GPS_RXD</b></td><td>U4.IO17</td></tr>
+<tr><td>4</td><td>1PPS</td><td><b>NC_GPS4</b></td><td></td></tr>
+<tr><td>5</td><td>WAKE_UP</td><td><b>NC_GPS5</b></td><td></td></tr>
+<tr><td>6</td><td>V_BCKP</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>7</td><td>RES7</td><td><b>NC_GPS7</b></td><td></td></tr>
+<tr><td>8</td><td>VCC</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>RESET_N</td><td><b>NC_GPS9</b></td><td></td></tr>
+<tr><td>10</td><td>GND</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>RF_IN</td><td><b>GPS_RF</b></td><td>J7.In, L2.2</td></tr>
+<tr><td>12</td><td>GND</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>ANTON</td><td><b>NC_GPS13</b></td><td></td></tr>
+<tr><td>14</td><td>VDD_RF</td><td><b>GPS_VDD_RF</b></td><td>R32.~</td></tr>
+<tr><td>15</td><td>RES15</td><td><b>NC_GPS15</b></td><td></td></tr>
+<tr><td>16</td><td>RES16</td><td><b>NC_GPS16</b></td><td></td></tr>
+<tr><td>17</td><td>RES17</td><td><b>NC_GPS17</b></td><td></td></tr>
+<tr><td>18</td><td>SET</td><td><b>NC_GPS18</b></td><td></td></tr>
+</table>
+<h2>U11 — 74HC595PW-Q100 <span class=m>(TSSOP-16_4.4x5mm_P0.65mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>QB</td><td><b>M1_INB</b></td><td>R37.~, U18.IN2</td></tr>
+<tr><td>2</td><td>QC</td><td><b>M1_EN</b></td><td>R38.~, U18.EN2, U18.EN1</td></tr>
+<tr><td>3</td><td>QD</td><td><b>M2_INA</b></td><td>R39.~, U18.IN3</td></tr>
+<tr><td>4</td><td>QE</td><td><b>M2_INB</b></td><td>R40.~, U18.IN4</td></tr>
+<tr><td>5</td><td>QF</td><td><b>M2_EN</b></td><td>R41.~, U18.EN4, U18.EN3</td></tr>
+<tr><td>6</td><td>QG</td><td><b>M3_INA</b></td><td>R45.~, U19.IN1</td></tr>
+<tr><td>7</td><td>QH</td><td><b>M3_INB</b></td><td>R46.~, U19.IN2</td></tr>
+<tr><td>8</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>QH&#x27;</td><td><b>SR_CHAIN0</b></td><td>U12.SER</td></tr>
+<tr><td>10</td><td>~{SRCLR}</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>SRCLK</td><td><b>SPI_SCK</b></td><td>U12.SRCLK, U13.SRCLK, U14.SRCLK, U15.SRCLK, U16.SRCLK, U17.CP, U4.IO18</td></tr>
+<tr><td>12</td><td>RCLK</td><td><b>REG_RCLK</b></td><td>U12.RCLK, U13.RCLK, U14.RCLK, U15.RCLK, U16.RCLK, U4.IO5</td></tr>
+<tr><td>13</td><td>~{OE}</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>SER</td><td><b>SPI_MOSI</b></td><td>U4.IO23</td></tr>
+<tr><td>15</td><td>QA</td><td><b>M1_INA</b></td><td>R36.~, U18.IN1</td></tr>
+<tr><td>16</td><td>VCC</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U12 — 74HC595PW-Q100 <span class=m>(TSSOP-16_4.4x5mm_P0.65mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>QB</td><td><b>M4_INA</b></td><td>R48.~, U19.IN3</td></tr>
+<tr><td>2</td><td>QC</td><td><b>M4_INB</b></td><td>R49.~, U19.IN4</td></tr>
+<tr><td>3</td><td>QD</td><td><b>M4_EN</b></td><td>R50.~, U19.EN4, U19.EN3</td></tr>
+<tr><td>4</td><td>QE</td><td><b>M5_INA</b></td><td>R54.~, U20.IN1</td></tr>
+<tr><td>5</td><td>QF</td><td><b>M5_INB</b></td><td>R55.~, U20.IN2</td></tr>
+<tr><td>6</td><td>QG</td><td><b>M5_EN</b></td><td>R56.~, U20.EN2, U20.EN1</td></tr>
+<tr><td>7</td><td>QH</td><td><b>M6_INA</b></td><td>R57.~, U20.IN3</td></tr>
+<tr><td>8</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>QH&#x27;</td><td><b>SR_CHAIN1</b></td><td>U13.SER</td></tr>
+<tr><td>10</td><td>~{SRCLR}</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>SRCLK</td><td><b>SPI_SCK</b></td><td>U11.SRCLK, U13.SRCLK, U14.SRCLK, U15.SRCLK, U16.SRCLK, U17.CP, U4.IO18</td></tr>
+<tr><td>12</td><td>RCLK</td><td><b>REG_RCLK</b></td><td>U11.RCLK, U13.RCLK, U14.RCLK, U15.RCLK, U16.RCLK, U4.IO5</td></tr>
+<tr><td>13</td><td>~{OE}</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>SER</td><td><b>SR_CHAIN0</b></td><td>U11.QH&#x27;</td></tr>
+<tr><td>15</td><td>QA</td><td><b>M3_EN</b></td><td>R47.~, U19.EN2, U19.EN1</td></tr>
+<tr><td>16</td><td>VCC</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U13 — 74HC595PW-Q100 <span class=m>(TSSOP-16_4.4x5mm_P0.65mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>QB</td><td><b>M6_EN</b></td><td>R59.~, U20.EN4, U20.EN3</td></tr>
+<tr><td>2</td><td>QC</td><td><b>M7_INA</b></td><td>R63.~, U21.IN1</td></tr>
+<tr><td>3</td><td>QD</td><td><b>M7_INB</b></td><td>R64.~, U21.IN2</td></tr>
+<tr><td>4</td><td>QE</td><td><b>M7_EN</b></td><td>R65.~, U21.EN2, U21.EN1</td></tr>
+<tr><td>5</td><td>QF</td><td><b>M8_INA</b></td><td>R66.~, U21.IN3</td></tr>
+<tr><td>6</td><td>QG</td><td><b>M8_INB</b></td><td>R67.~, U21.IN4</td></tr>
+<tr><td>7</td><td>QH</td><td><b>M8_EN</b></td><td>R68.~, U21.EN4, U21.EN3</td></tr>
+<tr><td>8</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>QH&#x27;</td><td><b>SR_CHAIN2</b></td><td>U14.SER</td></tr>
+<tr><td>10</td><td>~{SRCLR}</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>SRCLK</td><td><b>SPI_SCK</b></td><td>U11.SRCLK, U12.SRCLK, U14.SRCLK, U15.SRCLK, U16.SRCLK, U17.CP, U4.IO18</td></tr>
+<tr><td>12</td><td>RCLK</td><td><b>REG_RCLK</b></td><td>U11.RCLK, U12.RCLK, U14.RCLK, U15.RCLK, U16.RCLK, U4.IO5</td></tr>
+<tr><td>13</td><td>~{OE}</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>SER</td><td><b>SR_CHAIN1</b></td><td>U12.QH&#x27;</td></tr>
+<tr><td>15</td><td>QA</td><td><b>M6_INB</b></td><td>R58.~, U20.IN4</td></tr>
+<tr><td>16</td><td>VCC</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U14 — 74HC595PW-Q100 <span class=m>(TSSOP-16_4.4x5mm_P0.65mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>QB</td><td><b>M9_INB</b></td><td>R73.~, U22.IN2</td></tr>
+<tr><td>2</td><td>QC</td><td><b>M9_EN</b></td><td>R74.~, U22.EN2, U22.EN1</td></tr>
+<tr><td>3</td><td>QD</td><td><b>M10_INA</b></td><td>R75.~, U22.IN3</td></tr>
+<tr><td>4</td><td>QE</td><td><b>M10_INB</b></td><td>R76.~, U22.IN4</td></tr>
+<tr><td>5</td><td>QF</td><td><b>M10_EN</b></td><td>R77.~, U22.EN4, U22.EN3</td></tr>
+<tr><td>6</td><td>QG</td><td><b>M11_INA</b></td><td>R81.~, U23.IN1</td></tr>
+<tr><td>7</td><td>QH</td><td><b>M11_INB</b></td><td>R82.~, U23.IN2</td></tr>
+<tr><td>8</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>QH&#x27;</td><td><b>SR_CHAIN3</b></td><td>U15.SER</td></tr>
+<tr><td>10</td><td>~{SRCLR}</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>SRCLK</td><td><b>SPI_SCK</b></td><td>U11.SRCLK, U12.SRCLK, U13.SRCLK, U15.SRCLK, U16.SRCLK, U17.CP, U4.IO18</td></tr>
+<tr><td>12</td><td>RCLK</td><td><b>REG_RCLK</b></td><td>U11.RCLK, U12.RCLK, U13.RCLK, U15.RCLK, U16.RCLK, U4.IO5</td></tr>
+<tr><td>13</td><td>~{OE}</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>SER</td><td><b>SR_CHAIN2</b></td><td>U13.QH&#x27;</td></tr>
+<tr><td>15</td><td>QA</td><td><b>M9_INA</b></td><td>R72.~, U22.IN1</td></tr>
+<tr><td>16</td><td>VCC</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U15 — 74HC595PW-Q100 <span class=m>(TSSOP-16_4.4x5mm_P0.65mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>QB</td><td><b>M12_INA</b></td><td>R84.~, U23.IN3</td></tr>
+<tr><td>2</td><td>QC</td><td><b>M12_INB</b></td><td>R85.~, U23.IN4</td></tr>
+<tr><td>3</td><td>QD</td><td><b>M12_EN</b></td><td>R86.~, U23.EN4, U23.EN3</td></tr>
+<tr><td>4</td><td>QE</td><td><b>M13_INA</b></td><td>R90.~, U24.IN1</td></tr>
+<tr><td>5</td><td>QF</td><td><b>M13_INB</b></td><td>R91.~, U24.IN2</td></tr>
+<tr><td>6</td><td>QG</td><td><b>M13_EN</b></td><td>R92.~, U24.EN2, U24.EN1</td></tr>
+<tr><td>7</td><td>QH</td><td><b>M14_INA</b></td><td>R93.~, U24.IN3</td></tr>
+<tr><td>8</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>QH&#x27;</td><td><b>SR_CHAIN4</b></td><td>U16.SER</td></tr>
+<tr><td>10</td><td>~{SRCLR}</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>SRCLK</td><td><b>SPI_SCK</b></td><td>U11.SRCLK, U12.SRCLK, U13.SRCLK, U14.SRCLK, U16.SRCLK, U17.CP, U4.IO18</td></tr>
+<tr><td>12</td><td>RCLK</td><td><b>REG_RCLK</b></td><td>U11.RCLK, U12.RCLK, U13.RCLK, U14.RCLK, U16.RCLK, U4.IO5</td></tr>
+<tr><td>13</td><td>~{OE}</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>SER</td><td><b>SR_CHAIN3</b></td><td>U14.QH&#x27;</td></tr>
+<tr><td>15</td><td>QA</td><td><b>M11_EN</b></td><td>R83.~, U23.EN2, U23.EN1</td></tr>
+<tr><td>16</td><td>VCC</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U16 — 74HC595PW-Q100 <span class=m>(TSSOP-16_4.4x5mm_P0.65mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>QB</td><td><b>M14_EN</b></td><td>R95.~, U24.EN4, U24.EN3</td></tr>
+<tr><td>2</td><td>QC</td><td><b>M15_INA</b></td><td>R99.~, U25.IN1</td></tr>
+<tr><td>3</td><td>QD</td><td><b>M15_INB</b></td><td>R100.~, U25.IN2</td></tr>
+<tr><td>4</td><td>QE</td><td><b>M15_EN</b></td><td>R101.~, U25.EN2, U25.EN1</td></tr>
+<tr><td>5</td><td>QF</td><td><b>M16_INA</b></td><td>R102.~, U25.IN3</td></tr>
+<tr><td>6</td><td>QG</td><td><b>M16_INB</b></td><td>R103.~, U25.IN4</td></tr>
+<tr><td>7</td><td>QH</td><td><b>M16_EN</b></td><td>R104.~, U25.EN4, U25.EN3</td></tr>
+<tr><td>8</td><td>GND</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>QH&#x27;</td><td><b>SR_CHAIN5</b></td><td></td></tr>
+<tr><td>10</td><td>~{SRCLR}</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>SRCLK</td><td><b>SPI_SCK</b></td><td>U11.SRCLK, U12.SRCLK, U13.SRCLK, U14.SRCLK, U15.SRCLK, U17.CP, U4.IO18</td></tr>
+<tr><td>12</td><td>RCLK</td><td><b>REG_RCLK</b></td><td>U11.RCLK, U12.RCLK, U13.RCLK, U14.RCLK, U15.RCLK, U4.IO5</td></tr>
+<tr><td>13</td><td>~{OE}</td><td><b>GND</b></td><td>325 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>SER</td><td><b>SR_CHAIN4</b></td><td>U15.QH&#x27;</td></tr>
+<tr><td>15</td><td>QA</td><td><b>M14_INB</b></td><td>R94.~, U24.IN4</td></tr>
+<tr><td>16</td><td>VCC</td><td><b>V3V3</b></td><td>50 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U17 — 74HC165PW-Q100 <span class=m>(TSSOP-16_4.4x5mm_P0.65mm)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>~{PL}</td><td><b>FLT_PL</b></td><td>R8.~, U4.IO13</td></tr>
+<tr><td>2</td><td>CP</td><td><b>SPI_SCK</b></td><td>U11.SRCLK, U12.SRCLK, U13.SRCLK, U14.SRCLK, U15.SRCLK, U16.SRCLK, U4.IO18</td></tr>
+<tr><td>3</td><td>D4</td><td><b>DRV4_nFAULT</b></td><td>R69.~, U22.nFAULT</td></tr>
+<tr><td>4</td><td>D5</td><td><b>DRV5_nFAULT</b></td><td>R78.~, U23.nFAULT</td></tr>
+<tr><td>5</td><td>D6</td><td><b>DRV6_nFAULT</b></td><td>R87.~, U24.nFAULT</td></tr>
+<tr><td>6</td><td>D7</td><td><b>DRV7_nFAULT</b></td><td>R96.~, U25.nFAULT</td></tr>
+<tr><td>7</td><td>~{Q7}</td><td><b>NC_Q7N</b></td><td></td></tr>
+<tr><td>8</td><td>GND</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>9</td><td>Q7</td><td><b>SPI_MISO</b></td><td>U4.IO19</td></tr>
+<tr><td>10</td><td>DS</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>D0</td><td><b>DRV0_nFAULT</b></td><td>R33.~, U18.nFAULT</td></tr>
+<tr><td>12</td><td>D1</td><td><b>DRV1_nFAULT</b></td><td>R42.~, U19.nFAULT</td></tr>
+<tr><td>13</td><td>D2</td><td><b>DRV2_nFAULT</b></td><td>R51.~, U20.nFAULT</td></tr>
+<tr><td>14</td><td>D3</td><td><b>DRV3_nFAULT</b></td><td>R60.~, U21.nFAULT</td></tr>
+<tr><td>15</td><td>~{CE}</td><td><b>GND</b></td><td>324 połączeń (zasilanie)</td></tr>
+<tr><td>16</td><td>VCC</td><td><b>V3V3</b></td><td>51 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U18 — DRV8962QDDWRQ1 <span class=m>(HTSSOP-44-1EP_6.1x14mm_P0.635mm_EP5.2x14mm_Mask4.31x8.26mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCP</td><td><b>U0_VCP</b></td><td>C38.~</td></tr>
+<tr><td>2</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>PGND1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>OUT1</td><td><b>SEKCJA1_A</b></td><td>D6.A1, J1.P1</td></tr>
+<tr><td>5</td><td>OUT1</td><td><b>SEKCJA1_A</b></td><td>D6.A1, J1.P1</td></tr>
+<tr><td>6</td><td>OUT1</td><td><b>SEKCJA1_A</b></td><td>D6.A1, J1.P1</td></tr>
+<tr><td>7</td><td>OUT2</td><td><b>SEKCJA1_B</b></td><td>D7.A1, J1.P2</td></tr>
+<tr><td>8</td><td>OUT2</td><td><b>SEKCJA1_B</b></td><td>D7.A1, J1.P2</td></tr>
+<tr><td>9</td><td>OUT2</td><td><b>SEKCJA1_B</b></td><td>D7.A1, J1.P2</td></tr>
+<tr><td>10</td><td>PGND2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>12</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>PGND4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>OUT4</td><td><b>SEKCJA2_B</b></td><td>D9.A1, J1.P4</td></tr>
+<tr><td>15</td><td>OUT4</td><td><b>SEKCJA2_B</b></td><td>D9.A1, J1.P4</td></tr>
+<tr><td>16</td><td>OUT4</td><td><b>SEKCJA2_B</b></td><td>D9.A1, J1.P4</td></tr>
+<tr><td>17</td><td>OUT3</td><td><b>SEKCJA2_A</b></td><td>D8.A1, J1.P3</td></tr>
+<tr><td>18</td><td>OUT3</td><td><b>SEKCJA2_A</b></td><td>D8.A1, J1.P3</td></tr>
+<tr><td>19</td><td>OUT3</td><td><b>SEKCJA2_A</b></td><td>D8.A1, J1.P3</td></tr>
+<tr><td>20</td><td>PGND3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>21</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>22</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>23</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>24</td><td>DVDD</td><td><b>DRV0_DVDD</b></td><td>C40.~, C41.~, R34.~</td></tr>
+<tr><td>25</td><td>VCC</td><td><b>DRV0_DVDD</b></td><td>C40.~, C41.~, R34.~</td></tr>
+<tr><td>26</td><td>nFAULT</td><td><b>DRV0_nFAULT</b></td><td>R33.~, U17.D0</td></tr>
+<tr><td>27</td><td>OCPM</td><td><b>DRV0_DVDD</b></td><td>C40.~, C41.~, R34.~</td></tr>
+<tr><td>28</td><td>MODE</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>29</td><td>IPROPI4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>30</td><td>IPROPI3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>31</td><td>IPROPI2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>IPROPI1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>VREF</td><td><b>DRV0_VREF</b></td><td>R34.~, R35.~</td></tr>
+<tr><td>34</td><td>EN4</td><td><b>M2_EN</b></td><td>R41.~, U11.QF</td></tr>
+<tr><td>35</td><td>EN3</td><td><b>M2_EN</b></td><td>R41.~, U11.QF</td></tr>
+<tr><td>36</td><td>EN2</td><td><b>M1_EN</b></td><td>R38.~, U11.QC</td></tr>
+<tr><td>37</td><td>EN1</td><td><b>M1_EN</b></td><td>R38.~, U11.QC</td></tr>
+<tr><td>38</td><td>IN4</td><td><b>M2_INB</b></td><td>R40.~, U11.QE</td></tr>
+<tr><td>39</td><td>IN3</td><td><b>M2_INA</b></td><td>R39.~, U11.QD</td></tr>
+<tr><td>40</td><td>IN2</td><td><b>M1_INB</b></td><td>R37.~, U11.QB</td></tr>
+<tr><td>41</td><td>IN1</td><td><b>M1_INA</b></td><td>R36.~, U11.QA</td></tr>
+<tr><td>42</td><td>nSLEEP</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U19.nSLEEP, U20.nSLEEP, U21.nSLEEP, U22.nSLEEP, U23.nSLEEP, U24.nSLEEP, U25.nSLEEP, U4.IO4</td></tr>
+<tr><td>43</td><td>CPL</td><td><b>U0_CPL</b></td><td>C39.~</td></tr>
+<tr><td>44</td><td>CPH</td><td><b>U0_CPH</b></td><td>C39.~</td></tr>
+<tr><td>45</td><td>PAD</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U19 — DRV8962QDDWRQ1 <span class=m>(HTSSOP-44-1EP_6.1x14mm_P0.635mm_EP5.2x14mm_Mask4.31x8.26mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCP</td><td><b>U1_VCP</b></td><td>C45.~</td></tr>
+<tr><td>2</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>PGND1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>OUT1</td><td><b>SEKCJA3_A</b></td><td>D10.A1, J1.P5</td></tr>
+<tr><td>5</td><td>OUT1</td><td><b>SEKCJA3_A</b></td><td>D10.A1, J1.P5</td></tr>
+<tr><td>6</td><td>OUT1</td><td><b>SEKCJA3_A</b></td><td>D10.A1, J1.P5</td></tr>
+<tr><td>7</td><td>OUT2</td><td><b>SEKCJA3_B</b></td><td>D11.A1, J1.P6</td></tr>
+<tr><td>8</td><td>OUT2</td><td><b>SEKCJA3_B</b></td><td>D11.A1, J1.P6</td></tr>
+<tr><td>9</td><td>OUT2</td><td><b>SEKCJA3_B</b></td><td>D11.A1, J1.P6</td></tr>
+<tr><td>10</td><td>PGND2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>12</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>PGND4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>OUT4</td><td><b>SEKCJA4_B</b></td><td>D13.A1, J1.P8</td></tr>
+<tr><td>15</td><td>OUT4</td><td><b>SEKCJA4_B</b></td><td>D13.A1, J1.P8</td></tr>
+<tr><td>16</td><td>OUT4</td><td><b>SEKCJA4_B</b></td><td>D13.A1, J1.P8</td></tr>
+<tr><td>17</td><td>OUT3</td><td><b>SEKCJA4_A</b></td><td>D12.A1, J1.P7</td></tr>
+<tr><td>18</td><td>OUT3</td><td><b>SEKCJA4_A</b></td><td>D12.A1, J1.P7</td></tr>
+<tr><td>19</td><td>OUT3</td><td><b>SEKCJA4_A</b></td><td>D12.A1, J1.P7</td></tr>
+<tr><td>20</td><td>PGND3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>21</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>22</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>23</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>24</td><td>DVDD</td><td><b>DRV1_DVDD</b></td><td>C47.~, C48.~, R43.~</td></tr>
+<tr><td>25</td><td>VCC</td><td><b>DRV1_DVDD</b></td><td>C47.~, C48.~, R43.~</td></tr>
+<tr><td>26</td><td>nFAULT</td><td><b>DRV1_nFAULT</b></td><td>R42.~, U17.D1</td></tr>
+<tr><td>27</td><td>OCPM</td><td><b>DRV1_DVDD</b></td><td>C47.~, C48.~, R43.~</td></tr>
+<tr><td>28</td><td>MODE</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>29</td><td>IPROPI4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>30</td><td>IPROPI3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>31</td><td>IPROPI2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>IPROPI1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>VREF</td><td><b>DRV1_VREF</b></td><td>R43.~, R44.~</td></tr>
+<tr><td>34</td><td>EN4</td><td><b>M4_EN</b></td><td>R50.~, U12.QD</td></tr>
+<tr><td>35</td><td>EN3</td><td><b>M4_EN</b></td><td>R50.~, U12.QD</td></tr>
+<tr><td>36</td><td>EN2</td><td><b>M3_EN</b></td><td>R47.~, U12.QA</td></tr>
+<tr><td>37</td><td>EN1</td><td><b>M3_EN</b></td><td>R47.~, U12.QA</td></tr>
+<tr><td>38</td><td>IN4</td><td><b>M4_INB</b></td><td>R49.~, U12.QC</td></tr>
+<tr><td>39</td><td>IN3</td><td><b>M4_INA</b></td><td>R48.~, U12.QB</td></tr>
+<tr><td>40</td><td>IN2</td><td><b>M3_INB</b></td><td>R46.~, U11.QH</td></tr>
+<tr><td>41</td><td>IN1</td><td><b>M3_INA</b></td><td>R45.~, U11.QG</td></tr>
+<tr><td>42</td><td>nSLEEP</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U18.nSLEEP, U20.nSLEEP, U21.nSLEEP, U22.nSLEEP, U23.nSLEEP, U24.nSLEEP, U25.nSLEEP, U4.IO4</td></tr>
+<tr><td>43</td><td>CPL</td><td><b>U1_CPL</b></td><td>C46.~</td></tr>
+<tr><td>44</td><td>CPH</td><td><b>U1_CPH</b></td><td>C46.~</td></tr>
+<tr><td>45</td><td>PAD</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U20 — DRV8962QDDWRQ1 <span class=m>(HTSSOP-44-1EP_6.1x14mm_P0.635mm_EP5.2x14mm_Mask4.31x8.26mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCP</td><td><b>U2_VCP</b></td><td>C52.~</td></tr>
+<tr><td>2</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>PGND1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>OUT1</td><td><b>SEKCJA5_A</b></td><td>D14.A1, J1.P9</td></tr>
+<tr><td>5</td><td>OUT1</td><td><b>SEKCJA5_A</b></td><td>D14.A1, J1.P9</td></tr>
+<tr><td>6</td><td>OUT1</td><td><b>SEKCJA5_A</b></td><td>D14.A1, J1.P9</td></tr>
+<tr><td>7</td><td>OUT2</td><td><b>SEKCJA5_B</b></td><td>D15.A1, J1.P10</td></tr>
+<tr><td>8</td><td>OUT2</td><td><b>SEKCJA5_B</b></td><td>D15.A1, J1.P10</td></tr>
+<tr><td>9</td><td>OUT2</td><td><b>SEKCJA5_B</b></td><td>D15.A1, J1.P10</td></tr>
+<tr><td>10</td><td>PGND2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>12</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>PGND4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>OUT4</td><td><b>SEKCJA6_B</b></td><td>D17.A1, J1.P12</td></tr>
+<tr><td>15</td><td>OUT4</td><td><b>SEKCJA6_B</b></td><td>D17.A1, J1.P12</td></tr>
+<tr><td>16</td><td>OUT4</td><td><b>SEKCJA6_B</b></td><td>D17.A1, J1.P12</td></tr>
+<tr><td>17</td><td>OUT3</td><td><b>SEKCJA6_A</b></td><td>D16.A1, J1.P11</td></tr>
+<tr><td>18</td><td>OUT3</td><td><b>SEKCJA6_A</b></td><td>D16.A1, J1.P11</td></tr>
+<tr><td>19</td><td>OUT3</td><td><b>SEKCJA6_A</b></td><td>D16.A1, J1.P11</td></tr>
+<tr><td>20</td><td>PGND3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>21</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>22</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>23</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>24</td><td>DVDD</td><td><b>DRV2_DVDD</b></td><td>C54.~, C55.~, R52.~</td></tr>
+<tr><td>25</td><td>VCC</td><td><b>DRV2_DVDD</b></td><td>C54.~, C55.~, R52.~</td></tr>
+<tr><td>26</td><td>nFAULT</td><td><b>DRV2_nFAULT</b></td><td>R51.~, U17.D2</td></tr>
+<tr><td>27</td><td>OCPM</td><td><b>DRV2_DVDD</b></td><td>C54.~, C55.~, R52.~</td></tr>
+<tr><td>28</td><td>MODE</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>29</td><td>IPROPI4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>30</td><td>IPROPI3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>31</td><td>IPROPI2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>IPROPI1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>VREF</td><td><b>DRV2_VREF</b></td><td>R52.~, R53.~</td></tr>
+<tr><td>34</td><td>EN4</td><td><b>M6_EN</b></td><td>R59.~, U13.QB</td></tr>
+<tr><td>35</td><td>EN3</td><td><b>M6_EN</b></td><td>R59.~, U13.QB</td></tr>
+<tr><td>36</td><td>EN2</td><td><b>M5_EN</b></td><td>R56.~, U12.QG</td></tr>
+<tr><td>37</td><td>EN1</td><td><b>M5_EN</b></td><td>R56.~, U12.QG</td></tr>
+<tr><td>38</td><td>IN4</td><td><b>M6_INB</b></td><td>R58.~, U13.QA</td></tr>
+<tr><td>39</td><td>IN3</td><td><b>M6_INA</b></td><td>R57.~, U12.QH</td></tr>
+<tr><td>40</td><td>IN2</td><td><b>M5_INB</b></td><td>R55.~, U12.QF</td></tr>
+<tr><td>41</td><td>IN1</td><td><b>M5_INA</b></td><td>R54.~, U12.QE</td></tr>
+<tr><td>42</td><td>nSLEEP</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U18.nSLEEP, U19.nSLEEP, U21.nSLEEP, U22.nSLEEP, U23.nSLEEP, U24.nSLEEP, U25.nSLEEP, U4.IO4</td></tr>
+<tr><td>43</td><td>CPL</td><td><b>U2_CPL</b></td><td>C53.~</td></tr>
+<tr><td>44</td><td>CPH</td><td><b>U2_CPH</b></td><td>C53.~</td></tr>
+<tr><td>45</td><td>PAD</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U21 — DRV8962QDDWRQ1 <span class=m>(HTSSOP-44-1EP_6.1x14mm_P0.635mm_EP5.2x14mm_Mask4.31x8.26mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCP</td><td><b>U3_VCP</b></td><td>C59.~</td></tr>
+<tr><td>2</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>PGND1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>OUT1</td><td><b>SEKCJA7_A</b></td><td>D18.A1, J1.P13</td></tr>
+<tr><td>5</td><td>OUT1</td><td><b>SEKCJA7_A</b></td><td>D18.A1, J1.P13</td></tr>
+<tr><td>6</td><td>OUT1</td><td><b>SEKCJA7_A</b></td><td>D18.A1, J1.P13</td></tr>
+<tr><td>7</td><td>OUT2</td><td><b>SEKCJA7_B</b></td><td>D19.A1, J1.P14</td></tr>
+<tr><td>8</td><td>OUT2</td><td><b>SEKCJA7_B</b></td><td>D19.A1, J1.P14</td></tr>
+<tr><td>9</td><td>OUT2</td><td><b>SEKCJA7_B</b></td><td>D19.A1, J1.P14</td></tr>
+<tr><td>10</td><td>PGND2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>12</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>PGND4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>OUT4</td><td><b>SEKCJA8_B</b></td><td>D21.A1, J1.P16</td></tr>
+<tr><td>15</td><td>OUT4</td><td><b>SEKCJA8_B</b></td><td>D21.A1, J1.P16</td></tr>
+<tr><td>16</td><td>OUT4</td><td><b>SEKCJA8_B</b></td><td>D21.A1, J1.P16</td></tr>
+<tr><td>17</td><td>OUT3</td><td><b>SEKCJA8_A</b></td><td>D20.A1, J1.P15</td></tr>
+<tr><td>18</td><td>OUT3</td><td><b>SEKCJA8_A</b></td><td>D20.A1, J1.P15</td></tr>
+<tr><td>19</td><td>OUT3</td><td><b>SEKCJA8_A</b></td><td>D20.A1, J1.P15</td></tr>
+<tr><td>20</td><td>PGND3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>21</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>22</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>23</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>24</td><td>DVDD</td><td><b>DRV3_DVDD</b></td><td>C61.~, C62.~, R61.~</td></tr>
+<tr><td>25</td><td>VCC</td><td><b>DRV3_DVDD</b></td><td>C61.~, C62.~, R61.~</td></tr>
+<tr><td>26</td><td>nFAULT</td><td><b>DRV3_nFAULT</b></td><td>R60.~, U17.D3</td></tr>
+<tr><td>27</td><td>OCPM</td><td><b>DRV3_DVDD</b></td><td>C61.~, C62.~, R61.~</td></tr>
+<tr><td>28</td><td>MODE</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>29</td><td>IPROPI4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>30</td><td>IPROPI3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>31</td><td>IPROPI2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>IPROPI1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>VREF</td><td><b>DRV3_VREF</b></td><td>R61.~, R62.~</td></tr>
+<tr><td>34</td><td>EN4</td><td><b>M8_EN</b></td><td>R68.~, U13.QH</td></tr>
+<tr><td>35</td><td>EN3</td><td><b>M8_EN</b></td><td>R68.~, U13.QH</td></tr>
+<tr><td>36</td><td>EN2</td><td><b>M7_EN</b></td><td>R65.~, U13.QE</td></tr>
+<tr><td>37</td><td>EN1</td><td><b>M7_EN</b></td><td>R65.~, U13.QE</td></tr>
+<tr><td>38</td><td>IN4</td><td><b>M8_INB</b></td><td>R67.~, U13.QG</td></tr>
+<tr><td>39</td><td>IN3</td><td><b>M8_INA</b></td><td>R66.~, U13.QF</td></tr>
+<tr><td>40</td><td>IN2</td><td><b>M7_INB</b></td><td>R64.~, U13.QD</td></tr>
+<tr><td>41</td><td>IN1</td><td><b>M7_INA</b></td><td>R63.~, U13.QC</td></tr>
+<tr><td>42</td><td>nSLEEP</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U18.nSLEEP, U19.nSLEEP, U20.nSLEEP, U22.nSLEEP, U23.nSLEEP, U24.nSLEEP, U25.nSLEEP, U4.IO4</td></tr>
+<tr><td>43</td><td>CPL</td><td><b>U3_CPL</b></td><td>C60.~</td></tr>
+<tr><td>44</td><td>CPH</td><td><b>U3_CPH</b></td><td>C60.~</td></tr>
+<tr><td>45</td><td>PAD</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U22 — DRV8962QDDWRQ1 <span class=m>(HTSSOP-44-1EP_6.1x14mm_P0.635mm_EP5.2x14mm_Mask4.31x8.26mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCP</td><td><b>U4_VCP</b></td><td>C66.~</td></tr>
+<tr><td>2</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>PGND1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>OUT1</td><td><b>SEKCJA9_A</b></td><td>D22.A1, J1.P17</td></tr>
+<tr><td>5</td><td>OUT1</td><td><b>SEKCJA9_A</b></td><td>D22.A1, J1.P17</td></tr>
+<tr><td>6</td><td>OUT1</td><td><b>SEKCJA9_A</b></td><td>D22.A1, J1.P17</td></tr>
+<tr><td>7</td><td>OUT2</td><td><b>SEKCJA9_B</b></td><td>D23.A1, J1.P18</td></tr>
+<tr><td>8</td><td>OUT2</td><td><b>SEKCJA9_B</b></td><td>D23.A1, J1.P18</td></tr>
+<tr><td>9</td><td>OUT2</td><td><b>SEKCJA9_B</b></td><td>D23.A1, J1.P18</td></tr>
+<tr><td>10</td><td>PGND2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>12</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>PGND4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>OUT4</td><td><b>SEKCJA10_B</b></td><td>D25.A1, J1.P20</td></tr>
+<tr><td>15</td><td>OUT4</td><td><b>SEKCJA10_B</b></td><td>D25.A1, J1.P20</td></tr>
+<tr><td>16</td><td>OUT4</td><td><b>SEKCJA10_B</b></td><td>D25.A1, J1.P20</td></tr>
+<tr><td>17</td><td>OUT3</td><td><b>SEKCJA10_A</b></td><td>D24.A1, J1.P19</td></tr>
+<tr><td>18</td><td>OUT3</td><td><b>SEKCJA10_A</b></td><td>D24.A1, J1.P19</td></tr>
+<tr><td>19</td><td>OUT3</td><td><b>SEKCJA10_A</b></td><td>D24.A1, J1.P19</td></tr>
+<tr><td>20</td><td>PGND3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>21</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>22</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>23</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>24</td><td>DVDD</td><td><b>DRV4_DVDD</b></td><td>C68.~, C69.~, R70.~</td></tr>
+<tr><td>25</td><td>VCC</td><td><b>DRV4_DVDD</b></td><td>C68.~, C69.~, R70.~</td></tr>
+<tr><td>26</td><td>nFAULT</td><td><b>DRV4_nFAULT</b></td><td>R69.~, U17.D4</td></tr>
+<tr><td>27</td><td>OCPM</td><td><b>DRV4_DVDD</b></td><td>C68.~, C69.~, R70.~</td></tr>
+<tr><td>28</td><td>MODE</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>29</td><td>IPROPI4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>30</td><td>IPROPI3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>31</td><td>IPROPI2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>IPROPI1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>VREF</td><td><b>DRV4_VREF</b></td><td>R70.~, R71.~</td></tr>
+<tr><td>34</td><td>EN4</td><td><b>M10_EN</b></td><td>R77.~, U14.QF</td></tr>
+<tr><td>35</td><td>EN3</td><td><b>M10_EN</b></td><td>R77.~, U14.QF</td></tr>
+<tr><td>36</td><td>EN2</td><td><b>M9_EN</b></td><td>R74.~, U14.QC</td></tr>
+<tr><td>37</td><td>EN1</td><td><b>M9_EN</b></td><td>R74.~, U14.QC</td></tr>
+<tr><td>38</td><td>IN4</td><td><b>M10_INB</b></td><td>R76.~, U14.QE</td></tr>
+<tr><td>39</td><td>IN3</td><td><b>M10_INA</b></td><td>R75.~, U14.QD</td></tr>
+<tr><td>40</td><td>IN2</td><td><b>M9_INB</b></td><td>R73.~, U14.QB</td></tr>
+<tr><td>41</td><td>IN1</td><td><b>M9_INA</b></td><td>R72.~, U14.QA</td></tr>
+<tr><td>42</td><td>nSLEEP</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U18.nSLEEP, U19.nSLEEP, U20.nSLEEP, U21.nSLEEP, U23.nSLEEP, U24.nSLEEP, U25.nSLEEP, U4.IO4</td></tr>
+<tr><td>43</td><td>CPL</td><td><b>U4_CPL</b></td><td>C67.~</td></tr>
+<tr><td>44</td><td>CPH</td><td><b>U4_CPH</b></td><td>C67.~</td></tr>
+<tr><td>45</td><td>PAD</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U23 — DRV8962QDDWRQ1 <span class=m>(HTSSOP-44-1EP_6.1x14mm_P0.635mm_EP5.2x14mm_Mask4.31x8.26mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCP</td><td><b>U5_VCP</b></td><td>C73.~</td></tr>
+<tr><td>2</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>PGND1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>OUT1</td><td><b>SEKCJA11_A</b></td><td>D26.A1, J1.P21</td></tr>
+<tr><td>5</td><td>OUT1</td><td><b>SEKCJA11_A</b></td><td>D26.A1, J1.P21</td></tr>
+<tr><td>6</td><td>OUT1</td><td><b>SEKCJA11_A</b></td><td>D26.A1, J1.P21</td></tr>
+<tr><td>7</td><td>OUT2</td><td><b>SEKCJA11_B</b></td><td>D27.A1, J1.P22</td></tr>
+<tr><td>8</td><td>OUT2</td><td><b>SEKCJA11_B</b></td><td>D27.A1, J1.P22</td></tr>
+<tr><td>9</td><td>OUT2</td><td><b>SEKCJA11_B</b></td><td>D27.A1, J1.P22</td></tr>
+<tr><td>10</td><td>PGND2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>12</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>PGND4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>OUT4</td><td><b>SEKCJA12_B</b></td><td>D29.A1, J1.P24</td></tr>
+<tr><td>15</td><td>OUT4</td><td><b>SEKCJA12_B</b></td><td>D29.A1, J1.P24</td></tr>
+<tr><td>16</td><td>OUT4</td><td><b>SEKCJA12_B</b></td><td>D29.A1, J1.P24</td></tr>
+<tr><td>17</td><td>OUT3</td><td><b>SEKCJA12_A</b></td><td>D28.A1, J1.P23</td></tr>
+<tr><td>18</td><td>OUT3</td><td><b>SEKCJA12_A</b></td><td>D28.A1, J1.P23</td></tr>
+<tr><td>19</td><td>OUT3</td><td><b>SEKCJA12_A</b></td><td>D28.A1, J1.P23</td></tr>
+<tr><td>20</td><td>PGND3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>21</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>22</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>23</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>24</td><td>DVDD</td><td><b>DRV5_DVDD</b></td><td>C75.~, C76.~, R79.~</td></tr>
+<tr><td>25</td><td>VCC</td><td><b>DRV5_DVDD</b></td><td>C75.~, C76.~, R79.~</td></tr>
+<tr><td>26</td><td>nFAULT</td><td><b>DRV5_nFAULT</b></td><td>R78.~, U17.D5</td></tr>
+<tr><td>27</td><td>OCPM</td><td><b>DRV5_DVDD</b></td><td>C75.~, C76.~, R79.~</td></tr>
+<tr><td>28</td><td>MODE</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>29</td><td>IPROPI4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>30</td><td>IPROPI3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>31</td><td>IPROPI2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>IPROPI1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>VREF</td><td><b>DRV5_VREF</b></td><td>R79.~, R80.~</td></tr>
+<tr><td>34</td><td>EN4</td><td><b>M12_EN</b></td><td>R86.~, U15.QD</td></tr>
+<tr><td>35</td><td>EN3</td><td><b>M12_EN</b></td><td>R86.~, U15.QD</td></tr>
+<tr><td>36</td><td>EN2</td><td><b>M11_EN</b></td><td>R83.~, U15.QA</td></tr>
+<tr><td>37</td><td>EN1</td><td><b>M11_EN</b></td><td>R83.~, U15.QA</td></tr>
+<tr><td>38</td><td>IN4</td><td><b>M12_INB</b></td><td>R85.~, U15.QC</td></tr>
+<tr><td>39</td><td>IN3</td><td><b>M12_INA</b></td><td>R84.~, U15.QB</td></tr>
+<tr><td>40</td><td>IN2</td><td><b>M11_INB</b></td><td>R82.~, U14.QH</td></tr>
+<tr><td>41</td><td>IN1</td><td><b>M11_INA</b></td><td>R81.~, U14.QG</td></tr>
+<tr><td>42</td><td>nSLEEP</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U18.nSLEEP, U19.nSLEEP, U20.nSLEEP, U21.nSLEEP, U22.nSLEEP, U24.nSLEEP, U25.nSLEEP, U4.IO4</td></tr>
+<tr><td>43</td><td>CPL</td><td><b>U5_CPL</b></td><td>C74.~</td></tr>
+<tr><td>44</td><td>CPH</td><td><b>U5_CPH</b></td><td>C74.~</td></tr>
+<tr><td>45</td><td>PAD</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U24 — DRV8962QDDWRQ1 <span class=m>(HTSSOP-44-1EP_6.1x14mm_P0.635mm_EP5.2x14mm_Mask4.31x8.26mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCP</td><td><b>U6_VCP</b></td><td>C80.~</td></tr>
+<tr><td>2</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>PGND1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>OUT1</td><td><b>SEKCJA13_A</b></td><td>D30.A1, J1.P25</td></tr>
+<tr><td>5</td><td>OUT1</td><td><b>SEKCJA13_A</b></td><td>D30.A1, J1.P25</td></tr>
+<tr><td>6</td><td>OUT1</td><td><b>SEKCJA13_A</b></td><td>D30.A1, J1.P25</td></tr>
+<tr><td>7</td><td>OUT2</td><td><b>SEKCJA13_B</b></td><td>D31.A1, J1.P26</td></tr>
+<tr><td>8</td><td>OUT2</td><td><b>SEKCJA13_B</b></td><td>D31.A1, J1.P26</td></tr>
+<tr><td>9</td><td>OUT2</td><td><b>SEKCJA13_B</b></td><td>D31.A1, J1.P26</td></tr>
+<tr><td>10</td><td>PGND2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>12</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>PGND4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>OUT4</td><td><b>ZAW_GLOWNY_B</b></td><td>D33.A1, J2.P10</td></tr>
+<tr><td>15</td><td>OUT4</td><td><b>ZAW_GLOWNY_B</b></td><td>D33.A1, J2.P10</td></tr>
+<tr><td>16</td><td>OUT4</td><td><b>ZAW_GLOWNY_B</b></td><td>D33.A1, J2.P10</td></tr>
+<tr><td>17</td><td>OUT3</td><td><b>ZAW_GLOWNY_A</b></td><td>D32.A1, J2.P9</td></tr>
+<tr><td>18</td><td>OUT3</td><td><b>ZAW_GLOWNY_A</b></td><td>D32.A1, J2.P9</td></tr>
+<tr><td>19</td><td>OUT3</td><td><b>ZAW_GLOWNY_A</b></td><td>D32.A1, J2.P9</td></tr>
+<tr><td>20</td><td>PGND3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>21</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>22</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>23</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>24</td><td>DVDD</td><td><b>DRV6_DVDD</b></td><td>C82.~, C83.~, R88.~</td></tr>
+<tr><td>25</td><td>VCC</td><td><b>DRV6_DVDD</b></td><td>C82.~, C83.~, R88.~</td></tr>
+<tr><td>26</td><td>nFAULT</td><td><b>DRV6_nFAULT</b></td><td>R87.~, U17.D6</td></tr>
+<tr><td>27</td><td>OCPM</td><td><b>DRV6_DVDD</b></td><td>C82.~, C83.~, R88.~</td></tr>
+<tr><td>28</td><td>MODE</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>29</td><td>IPROPI4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>30</td><td>IPROPI3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>31</td><td>IPROPI2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>IPROPI1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>VREF</td><td><b>DRV6_VREF</b></td><td>R88.~, R89.~</td></tr>
+<tr><td>34</td><td>EN4</td><td><b>M14_EN</b></td><td>R95.~, U16.QB</td></tr>
+<tr><td>35</td><td>EN3</td><td><b>M14_EN</b></td><td>R95.~, U16.QB</td></tr>
+<tr><td>36</td><td>EN2</td><td><b>M13_EN</b></td><td>R92.~, U15.QG</td></tr>
+<tr><td>37</td><td>EN1</td><td><b>M13_EN</b></td><td>R92.~, U15.QG</td></tr>
+<tr><td>38</td><td>IN4</td><td><b>M14_INB</b></td><td>R94.~, U16.QA</td></tr>
+<tr><td>39</td><td>IN3</td><td><b>M14_INA</b></td><td>R93.~, U15.QH</td></tr>
+<tr><td>40</td><td>IN2</td><td><b>M13_INB</b></td><td>R91.~, U15.QF</td></tr>
+<tr><td>41</td><td>IN1</td><td><b>M13_INA</b></td><td>R90.~, U15.QE</td></tr>
+<tr><td>42</td><td>nSLEEP</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U18.nSLEEP, U19.nSLEEP, U20.nSLEEP, U21.nSLEEP, U22.nSLEEP, U23.nSLEEP, U25.nSLEEP, U4.IO4</td></tr>
+<tr><td>43</td><td>CPL</td><td><b>U6_CPL</b></td><td>C81.~</td></tr>
+<tr><td>44</td><td>CPH</td><td><b>U6_CPH</b></td><td>C81.~</td></tr>
+<tr><td>45</td><td>PAD</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+</table>
+<h2>U25 — DRV8962QDDWRQ1 <span class=m>(HTSSOP-44-1EP_6.1x14mm_P0.635mm_EP5.2x14mm_Mask4.31x8.26mm_ThermalVias)</span></h2><table><tr><th>pin</th><th>nazwa</th><th>sieć</th><th>połączone z</th></tr>
+<tr><td>1</td><td>VCP</td><td><b>U7_VCP</b></td><td>C87.~</td></tr>
+<tr><td>2</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>3</td><td>PGND1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>4</td><td>OUT1</td><td><b>ZAW_REG_A</b></td><td>D34.A1, J2.P11</td></tr>
+<tr><td>5</td><td>OUT1</td><td><b>ZAW_REG_A</b></td><td>D34.A1, J2.P11</td></tr>
+<tr><td>6</td><td>OUT1</td><td><b>ZAW_REG_A</b></td><td>D34.A1, J2.P11</td></tr>
+<tr><td>7</td><td>OUT2</td><td><b>ZAW_REG_B</b></td><td>D35.A1, J2.P12</td></tr>
+<tr><td>8</td><td>OUT2</td><td><b>ZAW_REG_B</b></td><td>D35.A1, J2.P12</td></tr>
+<tr><td>9</td><td>OUT2</td><td><b>ZAW_REG_B</b></td><td>D35.A1, J2.P12</td></tr>
+<tr><td>10</td><td>PGND2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>11</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>12</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>13</td><td>PGND4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>14</td><td>OUT4</td><td><b>REZERWA_B</b></td><td>D37.A1, J2.P22</td></tr>
+<tr><td>15</td><td>OUT4</td><td><b>REZERWA_B</b></td><td>D37.A1, J2.P22</td></tr>
+<tr><td>16</td><td>OUT4</td><td><b>REZERWA_B</b></td><td>D37.A1, J2.P22</td></tr>
+<tr><td>17</td><td>OUT3</td><td><b>REZERWA_A</b></td><td>D36.A1, J2.P21</td></tr>
+<tr><td>18</td><td>OUT3</td><td><b>REZERWA_A</b></td><td>D36.A1, J2.P21</td></tr>
+<tr><td>19</td><td>OUT3</td><td><b>REZERWA_A</b></td><td>D36.A1, J2.P21</td></tr>
+<tr><td>20</td><td>PGND3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>21</td><td>VM</td><td><b>V12</b></td><td>77 połączeń (zasilanie)</td></tr>
+<tr><td>22</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>23</td><td>GND</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>24</td><td>DVDD</td><td><b>DRV7_DVDD</b></td><td>C89.~, C90.~, R97.~</td></tr>
+<tr><td>25</td><td>VCC</td><td><b>DRV7_DVDD</b></td><td>C89.~, C90.~, R97.~</td></tr>
+<tr><td>26</td><td>nFAULT</td><td><b>DRV7_nFAULT</b></td><td>R96.~, U17.D7</td></tr>
+<tr><td>27</td><td>OCPM</td><td><b>DRV7_DVDD</b></td><td>C89.~, C90.~, R97.~</td></tr>
+<tr><td>28</td><td>MODE</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>29</td><td>IPROPI4</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>30</td><td>IPROPI3</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>31</td><td>IPROPI2</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>32</td><td>IPROPI1</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+<tr><td>33</td><td>VREF</td><td><b>DRV7_VREF</b></td><td>R97.~, R98.~</td></tr>
+<tr><td>34</td><td>EN4</td><td><b>M16_EN</b></td><td>R104.~, U16.QH</td></tr>
+<tr><td>35</td><td>EN3</td><td><b>M16_EN</b></td><td>R104.~, U16.QH</td></tr>
+<tr><td>36</td><td>EN2</td><td><b>M15_EN</b></td><td>R101.~, U16.QE</td></tr>
+<tr><td>37</td><td>EN1</td><td><b>M15_EN</b></td><td>R101.~, U16.QE</td></tr>
+<tr><td>38</td><td>IN4</td><td><b>M16_INB</b></td><td>R103.~, U16.QG</td></tr>
+<tr><td>39</td><td>IN3</td><td><b>M16_INA</b></td><td>R102.~, U16.QF</td></tr>
+<tr><td>40</td><td>IN2</td><td><b>M15_INB</b></td><td>R100.~, U16.QD</td></tr>
+<tr><td>41</td><td>IN1</td><td><b>M15_INA</b></td><td>R99.~, U16.QC</td></tr>
+<tr><td>42</td><td>nSLEEP</td><td><b>DRV_nSLEEP</b></td><td>R7.~, U18.nSLEEP, U19.nSLEEP, U20.nSLEEP, U21.nSLEEP, U22.nSLEEP, U23.nSLEEP, U24.nSLEEP, U4.IO4</td></tr>
+<tr><td>43</td><td>CPL</td><td><b>U7_CPL</b></td><td>C88.~</td></tr>
+<tr><td>44</td><td>CPH</td><td><b>U7_CPH</b></td><td>C88.~</td></tr>
+<tr><td>45</td><td>PAD</td><td><b>GND</b></td><td>315 połączeń (zasilanie)</td></tr>
+</table>
+<h2>Elementy bierne</h2><table><tr><th>ref</th><th>wartość</th><th>obudowa</th><th>sieci</th></tr>
+<tr><td>C1</td><td>100n</td><td>C_0603_1608Metric</td><td>ID_VCAP — VIN_RAW</td></tr>
+<tr><td>C2</td><td>220u 35V 105°C</td><td>CP_Elec_10x10.5</td><td>V12 — GND</td></tr>
+<tr><td>C3</td><td>220u 35V 105°C</td><td>CP_Elec_10x10.5</td><td>V12 — GND</td></tr>
+<tr><td>C4</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C5</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C6</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C7</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C8</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C9</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C10</td><td>100n</td><td>C_0603_1608Metric</td><td>BUCK_BOOT — BUCK_SW</td></tr>
+<tr><td>C11</td><td>1u</td><td>C_0603_1608Metric</td><td>BUCK_VCC — GND</td></tr>
+<tr><td>C12</td><td>22u 10V</td><td>C_1206_3216Metric</td><td>V5 — GND</td></tr>
+<tr><td>C13</td><td>22u 10V</td><td>C_1206_3216Metric</td><td>V5 — GND</td></tr>
+<tr><td>C14</td><td>22u 10V</td><td>C_1206_3216Metric</td><td>V5 — GND</td></tr>
+<tr><td>C15</td><td>22u 10V</td><td>C_1206_3216Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C16</td><td>10u</td><td>C_0805_2012Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C17</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C18</td><td>1u</td><td>C_0603_1608Metric</td><td>ESP_EN — GND</td></tr>
+<tr><td>C19</td><td>100n</td><td>C_0603_1608Metric</td><td>USB_VBUS — GND</td></tr>
+<tr><td>C20</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C21</td><td>100n</td><td>C_0603_1608Metric</td><td>V5 — GND</td></tr>
+<tr><td>C22</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C23</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C24</td><td>100n</td><td>C_0603_1608Metric</td><td>ADC_AIN0 — GND</td></tr>
+<tr><td>C25</td><td>100n</td><td>C_0603_1608Metric</td><td>ADC_AIN1 — GND</td></tr>
+<tr><td>C26</td><td>1n</td><td>C_0603_1608Metric</td><td>PRZEPL_DZ — GND</td></tr>
+<tr><td>C27</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C28</td><td>10u</td><td>C_0805_2012Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C29</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C30</td><td>100n</td><td>C_0603_1608Metric</td><td>GPS_BIAS — GND</td></tr>
+<tr><td>C31</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C32</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C33</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C34</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C35</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C36</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C37</td><td>100n</td><td>C_0603_1608Metric</td><td>V3V3 — GND</td></tr>
+<tr><td>C38</td><td>1u 16V</td><td>C_0603_1608Metric</td><td>U0_VCP — V12</td></tr>
+<tr><td>C39</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>U0_CPH — U0_CPL</td></tr>
+<tr><td>C40</td><td>1u</td><td>C_0603_1608Metric</td><td>DRV0_DVDD — GND</td></tr>
+<tr><td>C41</td><td>100n</td><td>C_0603_1608Metric</td><td>DRV0_DVDD — GND</td></tr>
+<tr><td>C42</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C43</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C44</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C45</td><td>1u 16V</td><td>C_0603_1608Metric</td><td>U1_VCP — V12</td></tr>
+<tr><td>C46</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>U1_CPH — U1_CPL</td></tr>
+<tr><td>C47</td><td>1u</td><td>C_0603_1608Metric</td><td>DRV1_DVDD — GND</td></tr>
+<tr><td>C48</td><td>100n</td><td>C_0603_1608Metric</td><td>DRV1_DVDD — GND</td></tr>
+<tr><td>C49</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C50</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C51</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C52</td><td>1u 16V</td><td>C_0603_1608Metric</td><td>U2_VCP — V12</td></tr>
+<tr><td>C53</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>U2_CPH — U2_CPL</td></tr>
+<tr><td>C54</td><td>1u</td><td>C_0603_1608Metric</td><td>DRV2_DVDD — GND</td></tr>
+<tr><td>C55</td><td>100n</td><td>C_0603_1608Metric</td><td>DRV2_DVDD — GND</td></tr>
+<tr><td>C56</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C57</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C58</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C59</td><td>1u 16V</td><td>C_0603_1608Metric</td><td>U3_VCP — V12</td></tr>
+<tr><td>C60</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>U3_CPH — U3_CPL</td></tr>
+<tr><td>C61</td><td>1u</td><td>C_0603_1608Metric</td><td>DRV3_DVDD — GND</td></tr>
+<tr><td>C62</td><td>100n</td><td>C_0603_1608Metric</td><td>DRV3_DVDD — GND</td></tr>
+<tr><td>C63</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C64</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C65</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C66</td><td>1u 16V</td><td>C_0603_1608Metric</td><td>U4_VCP — V12</td></tr>
+<tr><td>C67</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>U4_CPH — U4_CPL</td></tr>
+<tr><td>C68</td><td>1u</td><td>C_0603_1608Metric</td><td>DRV4_DVDD — GND</td></tr>
+<tr><td>C69</td><td>100n</td><td>C_0603_1608Metric</td><td>DRV4_DVDD — GND</td></tr>
+<tr><td>C70</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C71</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C72</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C73</td><td>1u 16V</td><td>C_0603_1608Metric</td><td>U5_VCP — V12</td></tr>
+<tr><td>C74</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>U5_CPH — U5_CPL</td></tr>
+<tr><td>C75</td><td>1u</td><td>C_0603_1608Metric</td><td>DRV5_DVDD — GND</td></tr>
+<tr><td>C76</td><td>100n</td><td>C_0603_1608Metric</td><td>DRV5_DVDD — GND</td></tr>
+<tr><td>C77</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C78</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C79</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C80</td><td>1u 16V</td><td>C_0603_1608Metric</td><td>U6_VCP — V12</td></tr>
+<tr><td>C81</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>U6_CPH — U6_CPL</td></tr>
+<tr><td>C82</td><td>1u</td><td>C_0603_1608Metric</td><td>DRV6_DVDD — GND</td></tr>
+<tr><td>C83</td><td>100n</td><td>C_0603_1608Metric</td><td>DRV6_DVDD — GND</td></tr>
+<tr><td>C84</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C85</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C86</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>C87</td><td>1u 16V</td><td>C_0603_1608Metric</td><td>U7_VCP — V12</td></tr>
+<tr><td>C88</td><td>100n 50V</td><td>C_0603_1608Metric</td><td>U7_CPH — U7_CPL</td></tr>
+<tr><td>C89</td><td>1u</td><td>C_0603_1608Metric</td><td>DRV7_DVDD — GND</td></tr>
+<tr><td>C90</td><td>100n</td><td>C_0603_1608Metric</td><td>DRV7_DVDD — GND</td></tr>
+<tr><td>C91</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C92</td><td>10n 50V</td><td>C_0603_1608Metric</td><td>V12 — GND</td></tr>
+<tr><td>C93</td><td>10u 50V</td><td>C_1206_3216Metric</td><td>V12 — GND</td></tr>
+<tr><td>D1</td><td>SMDJ26A</td><td>D_SMC</td><td>V12 — GND</td></tr>
+<tr><td>D2</td><td>LED zielona</td><td>LED_0805_2012Metric</td><td>GND — LED_A_zielona</td></tr>
+<tr><td>D3</td><td>LED czerwona</td><td>LED_0805_2012Metric</td><td>GND — LED_A_czerwona</td></tr>
+<tr><td>D4</td><td>PESD2CAN</td><td>SOT-23</td><td>CANH — CANL — GND</td></tr>
+<tr><td>D5</td><td>PESD5V0S1BA</td><td>D_SOD-323</td><td>CISN_SYG — GND</td></tr>
+<tr><td>D6</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA1_A — GND</td></tr>
+<tr><td>D7</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA1_B — GND</td></tr>
+<tr><td>D8</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA2_A — GND</td></tr>
+<tr><td>D9</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA2_B — GND</td></tr>
+<tr><td>D10</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA3_A — GND</td></tr>
+<tr><td>D11</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA3_B — GND</td></tr>
+<tr><td>D12</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA4_A — GND</td></tr>
+<tr><td>D13</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA4_B — GND</td></tr>
+<tr><td>D14</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA5_A — GND</td></tr>
+<tr><td>D15</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA5_B — GND</td></tr>
+<tr><td>D16</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA6_A — GND</td></tr>
+<tr><td>D17</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA6_B — GND</td></tr>
+<tr><td>D18</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA7_A — GND</td></tr>
+<tr><td>D19</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA7_B — GND</td></tr>
+<tr><td>D20</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA8_A — GND</td></tr>
+<tr><td>D21</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA8_B — GND</td></tr>
+<tr><td>D22</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA9_A — GND</td></tr>
+<tr><td>D23</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA9_B — GND</td></tr>
+<tr><td>D24</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA10_A — GND</td></tr>
+<tr><td>D25</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA10_B — GND</td></tr>
+<tr><td>D26</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA11_A — GND</td></tr>
+<tr><td>D27</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA11_B — GND</td></tr>
+<tr><td>D28</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA12_A — GND</td></tr>
+<tr><td>D29</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA12_B — GND</td></tr>
+<tr><td>D30</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA13_A — GND</td></tr>
+<tr><td>D31</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>SEKCJA13_B — GND</td></tr>
+<tr><td>D32</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>ZAW_GLOWNY_A — GND</td></tr>
+<tr><td>D33</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>ZAW_GLOWNY_B — GND</td></tr>
+<tr><td>D34</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>ZAW_REG_A — GND</td></tr>
+<tr><td>D35</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>ZAW_REG_B — GND</td></tr>
+<tr><td>D36</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>REZERWA_A — GND</td></tr>
+<tr><td>D37</td><td>PESD24VS1UL</td><td>D_SOD-323</td><td>REZERWA_B — GND</td></tr>
+<tr><td>F1</td><td>10A mini</td><td>Fuseholder_Blade_Mini_Keystone_3568</td><td>V12 — V12_ZAWORY</td></tr>
+<tr><td>F2</td><td>0.2A</td><td>Fuse_1812_4532Metric</td><td>V5 — N$5</td></tr>
+<tr><td>F3</td><td>0.5A</td><td>Fuse_1812_4532Metric</td><td>V12 — N$8</td></tr>
+<tr><td>L1</td><td>10uH 2A</td><td>L_Bourns_SRN8040TA</td><td>BUCK_SW — V5</td></tr>
+<tr><td>L2</td><td>47nH</td><td>L_0603_1608Metric</td><td>GPS_BIAS — GPS_RF</td></tr>
+<tr><td>R1</td><td>100k</td><td>R_0603_1608Metric</td><td>V5 — BUCK_FB</td></tr>
+<tr><td>R2</td><td>24k9</td><td>R_0603_1608Metric</td><td>BUCK_FB — GND</td></tr>
+<tr><td>R3</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — ESP_EN</td></tr>
+<tr><td>R4</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — ESP_IO0</td></tr>
+<tr><td>R5</td><td>10k</td><td>R_0603_1608Metric</td><td>ESP_IO2 — GND</td></tr>
+<tr><td>R6</td><td>10k</td><td>R_0603_1608Metric</td><td>ESP_IO12 — GND</td></tr>
+<tr><td>R7</td><td>100k</td><td>R_0603_1608Metric</td><td>DRV_nSLEEP — GND</td></tr>
+<tr><td>R8</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — FLT_PL</td></tr>
+<tr><td>R9</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — JP_CAN</td></tr>
+<tr><td>R10</td><td>1k</td><td>R_0603_1608Metric</td><td>LED_ZIELONA — LED_A_zielona</td></tr>
+<tr><td>R11</td><td>1k</td><td>R_0603_1608Metric</td><td>LED_CZERWONA — LED_A_czerwona</td></tr>
+<tr><td>R12</td><td>5k1</td><td>R_0603_1608Metric</td><td>N$1 — GND</td></tr>
+<tr><td>R13</td><td>5k1</td><td>R_0603_1608Metric</td><td>N$2 — GND</td></tr>
+<tr><td>R14</td><td>470</td><td>R_0603_1608Metric</td><td>N$3 — U0RXD</td></tr>
+<tr><td>R15</td><td>470</td><td>R_0603_1608Metric</td><td>U0TXD — N$4</td></tr>
+<tr><td>R16</td><td>10k</td><td>R_0603_1608Metric</td><td>USB_DTR — AR_B1</td></tr>
+<tr><td>R17</td><td>10k</td><td>R_0603_1608Metric</td><td>USB_RTS — AR_B2</td></tr>
+<tr><td>R18</td><td>120</td><td>R_0603_1608Metric</td><td>CANH — CAN_TERM</td></tr>
+<tr><td>R19</td><td>4k7</td><td>R_0603_1608Metric</td><td>V3V3 — I2C_SDA</td></tr>
+<tr><td>R20</td><td>4k7</td><td>R_0603_1608Metric</td><td>V3V3 — I2C_SCL</td></tr>
+<tr><td>R21</td><td>10k</td><td>R_0603_1608Metric</td><td>CISN_SYG — ADC_AIN0</td></tr>
+<tr><td>R22</td><td>20k</td><td>R_0603_1608Metric</td><td>ADC_AIN0 — GND</td></tr>
+<tr><td>R23</td><td>150 0.1%</td><td>R_0805_2012Metric</td><td>CISN_SHUNT — GND</td></tr>
+<tr><td>R24</td><td>100k</td><td>R_0603_1608Metric</td><td>V12 — ADC_AIN1</td></tr>
+<tr><td>R25</td><td>10k</td><td>R_0603_1608Metric</td><td>ADC_AIN1 — GND</td></tr>
+<tr><td>R26</td><td>47</td><td>R_0603_1608Metric</td><td>LAMP_GND — GND</td></tr>
+<tr><td>R27</td><td>4k7</td><td>R_0603_1608Metric</td><td>LAMP_IN — N$6</td></tr>
+<tr><td>R28</td><td>1k2</td><td>R_0603_1608Metric</td><td>ADC_AIN2 — GND</td></tr>
+<tr><td>R29</td><td>4k7</td><td>R_0603_1608Metric</td><td>N$8 — PRZEPL_SYG</td></tr>
+<tr><td>R30</td><td>10k</td><td>R_0603_1608Metric</td><td>PRZEPL_SYG — PRZEPL_DZ</td></tr>
+<tr><td>R31</td><td>4k7</td><td>R_0603_1608Metric</td><td>PRZEPL_DZ — GND</td></tr>
+<tr><td>R32</td><td>10</td><td>R_0603_1608Metric</td><td>GPS_VDD_RF — GPS_BIAS</td></tr>
+<tr><td>R33</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — DRV0_nFAULT</td></tr>
+<tr><td>R34</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV0_DVDD — DRV0_VREF</td></tr>
+<tr><td>R35</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV0_VREF — GND</td></tr>
+<tr><td>R36</td><td>10k</td><td>R_0603_1608Metric</td><td>M1_INA — GND</td></tr>
+<tr><td>R37</td><td>10k</td><td>R_0603_1608Metric</td><td>M1_INB — GND</td></tr>
+<tr><td>R38</td><td>10k</td><td>R_0603_1608Metric</td><td>M1_EN — GND</td></tr>
+<tr><td>R39</td><td>10k</td><td>R_0603_1608Metric</td><td>M2_INA — GND</td></tr>
+<tr><td>R40</td><td>10k</td><td>R_0603_1608Metric</td><td>M2_INB — GND</td></tr>
+<tr><td>R41</td><td>10k</td><td>R_0603_1608Metric</td><td>M2_EN — GND</td></tr>
+<tr><td>R42</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — DRV1_nFAULT</td></tr>
+<tr><td>R43</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV1_DVDD — DRV1_VREF</td></tr>
+<tr><td>R44</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV1_VREF — GND</td></tr>
+<tr><td>R45</td><td>10k</td><td>R_0603_1608Metric</td><td>M3_INA — GND</td></tr>
+<tr><td>R46</td><td>10k</td><td>R_0603_1608Metric</td><td>M3_INB — GND</td></tr>
+<tr><td>R47</td><td>10k</td><td>R_0603_1608Metric</td><td>M3_EN — GND</td></tr>
+<tr><td>R48</td><td>10k</td><td>R_0603_1608Metric</td><td>M4_INA — GND</td></tr>
+<tr><td>R49</td><td>10k</td><td>R_0603_1608Metric</td><td>M4_INB — GND</td></tr>
+<tr><td>R50</td><td>10k</td><td>R_0603_1608Metric</td><td>M4_EN — GND</td></tr>
+<tr><td>R51</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — DRV2_nFAULT</td></tr>
+<tr><td>R52</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV2_DVDD — DRV2_VREF</td></tr>
+<tr><td>R53</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV2_VREF — GND</td></tr>
+<tr><td>R54</td><td>10k</td><td>R_0603_1608Metric</td><td>M5_INA — GND</td></tr>
+<tr><td>R55</td><td>10k</td><td>R_0603_1608Metric</td><td>M5_INB — GND</td></tr>
+<tr><td>R56</td><td>10k</td><td>R_0603_1608Metric</td><td>M5_EN — GND</td></tr>
+<tr><td>R57</td><td>10k</td><td>R_0603_1608Metric</td><td>M6_INA — GND</td></tr>
+<tr><td>R58</td><td>10k</td><td>R_0603_1608Metric</td><td>M6_INB — GND</td></tr>
+<tr><td>R59</td><td>10k</td><td>R_0603_1608Metric</td><td>M6_EN — GND</td></tr>
+<tr><td>R60</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — DRV3_nFAULT</td></tr>
+<tr><td>R61</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV3_DVDD — DRV3_VREF</td></tr>
+<tr><td>R62</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV3_VREF — GND</td></tr>
+<tr><td>R63</td><td>10k</td><td>R_0603_1608Metric</td><td>M7_INA — GND</td></tr>
+<tr><td>R64</td><td>10k</td><td>R_0603_1608Metric</td><td>M7_INB — GND</td></tr>
+<tr><td>R65</td><td>10k</td><td>R_0603_1608Metric</td><td>M7_EN — GND</td></tr>
+<tr><td>R66</td><td>10k</td><td>R_0603_1608Metric</td><td>M8_INA — GND</td></tr>
+<tr><td>R67</td><td>10k</td><td>R_0603_1608Metric</td><td>M8_INB — GND</td></tr>
+<tr><td>R68</td><td>10k</td><td>R_0603_1608Metric</td><td>M8_EN — GND</td></tr>
+<tr><td>R69</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — DRV4_nFAULT</td></tr>
+<tr><td>R70</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV4_DVDD — DRV4_VREF</td></tr>
+<tr><td>R71</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV4_VREF — GND</td></tr>
+<tr><td>R72</td><td>10k</td><td>R_0603_1608Metric</td><td>M9_INA — GND</td></tr>
+<tr><td>R73</td><td>10k</td><td>R_0603_1608Metric</td><td>M9_INB — GND</td></tr>
+<tr><td>R74</td><td>10k</td><td>R_0603_1608Metric</td><td>M9_EN — GND</td></tr>
+<tr><td>R75</td><td>10k</td><td>R_0603_1608Metric</td><td>M10_INA — GND</td></tr>
+<tr><td>R76</td><td>10k</td><td>R_0603_1608Metric</td><td>M10_INB — GND</td></tr>
+<tr><td>R77</td><td>10k</td><td>R_0603_1608Metric</td><td>M10_EN — GND</td></tr>
+<tr><td>R78</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — DRV5_nFAULT</td></tr>
+<tr><td>R79</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV5_DVDD — DRV5_VREF</td></tr>
+<tr><td>R80</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV5_VREF — GND</td></tr>
+<tr><td>R81</td><td>10k</td><td>R_0603_1608Metric</td><td>M11_INA — GND</td></tr>
+<tr><td>R82</td><td>10k</td><td>R_0603_1608Metric</td><td>M11_INB — GND</td></tr>
+<tr><td>R83</td><td>10k</td><td>R_0603_1608Metric</td><td>M11_EN — GND</td></tr>
+<tr><td>R84</td><td>10k</td><td>R_0603_1608Metric</td><td>M12_INA — GND</td></tr>
+<tr><td>R85</td><td>10k</td><td>R_0603_1608Metric</td><td>M12_INB — GND</td></tr>
+<tr><td>R86</td><td>10k</td><td>R_0603_1608Metric</td><td>M12_EN — GND</td></tr>
+<tr><td>R87</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — DRV6_nFAULT</td></tr>
+<tr><td>R88</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV6_DVDD — DRV6_VREF</td></tr>
+<tr><td>R89</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV6_VREF — GND</td></tr>
+<tr><td>R90</td><td>10k</td><td>R_0603_1608Metric</td><td>M13_INA — GND</td></tr>
+<tr><td>R91</td><td>10k</td><td>R_0603_1608Metric</td><td>M13_INB — GND</td></tr>
+<tr><td>R92</td><td>10k</td><td>R_0603_1608Metric</td><td>M13_EN — GND</td></tr>
+<tr><td>R93</td><td>10k</td><td>R_0603_1608Metric</td><td>M14_INA — GND</td></tr>
+<tr><td>R94</td><td>10k</td><td>R_0603_1608Metric</td><td>M14_INB — GND</td></tr>
+<tr><td>R95</td><td>10k</td><td>R_0603_1608Metric</td><td>M14_EN — GND</td></tr>
+<tr><td>R96</td><td>10k</td><td>R_0603_1608Metric</td><td>V3V3 — DRV7_nFAULT</td></tr>
+<tr><td>R97</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV7_DVDD — DRV7_VREF</td></tr>
+<tr><td>R98</td><td>10k</td><td>R_0603_1608Metric</td><td>DRV7_VREF — GND</td></tr>
+<tr><td>R99</td><td>10k</td><td>R_0603_1608Metric</td><td>M15_INA — GND</td></tr>
+<tr><td>R100</td><td>10k</td><td>R_0603_1608Metric</td><td>M15_INB — GND</td></tr>
+<tr><td>R101</td><td>10k</td><td>R_0603_1608Metric</td><td>M15_EN — GND</td></tr>
+<tr><td>R102</td><td>10k</td><td>R_0603_1608Metric</td><td>M16_INA — GND</td></tr>
+<tr><td>R103</td><td>10k</td><td>R_0603_1608Metric</td><td>M16_INB — GND</td></tr>
+<tr><td>R104</td><td>10k</td><td>R_0603_1608Metric</td><td>M16_EN — GND</td></tr>
+</table>

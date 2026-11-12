@@ -3,7 +3,7 @@
 Pliki: `obudowa.scad` (źródło, parametryczne), `spod.stl`, `pokrywa.stl`.
 Eksport po zmianie wymiarów: `openscad -D 'czesc="spod"' -o spod.stl obudowa.scad` (i `czesc="pokrywa"`).
 
-- Wnętrze na płytkę 160 × 110 mm (z odstępem 8 mm od ścianek), wysokość wnętrza 42 + 12 mm, ścianka 3 mm.
+- Wnętrze na płytkę 165 × 120 mm (z odstępem 8 mm od ścianek), wysokość wnętrza 42 + 12 mm, ścianka 3 mm.
 - Ściana przednia: wycięcia na gniazda **AMPSEAL 35** i **AMPSEAL 23** z otworami na śruby kołnierza
   (wymiary wycięć `amp35`, `amp23` — **zmierzyć z rysunku TE przed drukiem**).
 - Ściana boczna: USB‑C (z gumową zaślepką), gniazdo SMA anteny GPS, okienko LED, membrana odpowietrzająca M12 (IP67).

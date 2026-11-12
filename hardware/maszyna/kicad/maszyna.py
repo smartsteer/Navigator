@@ -493,3 +493,10 @@ if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))
     ERC()
     generate_netlist(file_=os.path.join(here, "maszyna.net"))
+    # nazwy pinów do raportu przeglądu (review.py)
+    import builtins
+    default_circuit = builtins.default_circuit
+    with open(os.path.join(here, "piny.tsv"), "w", encoding="utf-8") as f:
+        for part in default_circuit.parts:
+            for pin in part.pins:
+                f.write(f"{part.ref}\t{pin.num}\t{pin.name}\n")

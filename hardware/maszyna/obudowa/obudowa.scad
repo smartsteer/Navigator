@@ -6,9 +6,9 @@
 czesc = "oba";            // "spod", "pokrywa", "oba" (podgląd)
 
 // --- płytka ---
-pcb = [160, 110, 1.6];    // wymiary płytki (etap 16b może je zmienić)
+pcb = [165, 120, 1.6];    // wymiary płytki (KiCad: hardware/maszyna/kicad)
 pcb_z = 6;                // wysokość płytki nad dnem (słupki)
-pcb_otw = [[5,5],[155,5],[5,105],[155,105]];   // otwory M3 w płytce (od lewego dolnego rogu)
+pcb_otw = [[4,46],[161,40],[4,116],[161,116]];   // otwory M3 w płytce (jak w KiCad, od lewego górnego rogu = ściana złączy)
 
 // --- obudowa ---
 sc = 3;                   // ścianka
@@ -21,9 +21,9 @@ wkret_pokr = 5.6;         // otwór pod wtopiony gwint M4 (pokrywa)
 wkret_pcb = 4.2;          // otwór pod wtopiony gwint M3 (płytka)
 
 // --- otwory w ścianie przedniej (y = 0), x od lewej krawędzi wnętrza ---
-amp35 = [64, 21];         // wycięcie kołnierza AMPSEAL 35 (szer., wys.) — ZMIERZYĆ
-amp23 = [47, 21];         // wycięcie kołnierza AMPSEAL 23 — ZMIERZYĆ
-amp_x = [16, 96];         // położenie lewej krawędzi wycięć
+amp35 = [62, 21];         // wycięcie kołnierza AMPSEAL 35 (szer., wys.) — ZMIERZYĆ
+amp23 = [46, 21];         // wycięcie kołnierza AMPSEAL 23 — ZMIERZYĆ
+amp_x = [11, 81];         // położenie lewej krawędzi wycięć
 amp_z = pcb_z + pcb[2];   // dół wycięcia = wierzch płytki (gniazda leżą na płytce)
 amp_sruby = 4.0;          // otwory śrub kołnierza AMPSEAL (po bokach wycięcia)
 
@@ -75,10 +75,10 @@ module spod() {
         }
         // ściana prawa: USB-C, SMA, LED, odpowietrznik
         xr = zew[0] - sc - 1;
-        translate([xr, sc + 15, sc + pcb_z + pcb[2]]) cube([sc + 2, usb[0], usb[1]]);
-        translate([xr, sc + 45, sc + 24]) rotate([0, 90, 0]) cylinder(d = sma, h = sc + 2);
-        translate([xr, sc + 70, sc + 24]) rotate([0, 90, 0]) cylinder(d = led, h = sc + 2);
-        translate([xr, sc + 95, sc + 26]) rotate([0, 90, 0]) cylinder(d = odpow, h = sc + 2);
+        translate([xr, sc + luz + 76 - usb[0]/2, sc + pcb_z + pcb[2]]) cube([sc + 2, usb[0], usb[1]]);   // USB-C: y = 76 mm na płytce
+        translate([xr, sc + luz + 52, sc + 24]) rotate([0, 90, 0]) cylinder(d = sma, h = sc + 2);
+        translate([xr, sc + luz + 90, sc + 24]) rotate([0, 90, 0]) cylinder(d = led, h = sc + 2);
+        translate([xr, sc + luz + 106, sc + 26]) rotate([0, 90, 0]) cylinder(d = odpow, h = sc + 2);
         // napis
         translate([zew[0]/2, 0.6, sc + h_spod - 9]) rotate([90, 0, 0])
             linear_extrude(1) text("SmartSteer", size = 6, halign = "center", font = "Liberation Sans:style=Bold");
