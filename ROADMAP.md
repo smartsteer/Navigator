@@ -22,6 +22,24 @@ Nocna sesja robi **jeden** etap na przebieg, odhacza go tutaj i dopisuje krótk�
   - [x] 11d. Praca do karty pola: przy zamknięciu pola paczka pracy (ha bez zakładek, `war_id`, `zlecenie`, `pokrycie` w układzie LocalPlane) obok raportu GeoJSON; pozycja na żywo co 5 s / 30 s z wyłącznikiem.
   - [ ] 11e. Później (po testach w polu): wiadomości głosowe, mapy aplikacyjne (zmienna dawka z WAR) — osobna decyzja właściciela.
 
+### Własny sprzęt SmartSteer + sterowanie opryskiwaczem i rozsiewaczem (decyzja właściciela 2026-11-12)
+
+Dwie płytki gotowe do podłączenia (bez wpinanych modułów, wszystko wlutowane), na bazie otwartego projektu AgOpenGPS AIO (GPLv3, oznaczać pochodzenie):
+- **Ster** (kabina, jak najmniejsza): procesor jak w Teensy 4.1, ZED‑F9P (jedna antena), IMU **TM171** (port szeregowy), mostek H silnika skrętu, czujnik kąta, przełączniki, połączenie z tabletem jak dziś (UDP), **CAN** do maszyny, złącza samochodowe.
+- **Maszyna** (na opryskiwaczu / rozsiewaczu, jedna uniwersalna płytka): wyjścia sekcji na kluczach tranzystorowych (nie przekaźniki, z diagnostyką przerwy/zwarcia), zawór główny, zawór regulacyjny (mostek H), 2 siłowniki zasuw rozsiewacza z odczytem położenia, wejście impulsowe przepływomierza, wejście czujnika ciśnienia; zasilanie mocy grubym przewodem z ciągnika, **CAN** 4 żyły (12 V, masa, CAN‑H, CAN‑L) do płytki Ster, złącza Deutsch DT. Bezpieczeństwo: brak poleceń z CAN przez 0,5 s → zawór główny i sekcje zamknięte, zasuwy zamknięte.
+
+Kolejność (jeden etap na przebieg). Terminale w Navigatorze najpierw działają z symulatorem maszyny, więc da się je testować bez płytek.
+- [ ] 12. Protokół maszyny: **docs/MASZYNA.md** — ramki CAN Ster ↔ Maszyna (polecenia sekcji, dawka, zasuwy, odczyty, stan i błędy, utrzymanie łączności) oraz nowe PGN UDP Navigator ↔ Ster (mostek na CAN); w Navigatorze kodowanie/dekodowanie w core/ z testami i symulator maszyny (przepływ, ciśnienie, zasuwy z bezwładnością).
+- [ ] 13. Terminal opryskiwacza w Navigatorze: zawór główny, sekcje (już są — PGN 239 / CAN), dawka l/ha z prędkości i szerokości włączonych sekcji, regulacja PID zaworu wg przepływomierza **lub** ciśnienia (gdy brak przepływomierza — z tabeli dysz), kalibracja przepływomierza (impulsy/l), **tabela dysz** do wyboru (kolory ISO 01–08, przepływ przy 3 bar, przepływ ∝ √ciśnienia), **wirtualny zbiornik** (przy napełnianiu wpisać wlaną wodę, potem odejmowane zużycie, alarm rezerwy), panel na Mapie + ekran ustawień maszyny.
+- [ ] 14. Terminal rozsiewacza w Navigatorze: zasuwy lewa/prawa (pół szerokości jako sekcje, wyłączanie na granicy i na pokryciu), dawka kg/ha z otwarcia zasuwy i prędkości, **próba kręcona** (kalibracja kg/min dla otwarcia), wirtualny zbiornik w kg, panel na Mapie.
+- [ ] 15. Schemat płytki **Ster** w KiCad (katalog hardware/ster): schemat, dobór elementów (BOM z numerami LCSC), wstępne rozmieszczenie; lista rzeczy do sprawdzenia przez elektronika (RF anteny GNSS, prądy silnika). Do ustalenia: bootloader (układ PJRC) czy inny procesor.
+- [ ] 16. Schemat płytki **Maszyna** w KiCad (hardware/maszyna) — j.w.
+- [ ] 17. Firmware Ster (na bazie firmware AIO z AgOpenGPS): TM171 → przechył/kurs jak dotąd do Navigatora, mostek UDP ↔ CAN.
+- [ ] 18. Firmware Maszyna: wyjścia, PID zaworu / pozycjonowanie zasuw, odczyty, zabezpieczenie przy utracie CAN.
+- [ ] 19. PCB obu płytek (ścieżki, pliki produkcyjne Gerber + montaż JLCPCB) — po przeglądzie schematów przez właściciela/elektronika.
+
+Do dostarczenia przez właściciela: dokumentacja protokołu TM171, typ siłowników zasuw (napięcie, prąd, czy mają potencjometr), liczba sekcji opryskiwacza, typ przepływomierza (impulsy/l) i czujnika ciśnienia (0,5–4,5 V czy 4–20 mA).
+
 ## Zasady interfejsu (obowiązują przy każdym etapie)
 
 - Grafika ma być **najbardziej intuicyjna ze wszystkich systemów** prowadzenia na rynku: rolnik ma ogarnąć ekran bez instrukcji, w rękawicy, w słońcu i w trzęsącej kabinie.
