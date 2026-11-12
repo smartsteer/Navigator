@@ -145,6 +145,8 @@ object WarProtocol {
         val tractor: String, val start: String, val end: String, val ha: Double, val haPasses: Double, val haField: Double?,
         val pointLat: Double, val pointLon: Double, val boundary: List<Pair<Double, Double>>?, val orderId: String?,
         val version: String, val grid: CoverageGrid?,
+        /** Opis oprysku z komputera opryskiwacza (JSON), pole `oprysk`. */
+        val spray: String? = null,
     )
 
     fun work(w: Work, c: WarConfig): String {
@@ -170,6 +172,7 @@ object WarProtocol {
             "punkt" to Json.Raw(Json.obj("lat" to Json.Raw(r(w.pointLat, 7)), "lon" to Json.Raw(r(w.pointLon, 7)))),
             "granica" to granica, "zlecenie" to w.orderId, "kto" to c.operator.takeIf { it.isNotEmpty() },
             "pokrycie" to pokrycie,
+            "oprysk" to w.spray?.let { Json.Raw(it) },
         )
     }
 

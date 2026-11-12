@@ -131,6 +131,7 @@ narzędzia (rolnik raz wybiera na telefonie: „Siewnik 3 m” = siew itd.), wi�
 - `pole.war_id` — gdy pole przyszło z WAR (najpewniejsze dopasowanie); bez niego WAR szuka po `punkt` i nazwie.
 - `zlecenie` — id zlecenia, jeśli praca była z przyjętego zlecenia (WAR odhaczy zlecenie jako zrobione).
 - `pokrycie` (zalecane): mapa obrobionych komórek — po niej WAR rozdziela pracę na kilka pól (np. oprysk przez trzy działki naraz).
+- `oprysk` (opcjonalne, od 2026-11-12): gdy pracował komputer opryskiwacza Navigatora — `{"ciecz": "RSM 28 %", "ciecz_l": 300.0, "dawka_lha": 150.0, "dawka_zadana_lha": 150, "dawka_kgha": 192.0, "dysza": "03 niebieska", "rodzaj_dyszy": "Płaskostrumieniowa"}` (`dawka_kgha` tylko dla RSM). WAR może z tego uzupełnić ilość cieczy w ewidencji zabiegu; nieznane pole można zignorować. To samo pole trafia do raportu GeoJSON (`properties.oprysk`).
   Układ jak `LocalPlane` w AgOpenGPS: punkt odniesienia `lat0/lon0`; północ = (lat − lat0) · mLat(lat0), wschód = (lon − lon0) · mLon(lat);
   `mLat(φ) = 111132.92 − 559.82·cos 2φ + 1.175·cos 4φ − 0.0023·cos 6φ`, `mLon(φ) = 111412.84·cos φ − 93.5·cos 3φ + 0.118·cos 5φ` (m/°).
   Siatka: lewy dolny róg `e0, n0` (m), bok komórki `k` (m, ok. 2), `w × h` komórek; bit nr `y·w + x` (bajt `>>3`, bit `&7`, LSB pierwszy)

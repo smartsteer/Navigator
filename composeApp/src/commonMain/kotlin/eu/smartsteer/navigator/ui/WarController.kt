@@ -442,6 +442,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
             haField = f.boundary?.let { Polygon.area(it) / 10_000 },
             pointLat = center.first, pointLon = center.second, boundary = boundary,
             orderId = activeOrderId, version = version, grid = CoverageGrid.from(s.coverage, plane),
+            spray = hw.sprayer.sprayJson(s.coverage.workedM2 / 10_000),
         )
         val plain = WarProtocol.work(work, config)
         if (config.askTreatment) {

@@ -335,3 +335,23 @@ object SprayerConfigText {
         }.getOrDefault(d)
     }
 }
+
+/**
+ * Opis oprysku do raportu pola (GeoJSON) i paczki pracy WAR (pole `oprysk`, docs/WAR.md):
+ * ciecz, zużyte litry, dawka rzeczywista (litry / obrobione ha) i zadana, przy RSM także kg/ha, dysza.
+ * Null, gdy na polu nie zużyto cieczy.
+ */
+fun sprayReportJson(c: SprayerConfig, usedL: Double, workedHa: Double): String? {
+    if (usedL < 0.5 || workedHa < 0.001) return null
+    fun r(v: Double, d: Int): String {
+        val m = if (d == 0) 1.0 else if (d == 1) 10.0 else 100.0
+        val x = kotlin.math.round(v * m) / m
+        return if (d == 0) x.toLong().toString() else x.toString()
+    }
+    val perHa = usedL / workedHa
+    fun q(s: String) = "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+    return "{\"ciecz\":${q(c.liquid.label)},\"ciecz_l\":${r(usedL, 1)},\"dawka_lha\":${r(perHa, 1)}," +
+        "\"dawka_zadana_lha\":${r(c.targetLha, 0)}" +
+        (if (c.liquid.density > 1.0) ",\"dawka_kgha\":${r(perHa * c.liquid.density, 1)}" else "") +
+        ",\"dysza\":${q("${c.nozzle.name} ${c.nozzle.color}")},\"rodzaj_dyszy\":${q(c.nozzleKind.label)}}"
+}

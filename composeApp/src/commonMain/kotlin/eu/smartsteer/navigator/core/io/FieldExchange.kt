@@ -37,6 +37,7 @@ object FieldExchange {
     fun reportGeoJson(
         field: FieldData, coverage: Coverage, profileName: String, toolWidth: Double, sections: Int,
         startedText: String, finishedText: String,
+        spray: String? = null,
     ): String {
         val pl = LocalPlane(field.originLat, field.originLon)
         fun ring(pts: List<Vec2>): String {
@@ -58,6 +59,7 @@ object FieldExchange {
         sb.append("\"profil\":\"").append(esc(profileName)).append("\",")
         sb.append("\"szerokosc_m\":").append(toolWidth).append(',')
         sb.append("\"sekcje\":").append(sections)
+        spray?.let { sb.append(",\"oprysk\":").append(it) }
         sb.append("},\n\"features\":[\n")
         val feats = ArrayList<String>()
         field.boundary?.let { b ->

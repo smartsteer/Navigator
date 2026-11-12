@@ -462,6 +462,7 @@ class HardwareController {
         val json = FieldExchange.reportGeoJson(
             f, session.coverage, profileName, profile.toolWidth, profile.numSections,
             fieldStartedText.ifEmpty { end }, end,
+            spray = sprayer.sprayJson(session.coverage.workedM2 / 10_000),
         )
         val file = "${Profiles.sanitize(f.name)} ${end.replace(":", "")}.geojson"
         return try {
@@ -1378,6 +1379,7 @@ class HardwareController {
         val saved = runCatching { files.read(modeFile)?.trim() }.getOrNull()
         if (!hardware && (saved == "sprzet" || simulating)) setHardwareMode(true)
         if (serialPort.isNotBlank() && serial == null) setSerial(serialPort, serialBaud)
+        sprayer.connectUsb()
         PowerPlatform.startMonitor()
         // pole otwarte przy poprzednim uruchomieniu (z pokryciem i liniami)
         val lastField = runCatching { files.read(lastFieldFile)?.trim() }.getOrNull()
@@ -1399,6 +1401,7 @@ class HardwareController {
                 rxCount++
                 lastRxS = now()
                 AogFrame.parse(p.bytes)?.let { f ->
+                    if (sprayer.source == SprayerSource.NET) sprayer.onFrame(f)
                     ModuleScan.parseReply(f)?.let { m -> foundModules = foundModules.filter { it.source != m.source } + m }
                     // adresy modułów (do wysyłki bezpośredniej przez Wi-Fi) i jakość łącza z PGN 253
                     if (p.from != "COM") moduleSeen[p.from] = now()
@@ -1410,7 +1413,8 @@ class HardwareController {
         }
         while (true) {
             delay(100)
-            sprayer.step(100, if (hardware) session.speedKmh else 0.0) { session.sections.on.getOrElse(it) { false } }
+            val sprayEvents = sprayer.step(100, if (hardware) session.speedKmh else 0.0, session.fieldName) { session.sections.on.getOrElse(it) { false } }
+            if (soundOn && sprayEvents.isNotEmpty()) SoundPlayer.play(if (sprayEvents.any { it.loud }) SoundKind.ALARM else SoundKind.WARNING)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
             if (exiting) { exitCountdown++; if (exitCountdown >= 8) eu.smartsteer.navigator.ui.power.PowerPlatform.exit(false) }
             powerStep()
@@ -1456,6 +1460,7 @@ class HardwareController {
                 val safety = session.safetyFrame()
                 sendError = withContext(Dispatchers.Default) { l.send(frame) ?: l.send(machine) ?: s64?.let { l.send(it) } ?: rate?.let { l.send(it) } ?: safety?.let { l.send(it) } }
                 if (sendError == null) txCount++
+                sprayer.pendingNetFrame?.let { pf -> sprayer.pendingNetFrame = null; withContext(Dispatchers.Default) { l.send(pf) } }
                 if (configDirty && now() - configChangedAt > 1.5) {
                     val f252 = session.steerSettingsFrame()
                     val f251 = session.steerConfigFrame()

@@ -41,10 +41,12 @@ import eu.smartsteer.navigator.core.sprayer.FlowMode
 import eu.smartsteer.navigator.core.sprayer.Liquid
 import eu.smartsteer.navigator.core.sprayer.Nozzle
 import eu.smartsteer.navigator.core.sprayer.NozzleKind
+import eu.smartsteer.navigator.core.sprayer.SprayerAlarm
 import eu.smartsteer.navigator.core.sprayer.SprayerConfig
 import eu.smartsteer.navigator.core.sprayer.ValveType
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.SectionOverride
+import eu.smartsteer.navigator.ui.SprayerSource
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
 import eu.smartsteer.navigator.ui.components.IconKind
@@ -86,7 +88,11 @@ fun SprayerScreen(hw: HardwareController, startInSettings: Boolean = false) {
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Opryskiwacz", color = Ss.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            if (sp.simulated) Pill("SYMULATOR — płytka Maszyna jeszcze niepodłączona", Ss.Warning)
+            when {
+                sp.simulated -> Pill("SYMULATOR — bez płytki (zmień w Ustawieniach → Połączenie)", Ss.Warning)
+                sp.linkOk -> Pill("PŁYTKA POŁĄCZONA · ${sp.source.label}", Ss.Accent, Ss.AccentSoft)
+                else -> Pill("BRAK ŁĄCZNOŚCI Z PŁYTKĄ · ${sp.linkStatus.ifEmpty { sp.source.label }}", Color.White, Ss.Danger)
+            }
             Box(Modifier.weight(1f))
             Segmented(listOf("PRACA", "USTAWIENIA"), if (settings) 1 else 0, { settings = it == 1 })
             ActionButton(Modifier.width(150.dp), background = Ss.AccentSoft, contentColor = Ss.Accent, border = Ss.Accent,
@@ -195,13 +201,21 @@ private fun SprayerWork(hw: HardwareController) {
                 fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
     }
-    val faults = st?.let { s ->
-        buildList {
-            if (s.failsafe) add("brak łączności z płytką — zawory zamknięte")
-            if (s.sectionFaults != 0) add("błąd zaworu sekcji ${(0 until 9).filter { s.sectionFaults and (1 shl it) != 0 }.joinToString { "${it + 1}" }}")
+    val alarms = sp.activeAlarms
+    if (alarms.isNotEmpty()) {
+        val loud = alarms.any { it.loud }
+        val sectionFaults = st?.sectionFaults ?: 0
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (loud) Ss.Danger else Ss.Warning).padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "⚠ " + alarms.joinToString(" · ") { it.text } +
+                    (if (sectionFaults != 0) " (sekcje ${(0 until 9).filter { sectionFaults and (1 shl it) != 0 }.joinToString { "${it + 1}" }})" else ""),
+                color = if (loud) Color.White else Ss.OnWarning, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+            )
         }
-    }.orEmpty()
-    if (faults.isNotEmpty()) Text("⚠ " + faults.joinToString(" · "), color = Ss.Danger, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    }
 }
 
 @Composable
@@ -341,6 +355,7 @@ private fun SprayerSettings(hw: HardwareController) {
     val set: (SprayerConfig) -> Unit = { sp.update(it) }
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LinkPanel(hw)
             Panel(Modifier.fillMaxWidth()) {
                 SectionTitle("Belka i sekcje")
                 SettingRow("Liczba sekcji") {
@@ -438,6 +453,28 @@ private fun SprayerSettings(hw: HardwareController) {
 }
 
 @Composable
+private fun LinkPanel(hw: HardwareController) {
+    val sp = hw.sprayer
+    var ports by remember { mutableStateOf(sp.ports()) }
+    Panel(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) { SectionTitle("Połączenie z opryskiwaczem") }
+            ActionButton(onClick = { ports = sp.ports() }) { ButtonText("Odśwież porty") }
+        }
+        OptionRow("Symulator (bez płytki — nauka obsługi)", sp.source == SprayerSource.SIM) { sp.setSource(SprayerSource.SIM) }
+        ports.forEach { port ->
+            OptionRow("Płytka Maszyna na USB: $port", sp.source == SprayerSource.USB && sp.usbPort == port) { sp.setSource(SprayerSource.USB, port) }
+        }
+        if (ports.isEmpty()) Label("Nie widzę portów USB — podłącz płytkę kablem i naciśnij „Odśwież porty”.", Ss.TextMuted, 13.sp)
+        OptionRow("Płytka Ster w sieci (CAN, zestaw z autosterem)", sp.source == SprayerSource.NET) { sp.setSource(SprayerSource.NET) }
+        if (!sp.simulated) Text(
+            if (sp.linkOk) "Łączność z płytką: OK" else "Brak odpowiedzi płytki" + (if (sp.linkStatus.isNotEmpty()) " — ${sp.linkStatus}" else ""),
+            color = if (sp.linkOk) Ss.Accent else Ss.Danger, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+@Composable
 private fun SettingRow(label: String, content: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
@@ -502,7 +539,7 @@ fun SprayerMini(hw: HardwareController, modifier: Modifier = Modifier) {
     if (!hw.profile.isSprayer && !pc.running) return
     val c = sp.config
     val running = pc.running
-    val ok = pc.rateOk()
+    val ok = pc.rateOk() && sp.activeAlarms.none { it.loud }
     val low = pc.tank.liters <= c.tankReserveL
     val shape = RoundedCornerShape(14.dp)
     Column(
@@ -528,6 +565,9 @@ fun SprayerMini(hw: HardwareController, modifier: Modifier = Modifier) {
                 color = Ss.TextSoft, fontSize = 13.sp,
             )
             Text("zbiornik ${pc.tank.liters.pl(0)} l" + (if (low) " · REZERWA" else ""), color = if (low) Ss.Warning else Ss.Info, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            sp.activeAlarms.firstOrNull { it != SprayerAlarm.RESERVE }?.let { a ->
+                Text("⚠ ${a.text}", color = if (a.loud) Ss.Danger else Ss.Warning, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2)
+            }
             Row(Modifier.fillMaxWidth().height(10.dp).padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 for (i in 0 until c.sectionCount) {
                     val on = running && sp.mask and (1 shl i) != 0
