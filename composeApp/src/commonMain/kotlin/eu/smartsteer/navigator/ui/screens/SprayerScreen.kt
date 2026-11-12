@@ -153,7 +153,7 @@ private fun SprayerWork(hw: HardwareController) {
             Label("cel ${pc.targetLpm.pl(1)} l/min", Ss.TextSoft, 14.sp)
             Label(c.flowMode.label, Ss.TextMuted, 12.sp)
         }
-        SprayTile(Modifier.weight(1f), "PRĘDKOŚĆ · ${c.speedSource.label.uppercase()}", Ss.Border) {
+        SprayTile(Modifier.weight(1f), "PRĘDKOŚĆ · " + when (c.speedSource) { SpeedSource.GPS -> "GPS"; SpeedSource.BOARD_GPS -> "GPS PŁYTKI"; SpeedSource.MANUAL -> "STAŁA" }, Ss.Border) {
             val r = c.speedRangeKmh(pc.targetLha)
             val inRange = speed < 0.5 || speed in r
             BigNumber(speed.pl(1), "km/h", if (inRange) Ss.Text else Ss.Warning)
