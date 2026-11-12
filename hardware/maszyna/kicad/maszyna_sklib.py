@@ -344,7 +344,7 @@ maszyna = SchLib(tool=SKIDL).add_parts(*[
             Pin(num='43',name='CPL',func=pin_types.PASSIVE),
             Pin(num='44',name='CPH',func=pin_types.PASSIVE),
             Pin(num='45',name='PAD',func=pin_types.PASSIVE)] }),
-        Part(**{ 'name':'DRV8701E', 'dest':TEMPLATE, 'tool':SKIDL, 'aliases':Alias({'DRV8701E'}), 'ref_prefix':'U', 'fplist':None, 'footprint':'Package_DFN_QFN:Texas_RGE0024H_VQFN-24-1EP_4x4mm_P0.5mm_EP2.7x2.7mm_ThermalVias', 'keywords':None, 'description':'', 'datasheet':None, 'pins':[
+        Part(**{ 'name':'DRV8701E', 'dest':TEMPLATE, 'tool':SKIDL, 'aliases':Alias({'DRV8701E'}), 'ref_prefix':'U', 'fplist':None, 'footprint':'Package_DFN_QFN:VQFN-24-1EP_4x4mm_P0.5mm_EP2.45x2.45mm_ThermalVias', 'keywords':None, 'description':'', 'datasheet':None, 'pins':[
             Pin(num='1',name='VM',func=pin_types.PASSIVE),
             Pin(num='2',name='VCP',func=pin_types.PASSIVE),
             Pin(num='3',name='CPH',func=pin_types.PASSIVE),

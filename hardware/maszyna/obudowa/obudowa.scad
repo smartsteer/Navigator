@@ -28,8 +28,9 @@ amp_z = pcb_z + pcb[2];   // dół wycięcia = wierzch płytki (gniazda leżą n
 amp_sruby = 4.0;          // otwory śrub kołnierza AMPSEAL (po bokach wycięcia)
 
 // --- tylna ściana (y = max): 2 × Deutsch DTP 2-pin na panel (zasilanie, silnik) — ZMIERZYĆ otwór i rozstaw śrub z rysunku DTP04 ---
-dtp_d = 21;               // otwór pod gniazdo DTP04-2P
-dtp_x = [96, 118];        // środki gniazd od lewej krawędzi płytki (silnik, zasilanie — przy końcówkach M4)
+dtp_okno = [20.5, 24.5];  // gniazdo panelowe DTP04-2P jest PROSTOKĄTNE (szer. × wys.) — wymiar i otwory śrub/zatrzasków wg wariantu (np. -L012) z rysunku TE
+dtp_r = 2;                // zaokrąglenie narożników okna
+dtp_x = [94, 122];        // środki gniazd od lewej krawędzi płytki (silnik, zasilanie — przy końcówkach M4)
 dtp_z = 22;               // wysokość środka nad dnem
 
 // --- otwory w ścianie prawej (x = max) ---
@@ -85,7 +86,8 @@ module spod() {
         translate([xr, sc + luz + 90, sc + 24]) rotate([0, 90, 0]) cylinder(d = led, h = sc + 2);
         translate([xr, sc + luz + 106, sc + 26]) rotate([0, 90, 0]) cylinder(d = odpow, h = sc + 2);
         // tylna ściana: gniazda Deutsch DTP (silnik, zasilanie)
-        for (x = dtp_x) translate([sc + luz + x, zew[1] - sc - 1, dtp_z]) rotate([-90, 0, 0]) cylinder(d = dtp_d, h = sc + 2);
+        for (x = dtp_x) translate([sc + luz + x - dtp_okno[0]/2, zew[1] - sc - 1, dtp_z - dtp_okno[1]/2])
+            rotate([90, 0, 0]) mirror([0, 0, 1]) linear_extrude(sc + 2) offset(dtp_r) offset(-dtp_r) square(dtp_okno);
         // napis
         translate([zew[0]/2, 0.6, sc + h_spod - 9]) rotate([90, 0, 0])
             linear_extrude(1) text("SmartSteer", size = 6, halign = "center", font = "Liberation Sans:style=Bold");

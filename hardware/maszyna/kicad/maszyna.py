@@ -518,7 +518,7 @@ for k in range(8):
 # EN = 0 → hamowanie (oba dolne), pomiar prądu: bocznik 3 mΩ × wzmocnienie 20 → SO → AIN3. Ograniczenie prądu ~25 A (VREF 1,5 V).
 # Wyjście: końcówki M4 → przewody → Deutsch DTP 2-pin na obudowie (decyzja właściciela 2026-11-12, wariant mostka H).
 U_MOT = Part(tool=SKIDL, name="DRV8701E", ref_prefix="U", value="DRV8701ERGER",
-             footprint="Package_DFN_QFN:Texas_RGE0024H_VQFN-24-1EP_4x4mm_P0.5mm_EP2.7x2.7mm_ThermalVias",
+             footprint="Package_DFN_QFN:VQFN-24-1EP_4x4mm_P0.5mm_EP2.45x2.45mm_ThermalVias",
              pins=[Pin(num=n, name=nm, func=Pin.types.PASSIVE) for n, nm in [
                  (1, "VM"), (2, "VCP"), (3, "CPH"), (4, "CPL"), (5, "GND"), (6, "VREF"), (7, "AVDD"), (8, "DVDD"), (9, "nFAULT"),
                  (10, "SNSOUT"), (11, "SO"), (12, "IDRIVE"), (13, "nSLEEP"), (14, "EN"), (15, "PH"), (16, "GND"), (17, "GH1"),

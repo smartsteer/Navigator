@@ -68,3 +68,12 @@ Nie zmieniono (uzasadnienie):
 - Klucz lamp U8 (IO25) obsługuje PWM 200 Hz–1 kHz bez zmian na płytce (silnik jednokierunkowy dużej mocy, pomiar prądu AIN2).
 - Uwagi z przeglądu nie wprowadzone: IO27 i IO33 nie są wolne (dioda czerwona, CAN RX); F1 i zworki nie nachodzą na inne
   elementy — `crtyd.py` liczy przecięcia courtyardów: 0 (F1 ma 0,7 mm odstępu od U20/U22, zworki są co 8 mm).
+
+## Przegląd 2026-11-12 (mostek silnika) — odpowiedzi
+
+- F1 nie nachodzi na U20: pady F1 kończą się na y = 55,0 mm, pady U20 zaczynają na 56,5 mm (courtyardy bez przecięcia — `crtyd.py`).
+- Oznaczenia: Q1, Q2 = idealna dioda; Q3, Q4 = MMBT3904 (auto‑reset); Q5–Q8 = mostek silnika. Aktualna lista z płytki: `../bom_jlcpcb.csv`
+  (generowana z netlisty — `bom.csv` ma opisy i MPN, oznaczenia tam orientacyjne).
+- DRV8701E: footprint VQFN‑24 4 × 4 mm, pad termiczny 2,45 × 2,45 mm z przelotkami (wg przeglądu; potwierdzić z rysunkiem TI RGE).
+- IO15 (MTDO) jako kierunek silnika: stan przy starcie wycisza tylko logi ROM, nie blokuje startu.
+- Obudowa: okna pod gniazda panelowe DTP04‑2P prostokątne (20,5 × 24,5 mm, parametr `dtp_okno`) — dopasować do wariantu (np. ‑L012) z rysunku TE.
