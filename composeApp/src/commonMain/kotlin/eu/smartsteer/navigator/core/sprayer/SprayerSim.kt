@@ -21,12 +21,9 @@ class SprayerSim(
     val pulsesPerLiter: Double = 255.0,
     val hasPressureSensor: Boolean = true,
     val supplyVolts: Double = 13.8,
-    val wheelPulsesPer100m: Double = 1000.0,
 ) {
-    /** Prędkość jazdy do symulacji czujnika koła. */
+    /** Prędkość jazdy — tyle pokazuje symulowany GPS płytki. */
     var groundSpeedKmh = 0.0
-    private var wheelCount = 0L
-    private var wheelFraction = 0.0
     /** Położenie zaworu regulacyjnego 0..1. */
     var valvePosition = 0.4
         private set
@@ -75,11 +72,6 @@ class SprayerSim(
         val open = if (mainOpen) (0 until cmd!!.sectionCount).count { cmd.isSectionOpen(it) } else 0
         flowLpm = open * nozzlesPerSection * nozzleLpmAt3Bar * sqrt(max(pressureBar, 0.0) / 3.0)
 
-        // Czujnik koła.
-        val wp = groundSpeedKmh / 3.6 * dtMs / 1000.0 / 100.0 * wheelPulsesPer100m + wheelFraction
-        wheelCount = (wheelCount + wp.toLong()) and 0xFFFF_FFFFL
-        wheelFraction = wp - wp.toLong()
-
         // Przepływomierz.
         val dtUs = dtMs * 1000L
         val pulses = flowLpm / 60.0 * pulsesPerLiter * dtMs / 1000.0 + pulseFraction
@@ -108,8 +100,9 @@ class SprayerSim(
             pulsePeriodUs = lastPeriodUs,
             pressureBar = if (hasPressureSensor) pressureBar else null,
             supplyVolts = supplyVolts,
-            wheelCount = wheelCount,
-            wheelPeriodUs = if (groundSpeedKmh < 0.1) 0 else (3.6e8 / (groundSpeedKmh * wheelPulsesPer100m)).toLong(),
+            boardSpeedKmh = groundSpeedKmh,
+            boardSats = 14,
+            boardFix = 2,
         )
     }
 }

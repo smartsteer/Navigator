@@ -47,8 +47,8 @@ enum class Liquid(val label: String, val density: Double) {
 
 /** Skąd brać prędkość do dawki. */
 enum class SpeedSource(val label: String) {
-    GPS("GPS"),
-    WHEEL("Czujnik koła / radar"),
+    GPS("GPS tabletu / nawigacji"),
+    BOARD_GPS("GPS płytki opryskiwacza"),
     MANUAL("Stała (wpisana)"),
 }
 
@@ -81,8 +81,6 @@ data class SprayerConfig(
     /** Czas pełnego przesuwu zaworu regulacyjnego, ms (punkt startowy uczenia). */
     val valveTravelMs: Int = 4000,
     val speedSource: SpeedSource = SpeedSource.GPS,
-    /** Impulsy czujnika koła na 100 m (kalibracja przejazdem 100 m). */
-    val wheelPulsesPer100m: Double = 1000.0,
     /** Prędkość przy źródle „stała”, km/h. */
     val manualSpeedKmh: Double = 8.0,
     /** Pojemność zbiornika, l. */
@@ -321,7 +319,6 @@ object SprayerConfigText {
         appendLine("rezerwa=${c.tankReserveL}")
         appendLine("przesuw=${c.valveTravelMs}")
         appendLine("predkosc=${c.speedSource.name}")
-        appendLine("kolo=${c.wheelPulsesPer100m}")
         appendLine("stala=${c.manualSpeedKmh}")
     }
 
@@ -347,7 +344,6 @@ object SprayerConfigText {
                 tankReserveL = dbl("rezerwa", d.tankReserveL).coerceAtLeast(0.0),
                 valveTravelMs = dbl("przesuw", d.valveTravelMs.toDouble()).toInt().coerceIn(500, 30_000),
                 speedSource = SpeedSource.entries.firstOrNull { it.name == m["predkosc"] } ?: d.speedSource,
-                wheelPulsesPer100m = dbl("kolo", d.wheelPulsesPer100m).coerceIn(1.0, 100_000.0),
                 manualSpeedKmh = dbl("stala", d.manualSpeedKmh).coerceIn(0.5, 40.0),
             )
         }.getOrDefault(d)

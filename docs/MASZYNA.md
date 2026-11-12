@@ -27,7 +27,7 @@ Ramka jak w AgOpenGPS: `0x80 0x81 źródło PGN długość dane CRC`, CRC = mło
 
 Regulacja dawki (PID, uczenie zaworu) liczy się w Navigatorze — płytka tylko wykonuje impulsy.
 
-### PGN 161 (0xA1) — stan, maszyna → Navigator, co 100 ms (24 bajty; starsze 16 bajtów bez czujnika koła też czytane)
+### PGN 161 (0xA1) — stan, maszyna → Navigator, co 100 ms (20 bajtów; starsze 16 bajtów bez GPS płytki też czytane)
 
 | bajt | znaczenie |
 |---|---|
@@ -39,8 +39,9 @@ Regulacja dawki (PID, uczenie zaworu) liczy się w Navigatorze — płytka tylko
 | 12–13 | maska błędów wyjść sekcji (przerwa / zwarcie) |
 | 14 | błędy: bit0 zawór główny, bit1 zawór regulacyjny, bit2 oświetlenie, bit3 napięcie zasilania |
 | 15 | napięcie zasilania ×0,1 V |
-| 16–19 | licznik impulsów czujnika koła / radaru (uint32) |
-| 20–23 | czas między impulsami koła, µs (0 = stoi) — prędkość bez GPS: km/h = 3,6·10⁸ / (czas × impulsy na 100 m) |
+| 16–17 | prędkość z modułu GPS na płytce ×0,01 km/h (0xFFFF = brak fixu) — do pracy bez GPS w tablecie |
+| 18 | liczba satelitów GPS płytki |
+| 19 | fix GPS płytki: 0 brak, 1 GPS, 2 DGPS/SBAS |
 
 Przepływ [l/min] = 60 000 000 / (czas między impulsami µs × impulsy na litr). Impulsy na litr wpisywane w Navigatorze (różne u producentów, np. Arag Wolf 255).
 
@@ -54,7 +55,7 @@ Przepływ [l/min] = 60 000 000 / (czas między impulsami µs × impulsy na litr)
 | 0x301 | Ster → Maszyna | bajt 0 licznik, 1–2 impuls zaworu regulacyjnego (int16 ms) |
 | 0x380 | Maszyna → Ster | bajty 2–9 PGN 161 (impulsy, czas między impulsami) |
 | 0x381 | Maszyna → Ster | bajt 0 licznik, 1 flagi, 2–3 ciśnienie, 4–5 błędy sekcji, 6 błędy, 7 napięcie |
-| 0x383 | Maszyna → Ster | bajty 16–23 PGN 161 (czujnik koła) |
+| 0x383 | Maszyna → Ster | bajty 16–19 PGN 161 (GPS płytki) |
 | 0x382 | — | rezerwa: zasuwy rozsiewacza |
 
 Płytka Ster składa 0x380 + 0x381 w PGN 161 (bit0 „łączność” = ramki z płytki Maszyna w ostatnich 0,5 s).

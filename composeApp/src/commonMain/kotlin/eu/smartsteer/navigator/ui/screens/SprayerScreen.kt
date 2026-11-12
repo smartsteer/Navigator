@@ -158,7 +158,7 @@ private fun SprayerWork(hw: HardwareController) {
             val inRange = speed < 0.5 || speed in r
             BigNumber(speed.pl(1), "km/h", if (inRange) Ss.Text else Ss.Warning)
             Label("dla dawki: ${r.start.pl(1)}–${r.endInclusive.pl(1)} km/h", if (inRange) Ss.TextSoft else Ss.Warning, 13.sp)
-            if (c.speedSource == SpeedSource.GPS && speed < 0.1 && running) Label("brak prędkości z GPS — ustaw czujnik koła albo stałą", Ss.Warning, 12.sp)
+            if (c.speedSource != SpeedSource.MANUAL && speed < 0.1 && running) Label("brak prędkości z GPS — sprawdź GPS albo ustaw stałą", Ss.Warning, 12.sp)
             else Label("szer. ${c.openWidthM(sp.mask).pl(1)} z ${c.totalWidthM.pl(1)} m", Ss.TextMuted, 12.sp)
         }
         TankTile(hw, Modifier.width(170.dp))
@@ -366,13 +366,14 @@ private fun SprayerSettings(hw: HardwareController) {
                 }
                 Label("„Tylko opryskiwacz” — bez mapy i autosteru; sekcje włączasz przyciskami, START otwiera opryskiwanie.", Ss.TextMuted, 12.sp)
                 SettingRow("Prędkość z") {
-                    Segmented(SpeedSource.entries.map { it.label.substringBefore(" /").substringBefore(" (") }, c.speedSource.ordinal,
+                    Segmented(listOf("GPS tabletu", "GPS płytki", "Stała"), c.speedSource.ordinal,
                         { set(c.copy(speedSource = SpeedSource.entries[it])) })
                 }
-                if (c.speedSource == SpeedSource.WHEEL) SettingRow("Impulsy czujnika na 100 m") {
-                    NumberBox("Impulsy na 100 m", c.wheelPulsesPer100m, 0, 1.0, 100_000.0) { set(c.copy(wheelPulsesPer100m = it)) }
-                }
-                if (c.speedSource == SpeedSource.WHEEL) Label("Kalibracja: przejedź odmierzone 100 m i wpisz liczbę impulsów (licznik w płytce).", Ss.TextMuted, 12.sp)
+                if (c.speedSource == SpeedSource.BOARD_GPS) Label(
+                    sp.status?.let { st -> if (st.boardSpeedKmh != null) "GPS płytki: ${st.boardSats} satelitów, ${st.boardSpeedKmh.pl(1)} km/h" else "GPS płytki: brak fixu — antena pod niebem?" }
+                        ?: "GPS płytki: brak łączności z płytką",
+                    Ss.TextSoft, 13.sp,
+                )
                 if (c.speedSource == SpeedSource.MANUAL) SettingRow("Stała prędkość, km/h") {
                     NumberBox("Prędkość, km/h", c.manualSpeedKmh, 1, 0.5, 40.0) { set(c.copy(manualSpeedKmh = it)) }
                 }

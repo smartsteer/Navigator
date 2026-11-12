@@ -113,8 +113,8 @@ data class SprayerCommand(
  * [12..13] maska błędów wyjść sekcji (przerwa lub zwarcie)
  * [14] błędy: bit0 zawór główny, bit1 zawór regulacyjny, bit2 oświetlenie, bit3 napięcie zasilania
  * [15] napięcie zasilania ×0,1 V
- * [16..19] licznik impulsów czujnika koła/radaru (uint32), [20..23] czas między impulsami koła µs (0 = stoi)
- *          — opcjonalne (ramka 16 albo 24 bajty), do pracy bez GPS
+ * [16..17] prędkość z modułu GPS na płytce ×0,01 km/h (0xFFFF = brak fixu), [18] satelity, [19] fix (0 brak, 1 GPS, 2 DGPS/SBAS)
+ *          — opcjonalne (ramka 16 albo 20 bajtów), do pracy bez GPS w tablecie
  */
 data class SprayerStatus(
     val counter: Int,
@@ -128,11 +128,13 @@ data class SprayerStatus(
     val sectionFaults: Int = 0,
     val faults: Int = 0,
     val supplyVolts: Double = 0.0,
-    val wheelCount: Long = 0,
-    val wheelPeriodUs: Long = 0,
+    /** Prędkość z GPS płytki, km/h (null = brak fixu / brak modułu). */
+    val boardSpeedKmh: Double? = null,
+    val boardSats: Int = 0,
+    val boardFix: Int = 0,
 ) {
     fun data(): ByteArray {
-        val d = ByteArray(24)
+        val d = ByteArray(20)
         d[0] = (counter and 0xFF).toByte()
         var f = 0
         if (linkOk) f = f or 1
@@ -147,16 +149,14 @@ data class SprayerStatus(
         d[12] = (sectionFaults and 0xFF).toByte(); d[13] = (sectionFaults shr 8 and 0xFF).toByte()
         d[14] = faults.toByte()
         d[15] = (supplyVolts * 10).toInt().coerceIn(0, 255).toByte()
-        putU32(d, 16, wheelCount)
-        putU32(d, 20, wheelPeriodUs)
+        val v = boardSpeedKmh?.let { (it * 100).toInt().coerceIn(0, 0xFFFE) } ?: 0xFFFF
+        d[16] = (v and 0xFF).toByte(); d[17] = (v shr 8).toByte()
+        d[18] = boardSats.coerceIn(0, 255).toByte()
+        d[19] = boardFix.coerceIn(0, 255).toByte()
         return d
     }
 
     fun toFrame(source: Int = 0x7E): ByteArray = AogFrame.build(SprayerPgn.STATUS, data(), source)
-
-    /** Prędkość z czujnika koła/radaru: [pulsesPer100m] impulsów na 100 m. */
-    fun wheelKmh(pulsesPer100m: Double): Double =
-        if (wheelPeriodUs <= 0 || pulsesPer100m <= 0) 0.0 else 3.6e8 / (wheelPeriodUs * pulsesPer100m)
 
     /** Przepływ w l/min z czasu między impulsami (szybka odpowiedź także przy małym przepływie). */
     fun flowLpm(pulsesPerLiter: Double): Double =
@@ -185,8 +185,9 @@ data class SprayerStatus(
                 sectionFaults = d[12].u8() or (d[13].u8() shl 8),
                 faults = d[14].u8(),
                 supplyVolts = d[15].u8() / 10.0,
-                wheelCount = if (d.size >= 24) u32(d, 16) else 0,
-                wheelPeriodUs = if (d.size >= 24) u32(d, 20) else 0,
+                boardSpeedKmh = if (d.size >= 20) (d[16].u8() or (d[17].u8() shl 8)).let { if (it == 0xFFFF) null else it / 100.0 } else null,
+                boardSats = if (d.size >= 20) d[18].u8() else 0,
+                boardFix = if (d.size >= 20) d[19].u8() else 0,
             )
         }
 

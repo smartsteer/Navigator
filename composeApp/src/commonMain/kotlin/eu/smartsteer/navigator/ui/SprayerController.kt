@@ -85,7 +85,6 @@ class SprayerController(private val files: TextFiles) {
 
     private fun newSim(c: SprayerConfig) = SprayerSim(
         nozzlesPerSection = c.nozzlesPerSection.first(), nozzleLpmAt3Bar = c.nozzle.lpmAt3Bar * c.liquidFactor, pulsesPerLiter = c.pulsesPerLiter,
-        wheelPulsesPer100m = c.wheelPulsesPer100m,
     )
 
     /** Prędkość użyta do dawki (wg źródła z ustawień). */
@@ -169,10 +168,10 @@ class SprayerController(private val files: TextFiles) {
         val speedKmh = when (config.speedSource) {
             eu.smartsteer.navigator.core.sprayer.SpeedSource.GPS -> gpsSpeedKmh
             eu.smartsteer.navigator.core.sprayer.SpeedSource.MANUAL -> config.manualSpeedKmh
-            eu.smartsteer.navigator.core.sprayer.SpeedSource.WHEEL -> status?.wheelKmh(config.wheelPulsesPer100m) ?: 0.0
+            eu.smartsteer.navigator.core.sprayer.SpeedSource.BOARD_GPS -> status?.boardSpeedKmh ?: 0.0
         }
         this.speedKmh = speedKmh
-        // symulator: koło kręci się z prędkością GPS, a bez GPS — z prędkością „stałą” (do nauki obsługi)
+        // symulator: GPS płytki jedzie z prędkością GPS tabletu, a bez niego — z prędkością „stałą” (do nauki obsługi)
         sim.groundSpeedKmh = if (gpsSpeedKmh > 0.3) gpsSpeedKmh else config.manualSpeedKmh
         if (field != fieldName) { fieldName = field; fieldUsedL = 0.0 }
         if (source == SprayerSource.USB && link == null && ++reconnectCountdown >= 30) { reconnectCountdown = 0; connectUsb() }
