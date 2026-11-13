@@ -466,7 +466,8 @@ class HardwareController {
         exiting = true
         if (session.engaged) session.setEngaged(false, now())
         if (session.fieldName != null) saveField()
-        if (hardware) setHardwareMode(false) // pętla wyśle „autoster wyłączony” do płytki
+        // pętla wyśle „autoster wyłączony” do płytki; zapamiętany tryb zostaje (po restarcie znów SPRZĘT, nie symulator)
+        if (hardware) setHardwareMode(false, remember = false)
         tick++
     }
 
@@ -1381,7 +1382,8 @@ class HardwareController {
         } catch (_: Exception) {}
     }
 
-    fun setHardwareMode(on: Boolean) {
+    /** [remember] = false przy zamykaniu programu: płytka dostaje „autoster wyłączony”, ale następny start dalej jest w trybie SPRZĘT. */
+    fun setHardwareMode(on: Boolean, remember: Boolean = true) {
         if (on == hardware) return
         if (on) {
             if (link == null) {
@@ -1400,7 +1402,7 @@ class HardwareController {
         }
         hardware = on
         // zapamiętujemy tryb — po ponownym uruchomieniu aplikacja startuje tak, jak ją zostawiono
-        try { files.write(modeFile, if (on) "sprzet" else "symulator") } catch (_: Exception) {}
+        if (remember) try { files.write(modeFile, if (on) "sprzet" else "symulator") } catch (_: Exception) {}
         tick++
     }
 
