@@ -9,6 +9,8 @@ import eu.smartsteer.navigator.core.gps.FixQuality
 import eu.smartsteer.navigator.core.settings.TextFiles
 import eu.smartsteer.navigator.core.update.MiniJson
 import eu.smartsteer.navigator.core.war.CoverageGrid
+import eu.smartsteer.navigator.core.war.FleetMachine
+import eu.smartsteer.navigator.ui.DisplayPrefs
 import eu.smartsteer.navigator.core.war.FieldPartsAssembler
 import eu.smartsteer.navigator.core.war.HttpResult
 import eu.smartsteer.navigator.core.war.Json
@@ -60,6 +62,10 @@ class WarController(private val hw: HardwareController, private val files: TextF
 
     /** Praca wstrzymana do odpowiedzi: plik h_<id>.json, podpowiedź ze zlecenia / mapy dawek / ostatniego zabiegu. */
     data class PendingAsk(val id: String, val fieldName: String, val ha: Double, val tool: String, val suggestion: WarTreatment?)
+    /** Inne maszyny gospodarstwa (flota, docs/WAR.md 3.10): id → ostatnia pozycja; znikają po 5 min ciszy. */
+    var fleet by mutableStateOf<Map<String, FleetMachine>>(emptyMap())
+        private set
+
     /** Zlecenie przyjęte do bieżącego pola (wraca w paczce pracy, po zamknięciu pola = zrobione). */
     var activeOrderId: String? = null
         private set
@@ -68,6 +74,12 @@ class WarController(private val hw: HardwareController, private val files: TextF
     private var keyCode = ""
     private var worksBox = ""
     private var navBox = ""
+    private var fleetBox = ""
+    private var fleetSince = ""
+    private var nextFleetReadMs = 0L
+    private var nextFleetPosMs = 0L
+    private var fleetCoveragePending: String? = null
+    private var fleetCoverageSentMs = 0L
     private val assembler = FieldPartsAssembler()
     private var deviceSentThisRun = false
     private var nextPollMs = 0L
@@ -160,6 +172,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
         if (now >= nextFlushMs) { nextFlushMs = now + 20_000; flush() }
         if (now >= nextPollMs) { nextPollMs = now + if (inactiveNav) 180_000 else 60_000; poll() }
         position(now)
+        fleetStep(now)
     }
 
     private suspend fun ensureKey(): Boolean {
@@ -170,6 +183,9 @@ class WarController(private val hw: HardwareController, private val files: TextF
         keyCode = c
         worksBox = WarCrypto.sha256Hex(WarProtocol.worksMailboxText(c))
         navBox = WarCrypto.sha256Hex(WarProtocol.navMailboxText(c))
+        fleetBox = WarCrypto.sha256Hex(WarProtocol.fleetMailboxText(c))
+        fleetSince = ""
+        fleet = emptyMap()
         return true
     }
 
@@ -265,14 +281,6 @@ class WarController(private val hw: HardwareController, private val files: TextF
                 saveOrders()
                 hw.touch()
             }
-            "pokrycie_innych" -> {
-                // wspólna praca: pokrycie innej maszyny gospodarstwa na tym samym polu
-                val who = (m["komputer"] as? String).orEmpty()
-                if (who == config.machineId) return true
-                val warId = (m["pole"] as? Map<*, *>)?.get("war_id") as? String ?: return true
-                val g = WarProtocol.parseGrid(m["pokrycie"] as? Map<*, *>) ?: return true
-                hw.onOthersCoverage(warId, who, (m["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g)
-            }
             "produkty_war" -> {
                 try { files.write(PRODUCTS, json) } catch (_: Exception) { return false }
                 products = WarProducts.parse(m)
@@ -301,10 +309,92 @@ class WarController(private val hw: HardwareController, private val files: TextF
         ))
     }
 
-    /** Wysyła bieżące pokrycie pola do WAR (wspólna praca kilku maszyn). */
+    /** Bieżące pokrycie pola dla innych maszyn gospodarstwa — idzie do skrzynki floty (tylko najnowsze, nie do kolejki). */
     fun sendLiveCoverage(warId: String, fieldName: String, g: CoverageGrid) {
-        val id = "pk-${config.machineId}-${nowMillis()}"
-        enqueue(id, WarProtocol.liveCoverage(config, id, warId, fieldName, config.tractorName.ifEmpty { hw.profileName }, g, nowIso()))
+        fleetCoveragePending = WarProtocol.fleetCoverage(config, warId, fieldName, config.tractorName.ifEmpty { hw.profileName }, g, nowIso(), DisplayPrefs.trailColor)
+    }
+
+    // ---------------- flota gospodarstwa (docs/WAR.md 3.10) ----------------
+
+    /** Wywołanie floty: 429 (za często) nie wstrzymuje reszty połączenia z WAR. */
+    private suspend fun fleetCall(method: String, path: String, body: String?): HttpResult {
+        val url = config.server.trimEnd('/') + path
+        return withContext(Dispatchers.Default) { httpJson(method, url, body, "SmartSteer-Navigator/$version") }
+    }
+
+    private suspend fun fleetStep(now: Long) {
+        val k = key ?: return
+        if (!hw.hardware) return
+        val s = hw.session
+        val working = s.engaged || s.sections.anyOn()
+        // własna pozycja: co 5 s w pracy, co 30 s na postoju (ten sam wyłącznik co „Pokazuj na mapie WAR”)
+        val g = s.lastGga
+        if (config.live && g != null && s.gpsAlive(hw.now()) && now >= nextFleetPosMs) {
+            nextFleetPosMs = now + if (working) 5_000 else 30_000
+            val fix = when (g.fix) { FixQuality.GPS -> 1; FixQuality.DGPS -> 2; FixQuality.RTK_FIX -> 4; FixQuality.RTK_FLOAT -> 5; else -> 0 }
+            val plain = WarProtocol.fleetPosition(
+                g.latitude, g.longitude, ((s.headingRad * 180 / PI) % 360 + 360) % 360, s.speedKmh, fix,
+                config.toolName.ifEmpty { hw.profileName }, hw.profile.toolWidth, s.fieldWarId, s.fieldName.orEmpty(), working,
+                config.tractorName.ifEmpty { hw.profileName }, config, nowIso(), DisplayPrefs.trailColor,
+            )
+            fleetWrite(k, "pozycja", plain)
+        }
+        // pokrycie: najwyżej co 30 s (HardwareController podaje co minutę, gdy przybyło)
+        val cov = fleetCoveragePending
+        if (cov != null && now - fleetCoverageSentMs >= 30_000) {
+            fleetCoverageSentMs = now
+            if (fleetWrite(k, "pokrycie", cov)) fleetCoveragePending = null
+        }
+        // inne maszyny: co 5 s w pracy, co 15 s na postoju
+        if (now >= nextFleetReadMs) {
+            nextFleetReadMs = now + if (working) 5_000 else 15_000
+            fleetRead(k, now)
+        }
+    }
+
+    private suspend fun fleetWrite(k: ByteArray, kind: String, plain: String): Boolean {
+        val dane = withContext(Dispatchers.Default) { WarCrypto.encrypt(k, plain.encodeToByteArray()) }
+        val r = fleetCall("POST", "/api/sync/flota", Json.obj(
+            "skrzynka" to fleetBox, "skrzynka_prac" to worksBox, "maszyna" to config.machineId, "rodzaj" to kind, "dane" to dane,
+        ))
+        return r.code == 200 || r.code == 400       // 400: paczka za duża — następna będzie inna
+    }
+
+    private suspend fun fleetRead(k: ByteArray, now: Long) {
+        val od = if (fleetSince.isEmpty()) "" else "&od=" + fleetSince.replace("+", "%2B")
+        val r = fleetCall("GET", "/api/sync/flota?skrzynka=$fleetBox&maszyna=${config.machineId}$od", null)
+        if (r.code != 200) {
+            if (r.code == 403) nextFleetReadMs = now + 60_000          // nikt jeszcze nie pisał do floty
+            pruneFleet(now)
+            return
+        }
+        val m = MiniJson.parse(r.body) as? Map<*, *> ?: return
+        (m["ts"] as? String)?.let { fleetSince = it }
+        var changed = false
+        val next = fleet.toMutableMap()
+        for (e in m["maszyny"] as? List<*> ?: emptyList<Any>()) {
+            val x = e as? Map<*, *> ?: continue
+            if (x["maszyna"] == config.machineId) continue
+            val dane = x["dane"] as? String ?: continue
+            val plain = withContext(Dispatchers.Default) { WarCrypto.decrypt(k, dane) }?.decodeToString() ?: continue
+            val (typ, p) = WarProtocol.parse(plain) ?: continue
+            if ((p["komputer"] as? String) == config.machineId) continue
+            when (typ) {
+                "pozycja_floty" -> WarProtocol.parseFleetPosition(p, now)?.let { next[it.id] = it; changed = true }
+                "pokrycie_floty" -> {
+                    val warId = (p["pole"] as? Map<*, *>)?.get("war_id") as? String ?: continue
+                    val g = WarProtocol.parseGrid(p["pokrycie"] as? Map<*, *>) ?: continue
+                    hw.onOthersCoverage(warId, (p["komputer"] as? String).orEmpty(), (p["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g,
+                        (p["kolor"] as? String).orEmpty())
+                }
+            }
+        }
+        if (changed) fleet = next
+        pruneFleet(now)
+    }
+
+    private fun pruneFleet(now: Long) {
+        if (fleet.values.any { now - it.receivedMs > 5 * 60_000 }) fleet = fleet.filterValues { now - it.receivedMs <= 5 * 60_000 }
     }
 
     private fun loadProducts(): WarProducts = try {

@@ -113,6 +113,8 @@ object WarProtocol {
 
     fun worksMailboxText(code: String) = "war-sync-id:$code"
     fun navMailboxText(code: String) = "war-nav-zl:$code"
+    /** Skrzynka floty gospodarstwa (docs/WAR.md 3.10): wszystkie Navigatory z tym samym kodem. */
+    fun fleetMailboxText(code: String) = "war-flota:$code"
 
     /** Losowe id maszyny: „tab-” + 8 znaków z alfabetu kodu (mieści się w [A-Za-z0-9_-]). */
     fun machineId(random: ByteArray): String = "tab-" + random.take(8).joinToString("") { ALPHABET[(it.toInt() and 0xFF) % ALPHABET.length].lowercase() }
@@ -176,20 +178,45 @@ object WarProtocol {
         )
     }
 
-    /**
-     * Wspólna praca kilku maszyn (propozycja, docs/WAR.md 3.8): bieżące pokrycie tej maszyny na polu z WAR,
-     * wysyłane co minutę do skrzynki prac; WAR przekazuje je innym Navigatorom gospodarstwa jako `pokrycie_innych`.
-     */
-    fun liveCoverage(c: WarConfig, id: String, warId: String, fieldName: String, tractor: String, g: CoverageGrid, t: String): String = Json.obj(
-        "typ" to "pokrycie_na_zywo", "v" to 1, "id" to id, "komputer" to c.machineId, "pojazd" to tractor,
-        "pole" to Json.Raw(Json.obj("war_id" to warId, "nazwa" to fieldName)), "t" to t,
-        "pokrycie" to Json.Raw(gridJson(g)),
-    )
-
     fun gridJson(g: CoverageGrid): String = Json.obj(
         "lat0" to Json.Raw(r(g.lat0, 7)), "lon0" to Json.Raw(r(g.lon0, 7)), "e0" to g.e0, "n0" to g.n0,
         "k" to g.k, "w" to g.w, "h" to g.h, "b" to Ntrip.base64(g.bits),
     )
+
+    // ---------------- flota gospodarstwa (3.10) ----------------
+
+    fun fleetPosition(
+        lat: Double, lon: Double, courseDeg: Double, kmh: Double, fix: Int, tool: String, width: Double,
+        warId: String?, field: String, working: Boolean, tractor: String, c: WarConfig, t: String, color: String = "",
+    ): String = Json.obj(
+        "typ" to "pozycja_floty", "v" to 1, "komputer" to c.machineId, "pojazd" to tractor, "narzedzie" to tool, "szer" to width,
+        "kolor" to color.takeIf { it.isNotEmpty() },
+        "lat" to Json.Raw(r(lat, 7)), "lon" to Json.Raw(r(lon, 7)), "kurs" to Json.Raw(r(courseDeg, 1)), "kmh" to Json.Raw(r(kmh, 1)), "fix" to fix,
+        "pole" to Json.Raw(Json.obj("war_id" to warId, "nazwa" to field)), "pracuje" to working,
+        "kto" to c.operator.takeIf { it.isNotEmpty() }, "t" to t,
+    )
+
+    fun fleetCoverage(c: WarConfig, warId: String, fieldName: String, tractor: String, g: CoverageGrid, t: String, color: String = ""): String = Json.obj(
+        "typ" to "pokrycie_floty", "v" to 1, "komputer" to c.machineId, "pojazd" to tractor, "kolor" to color.takeIf { it.isNotEmpty() },
+        "pole" to Json.Raw(Json.obj("war_id" to warId, "nazwa" to fieldName)), "t" to t, "pokrycie" to Json.Raw(gridJson(g)),
+    )
+
+    /** Inna maszyna gospodarstwa z paczki `pozycja_floty`; [atMs] = kiedy odebrano. */
+    fun parseFleetPosition(m: Map<*, *>, atMs: Long): FleetMachine? {
+        val id = (m["komputer"] as? String)?.takeIf { it.isNotEmpty() } ?: return null
+        val lat = (m["lat"] as? Number)?.toDouble() ?: return null
+        val lon = (m["lon"] as? Number)?.toDouble() ?: return null
+        if (lat !in -90.0..90.0 || lon !in -180.0..180.0) return null
+        val pole = m["pole"] as? Map<*, *>
+        return FleetMachine(
+            id = id, name = (m["pojazd"] as? String).orEmpty().ifEmpty { "Inna maszyna" }.take(40),
+            tool = (m["narzedzie"] as? String).orEmpty().take(40), widthM = (m["szer"] as? Number)?.toDouble() ?: 0.0,
+            lat = lat, lon = lon, courseDeg = (m["kurs"] as? Number)?.toDouble() ?: 0.0, kmh = (m["kmh"] as? Number)?.toDouble() ?: 0.0,
+            working = m["pracuje"] as? Boolean ?: false, warId = pole?.get("war_id") as? String,
+            fieldName = (pole?.get("nazwa") as? String).orEmpty(), who = (m["kto"] as? String).orEmpty().take(30), receivedMs = atMs,
+            color = (m["kolor"] as? String)?.takeIf { Regex("#[0-9A-Fa-f]{6}").matches(it) }.orEmpty(),
+        )
+    }
 
     /** Siatka pokrycia z paczki („pokrycie”: lat0, lon0, e0, n0, k, w, h, b). */
     fun parseGrid(m: Map<*, *>?): CoverageGrid? {
@@ -404,3 +431,12 @@ object Json {
         }
     }
 }
+
+/** Inna maszyna gospodarstwa na mapie (pozycja z floty). */
+data class FleetMachine(
+    val id: String, val name: String, val tool: String, val widthM: Double, val lat: Double, val lon: Double,
+    val courseDeg: Double, val kmh: Double, val working: Boolean, val warId: String?, val fieldName: String, val who: String,
+    val receivedMs: Long,
+    /** Kolor śladu tej maszyny „#RRGGBB” (pusty = domyślny dla innych). */
+    val color: String = "",
+)

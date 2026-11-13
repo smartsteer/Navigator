@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -100,6 +101,7 @@ fun SettingsScreen(hw: HardwareController) {
                         Choice("Dźwięki (autoster, alarmy, zawrót, sekcje)", listOf("WŁ.", "WYŁ."), if (hw.soundOn) 0 else 1) { hw.setSound(it == 0) }
                         Choice("Ekran", listOf("Zwykły", "Tablet (powiększony)"), if (DisplayPrefs.tablet) 1 else 0) { DisplayPrefs.updateTablet(it == 1) }
                         Choice("Kolory", listOf("Noc (ciemne)", "Dzień (jasne)"), if (DisplayPrefs.day) 1 else 0) { DisplayPrefs.updateDay(it == 1) }
+                        TrailColorPicker()
                         if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }
                         Choice("Podkład mapy", eu.smartsteer.navigator.core.map.TileSource.entries.map { it.short }, DisplayPrefs.background) { DisplayPrefs.updateBackground(it) }
                         Label("ORTO = ortofotomapa Polski z Geoportalu, SAT = zdjęcia satelitarne Esri. Raz obejrzane kafelki zostają na dysku; całe pole pobierzesz na ekranie Pola.", Ss.TextMuted, 12.sp)
@@ -713,8 +715,8 @@ private fun ColumnScope.WarTab(hw: HardwareController) {
     var msg by remember { mutableStateOf<String?>(null) }
     Choice("Wspólna praca kilku maszyn na polu", listOf("WYŁ.", "WŁ."), if (hw.shareCoverage) 1 else 0) { hw.changeShareCoverage(it == 1) }
     if (hw.shareCoverage) Label(
-        "Co minutę wysyła do WAR pokrycie pola z WAR i pokazuje pracę innych maszyn gospodarstwa (na niebiesko) — sekcje omijają to, co już zrobiły. " +
-            "Wymaga obsługi po stronie WAR (paczki pokrycie_na_zywo / pokrycie_innych, docs/WAR.md 3.8).",
+        "Co minutę wysyła pokrycie pola z WAR do innych Navigatorów gospodarstwa (ten sam kod nawigacji) i pokazuje ich pracę w ich kolorze śladu — " +
+            "sekcje omijają to, co już zrobiły. Pozycje innych maszyn widać na mapie zawsze, gdy działa połączenie z WAR.",
         Ss.TextMuted, 12.sp,
     )
     SectionTitle("Połączenie z WAR (Wirtualny Asystent Rolnika)")
@@ -987,6 +989,28 @@ private fun NumberField(
 }
 
 @Composable
+/** Kolor śladu tej maszyny (jak w AgOpenGPS) — widzą go też inne Navigatory gospodarstwa. */
+@Composable
+private fun TrailColorPicker() {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Ss.Surface)
+            .border(1.dp, Ss.Border, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Kolor śladu", Modifier.weight(1f), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        val current = DisplayPrefs.trailColor.ifEmpty { eu.smartsteer.navigator.ui.TrailColors.palette[0] }
+        for (hex in eu.smartsteer.navigator.ui.TrailColors.palette) {
+            val sel = hex.equals(current, ignoreCase = true)
+            Box(
+                Modifier.size(34.dp).clip(RoundedCornerShape(17.dp))
+                    .background(androidx.compose.ui.graphics.Color(eu.smartsteer.navigator.ui.TrailColors.argb(hex)!!))
+                    .border(if (sel) 3.dp else 1.dp, if (sel) Ss.Text else Ss.Border, RoundedCornerShape(17.dp))
+                    .clickable { DisplayPrefs.updateTrailColor(if (hex == eu.smartsteer.navigator.ui.TrailColors.palette[0]) "" else hex) },
+            )
+        }
+    }
+}
+
 private fun Toggle(label: String, value: Boolean, onChange: (Boolean) -> Unit) =
     Choice(label, listOf("NIE", "TAK"), if (value) 1 else 0) { onChange(it == 1) }
 

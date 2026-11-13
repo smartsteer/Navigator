@@ -95,4 +95,33 @@ class WarProtocolTest {
         assertNull(m["kto"])
         assertEquals(cov.passesM2, 120.0, 1e-6)
     }
+
+    /** Flota (docs/WAR.md 3.10): adres skrzynki floty i paczka z WAR (Python) — wektor testowy z dokumentacji. */
+    @Test
+    fun fleetMailboxAndPacket() {
+        val code = "ABCDEFGHJKLMNPQR"
+        assertEquals("5c9804e7df32aa3c7bc85063c111ba510b553a6618f3f064537a10758e7fa19e", WarCrypto.sha256Hex(WarProtocol.fleetMailboxText(code)))
+        val plain = WarCrypto.decrypt(
+            WarCrypto.deriveKey(code),
+            "AAECAwQFBgcICQoL8EqYwnX6Gwx1p4X0JyfGTHtWu1+ODHhYZ0xivEQOkHSxVDuhOlFoHkZ9L14XeFDXFQ1C7xTyTTZJfT1/Hg/TvutWNxqU4ISRyFlAlLZ1fYwgOJ4a1DEiTe4=",
+        )!!.decodeToString()
+        val (typ, m) = WarProtocol.parse(plain)!!
+        assertEquals("pozycja_floty", typ)
+        val f = WarProtocol.parseFleetPosition(m, 1000L)!!
+        assertEquals("tab-test", f.id); assertEquals(52.1, f.lat); assertEquals(19.4, f.lon); assertEquals("Inna maszyna", f.name)
+    }
+
+    @Test
+    fun fleetPositionRoundTripWithColor() {
+        val c = WarConfig(machineId = "tab-abc", operator = "Marek")
+        val js = WarProtocol.fleetPosition(52.17731, 19.46950, 87.5, 8.4, 4, "Opryskiwacz 21 m", 21.0, "p1", "Za stodołą", true, "Renault 133.14", c, "t", "#FF8C1A")
+        val (typ, m) = WarProtocol.parse(js)!!
+        assertEquals("pozycja_floty", typ)
+        val f = WarProtocol.parseFleetPosition(m, 5L)!!
+        assertEquals("Renault 133.14", f.name); assertEquals(21.0, f.widthM); assertEquals("p1", f.warId); assertEquals("#FF8C1A", f.color)
+        assertEquals(true, f.working); assertEquals(87.5, f.courseDeg); assertEquals("Marek", f.who)
+        assertNull(WarProtocol.parseFleetPosition(mapOf("komputer" to "x", "lat" to 95.0, "lon" to 1.0), 0L))
+        val zly = WarProtocol.parseFleetPosition(mapOf("komputer" to "x", "lat" to 52.0, "lon" to 19.0, "kolor" to "czerwony"), 0L)!!
+        assertEquals("", zly.color)
+    }
 }

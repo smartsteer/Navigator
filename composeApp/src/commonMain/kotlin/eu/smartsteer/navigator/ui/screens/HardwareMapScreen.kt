@@ -803,7 +803,7 @@ private fun HwStats(hw: HardwareController) {
 private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, tilt: Boolean, locked: Boolean, modifier: Modifier) {
     // pasy pokrycia zamieniamy na Path raz (otwarty pas — gdy przybędzie punktów)
     val stripCache = remember { HashMap<Coverage.Strip, Pair<Int, Path>>() }
-    val othersCache = remember { mutableStateOf<Pair<Int, Path>?>(null) }
+    val othersCache = remember { mutableStateOf<Pair<Int, Map<String, Path>>?>(null) }
     val density = LocalDensity.current.density
     val tm = rememberTextMeasurer()
     Canvas(
@@ -825,6 +825,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
     ) {
         hw.tick
         val s = hw.session
+        val fleet = hw.war.fleet.values
         val pos = s.pivot ?: Vec2.ZERO
         val sc = zoom * density
         val px = 1f / sc
@@ -912,7 +913,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
 
             // mapa pokrycia
             if (s.coverage.strips.isEmpty()) stripCache.clear()
-            val coverColor = Ss.Accent.copy(alpha = 0.35f)
+            val coverColor = (eu.smartsteer.navigator.ui.TrailColors.argb(DisplayPrefs.trailColor)?.let { Color(it) } ?: Ss.Accent).copy(alpha = 0.35f)
             for (st in s.coverage.strips) {
                 val n = st.left.size
                 if (n < 2) continue
@@ -926,15 +927,16 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 drawPath(path, coverColor)
             }
 
-            // praca innych maszyn na tym polu (wspólna praca przez WAR)
+            // praca innych maszyn na tym polu (flota przez WAR) — każda w swoim kolorze śladu
             if (s.othersCells.isNotEmpty()) {
                 val cached = othersCache.value
-                val path = if (cached != null && cached.first == s.othersVersion) cached.second else Path().apply {
-                    for (quads in s.othersCells.values) for (q in quads) {
-                        moveTo(q[0].x.toFloat(), q[0].y.toFloat()); for (i in 1 until q.size) lineTo(q[i].x.toFloat(), q[i].y.toFloat()); close()
-                    }
+                val paths = if (cached != null && cached.first == s.othersVersion) cached.second else s.othersCells.mapValues { (_, quads) ->
+                    Path().apply { for (q in quads) { moveTo(q[0].x.toFloat(), q[0].y.toFloat()); for (i in 1 until q.size) lineTo(q[i].x.toFloat(), q[i].y.toFloat()); close() } }
                 }.also { othersCache.value = s.othersVersion to it }
-                drawPath(path, Ss.Info.copy(alpha = 0.3f))
+                for ((m, path) in paths) {
+                    val c = eu.smartsteer.navigator.ui.TrailColors.argb(s.othersColors[m])?.let { Color(it) } ?: Ss.Info
+                    drawPath(path, c.copy(alpha = 0.3f))
+                }
             }
 
             // ślad jazdy
@@ -1031,6 +1033,26 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 drawPath(quad, Ss.OnAccent, style = Stroke(width = 1.5f * px))
             }
 
+            // inne maszyny gospodarstwa (flota): trójkąt w ich kolorze śladu + belka narzędzia
+            val pl = s.plane
+            if (pl != null) for (m in fleet) {
+                val q = pl.toLocal(m.lat, m.lon)
+                val h = m.courseDeg * PI / 180
+                val f = Vec2.forward(h)
+                val rt = Vec2.right(h)
+                val c = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: Ss.Info
+                if (m.widthM > 0.5) drawLine(c.copy(alpha = if (m.working) 0.9f else 0.45f), o(q + rt * (m.widthM / 2) - f * 1.5), o(q - rt * (m.widthM / 2) - f * 1.5),
+                    strokeWidth = 4f * px, cap = StrokeCap.Round)
+                val tri = Path().apply {
+                    moveTo(o(q + f * 3.2).x, o(q + f * 3.2).y)
+                    lineTo(o(q + rt * 1.1 - f * 0.6).x, o(q + rt * 1.1 - f * 0.6).y)
+                    lineTo(o(q - rt * 1.1 - f * 0.6).x, o(q - rt * 1.1 - f * 0.6).y)
+                    close()
+                }
+                drawPath(tri, c)
+                drawPath(tri, Ss.Text, style = Stroke(width = 1.5f * px))
+            }
+
             // ciągnik: prosty trójkąt w kolorze z projektu, czubek = przód
             val p = s.pivot
             if (p != null) {
@@ -1044,6 +1066,27 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 drawPath(tri, Ss.Tractor)
                 drawPath(tri, Ss.Text, style = Stroke(width = 2f * px))
                 drawCircle(Ss.Text, 4f * px, o(p))
+            }
+        }
+
+        // podpisy innych maszyn (nazwa, prędkość)
+        val plL = s.plane
+        if (plL != null && fleet.isNotEmpty()) {
+            val th = if (headingUp) -hw.viewHeading else 0.0
+            val cosT = kotlin.math.cos(th).toFloat()
+            val sinT = kotlin.math.sin(th).toFloat()
+            for (m in fleet) {
+                val q = plL.toLocal(m.lat, m.lon)
+                val vx = ((q.x - cam.x) * sc).toFloat()
+                val vy = (-(q.y - cam.y) * sc).toFloat()
+                val c = Offset(size.width / 2 + vx * cosT - vy * sinT, size.height / 2 + vx * sinT + vy * cosT)
+                if (c.x < -100 || c.x > size.width + 100 || c.y < -50 || c.y > size.height + 50) continue
+                val txt = m.name + (if (m.kmh >= 0.5) " · ${(m.kmh * 10).toInt() / 10.0} km/h".replace('.', ',') else "") + (if (m.working) " · pracuje" else "")
+                val layout = tm.measure(txt, TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ss.Text))
+                val tl = Offset(c.x - layout.size.width / 2f, c.y + 18f * density)
+                drawRect(Ss.Bar.copy(alpha = 0.85f), tl - Offset(6f * density, 3f * density),
+                    androidx.compose.ui.geometry.Size(layout.size.width + 12f * density, layout.size.height + 6f * density))
+                drawText(layout, topLeft = tl)
             }
         }
 

@@ -236,9 +236,14 @@ nie rozsyła — Navigatory wymieniają się przez serwer same.
   Pozycje starsze niż 15 min i pokrycia starsze niż 7 dni nie wracają. Najczęściej co 3 s na maszynę (`maszyna` w adresie
   rozróżnia kilka tabletów za jednym hotspotem), inaczej `429`. Zalecane: co 5 s w pracy, co 30 s na postoju.
 - Własne paczki (ta sama `maszyna`) też wracają — pomijać.
+- `kolor` (opcjonalnie, „#RRGGBB”): kolor śladu maszyny wybrany w Navigatorze (Ustawienia → Pojazd → Kolor śladu) — inne
+  Navigatory rysują nim jej ikonę i obrobione pasy. Brak = domyślny kolor „innej maszyny”.
+- **Zrobione w Navigatorze**: pozycja co 5 s w pracy / 30 s na postoju (wyłącznik „Pokazuj na mapie WAR”), odczyt co 5 s
+  w pracy / 15 s na postoju, ikony innych maszyn z podpisem (nazwa, prędkość, „pracuje”) znikają po 5 min ciszy; pokrycie
+  co minutę przy opcji „Wspólna praca kilku maszyn”.
 
 ```json
-{"typ": "pozycja_floty", "v": 1, "komputer": "tab-7f3k2", "pojazd": "Renault 133.14", "narzedzie": "Opryskiwacz 21 m",
+{"typ": "pozycja_floty", "v": 1, "komputer": "tab-7f3k2", "pojazd": "Renault 133.14", "kolor": "#FF8C1A", "narzedzie": "Opryskiwacz 21 m",
  "szer": 21.0, "lat": 52.1773124, "lon": 19.4695011, "kurs": 87.5, "kmh": 8.4, "fix": 4,
  "pole": {"war_id": "p1", "nazwa": "Za stodołą"}, "pracuje": true, "kto": "Marek", "t": "2026-11-13T08:30:05+01:00"}
 ```
