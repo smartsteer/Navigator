@@ -104,54 +104,56 @@ fun DrawScope.drawTractorIcon(
             withTransform({ transform(mx) }) { drawImage(img) }
         }
         else -> {
-            val tyre = Color(0xFF1A1D1B)
-            val tread = Color(0xFF3A403C)
+            val tyre = Color(0xFF2A2E2B)
+            val tread = Color(0xFF6E7670)
+            val rim = Color(0xFFB8C0BA)
             val glass = Color(0xFF243038)
+            val dark = body.copy(red = body.red * 0.72f, green = body.green * 0.72f, blue = body.blue * 0.72f)
             fun poly(vararg pts: Vec2) = Path().apply {
                 val a = o(pts[0]); moveTo(a.x, a.y)
                 for (i in 1 until pts.size) { val b = o(pts[i]); lineTo(b.x, b.y) }
                 close()
             }
             fun rect(cx: Double, cy: Double, hw: Double, hl: Double) = poly(w(cx - hw, cy - hl), w(cx + hw, cy - hl), w(cx + hw, cy + hl), w(cx - hw, cy + hl))
-            // koło: opona z bieżnikiem (kreski w poprzek), obrócone o kąt skrętu
+            // koło: opona z jasnym brzegiem (widać ją na ciemnej mapie i na zdjęciu), bieżnik w poprzek, obrót o kąt skrętu
             fun wheel(cx: Double, cy: Double, hw: Double, hl: Double, angDeg: Double) {
                 val h = heading + angDeg * PI / 180
                 val f2 = Vec2.forward(h); val r2 = Vec2.right(h)
                 val c = w(cx, cy)
                 fun q(x: Double, y: Double) = c + r2 * x + f2 * y
-                drawPath(poly(q(-hw, -hl), q(hw, -hl), q(hw, hl), q(-hw, hl)), tyre)
-                val n = 7
+                val t = poly(q(-hw, -hl), q(hw, -hl), q(hw, hl), q(-hw, hl))
+                drawPath(t, tyre)
+                val n = 8
                 for (k in 1 until n) {
                     val y = -hl + 2 * hl * k / n
-                    drawLine(tread, o(q(-hw * 0.85, y)), o(q(hw * 0.85, y)), lw(0.05, 1.2f))
+                    drawLine(tread, o(q(-hw * 0.8, y)), o(q(hw * 0.8, y)), lw(0.04, 0.8f))
                 }
+                drawPath(t, rim, style = Stroke(width = lw(0.04, 1f)))
             }
             // tylny zaczep / TUZ
-            drawLine(tyre, o(w(0.0, -0.2)), o(w(0.0, -0.95)), lw(0.18, 2f))
+            drawLine(tyre, o(w(0.0, -0.2)), o(w(0.0, -1.0)), lw(0.16, 2f))
+            // tylny most i skrzynia między kołami
+            drawPath(rect(0.0, 0.0, tr / 2 - 0.2, 0.42), dark)
             // oś przednia i koła
-            drawLine(tyre, o(w(-tr / 2 + 0.1, wb)), o(w(tr / 2 - 0.1, wb)), lw(0.1, 1.5f))
-            wheel(-tr / 2 + 0.1, wb, 0.2, 0.55, steerDeg)
-            wheel(tr / 2 - 0.1, wb, 0.2, 0.55, steerDeg)
+            drawLine(tyre, o(w(-tr / 2 + 0.1, wb)), o(w(tr / 2 - 0.1, wb)), lw(0.12, 1.5f))
+            wheel(-tr / 2 + 0.1, wb, 0.22, 0.6, steerDeg)
+            wheel(tr / 2 - 0.1, wb, 0.22, 0.6, steerDeg)
             // koła tylne
-            wheel(-tr / 2, 0.0, 0.29, 0.85, 0.0)
-            wheel(tr / 2, 0.0, 0.29, 0.85, 0.0)
-            // błotniki nad tylnymi kołami
-            val fender = body.copy(red = body.red * 0.8f, green = body.green * 0.8f, blue = body.blue * 0.8f)
-            drawPath(rect(-tr / 2 + 0.05, 0.05, 0.3, 0.55), fender)
-            drawPath(rect(tr / 2 - 0.05, 0.05, 0.3, 0.55), fender)
+            wheel(-tr / 2, 0.0, 0.3, 0.92, 0.0)
+            wheel(tr / 2, 0.0, 0.3, 0.92, 0.0)
             // maska z obciążnikiem z przodu
-            val hood = poly(w(-0.42, 0.6), w(0.42, 0.6), w(0.42, wb + 0.75), w(0.3, wb + 0.95), w(-0.3, wb + 0.95), w(-0.42, wb + 0.75))
+            val hood = poly(w(-0.5, 0.5), w(0.5, 0.5), w(0.5, wb + 0.75), w(0.36, wb + 0.95), w(-0.36, wb + 0.95), w(-0.5, wb + 0.75))
             drawPath(hood, body)
-            drawPath(hood, outline.copy(alpha = 0.55f), style = Stroke(width = lw(0.05, 1.2f)))
-            drawPath(rect(0.0, wb + 1.05, 0.48, 0.12), Color(0xFF4A504C))
+            drawPath(hood, outline.copy(alpha = 0.6f), style = Stroke(width = lw(0.04, 1.2f)))
+            drawLine(dark, o(w(0.0, 0.7)), o(w(0.0, wb + 0.8)), lw(0.05, 1f))
+            drawPath(rect(0.0, wb + 1.06, 0.55, 0.12), Color(0xFF4A504C))
             // wydech
-            val ex = o(w(0.28, wb - 0.1))
-            drawCircle(tyre, lw(0.08, 1.5f), ex)
+            drawCircle(tyre, lw(0.08, 1.5f), o(w(0.3, wb - 0.2)))
             // kabina: szyby dookoła, dach w kolorze ciągnika
-            val cab = rect(0.0, 0.25, 0.78, 0.82)
+            val cab = rect(0.0, 0.25, 0.68, 0.8)
             drawPath(cab, glass)
-            drawPath(cab, outline.copy(alpha = 0.8f), style = Stroke(width = lw(0.06, 1.5f)))
-            drawPath(rect(0.0, 0.22, 0.62, 0.66), body)
+            drawPath(cab, outline.copy(alpha = 0.85f), style = Stroke(width = lw(0.05, 1.5f)))
+            drawPath(rect(0.0, 0.22, 0.54, 0.64), body)
         }
     }
 }
