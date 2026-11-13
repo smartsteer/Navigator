@@ -197,6 +197,8 @@ Sentinel-2 jako siatka oczek ~10 m (ta sama co w pliku ISO-XML dla terminali ISO
 
 ### 3.9 Wspólna praca kilku maszyn (PROPOZYCJA — po stronie WAR do zrobienia)
 
+> Nowsza propozycja (pozycje innych maszyn + pokrycie przez wspólną skrzynkę floty, bez pośrednictwa telefonu): **docs/WAR_FLOTA.md**.
+
 Navigator (opcja „Wspólna praca kilku maszyn na polu” w Ustawienia → WAR, domyślnie wyłączona) co minutę, gdy otwarte
 jest pole z `war_id` i przybyło pokrycia, wysyła do skrzynki prac:
 
