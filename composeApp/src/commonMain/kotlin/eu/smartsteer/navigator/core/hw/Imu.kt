@@ -26,6 +26,21 @@ class Imu {
 
     /** Przesunięcie kursu IMU względem GPS, rad (imuGPS_Offset). */
     var imuGpsOffset = 0.0; private set
+    /** Czy offset był już ustawiony z pierwszego kursu GPS (IMU ma dowolne zero — BNO085 nie wskazuje północy). */
+    var aligned = false; private set
+
+    /**
+     * Ustawia offset tak, żeby kurs IMU zgadzał się z podanym kursem ciągnika (rad).
+     * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs
+     * (pierwszy kurs: imuGPS_Offset = kurs GPS − kurs IMU, przy założeniu jazdy do przodu).
+     */
+    fun align(vehicleHeading: Double) {
+        val imu = (headingDeg ?: return) * PI / 180
+        var o = (vehicleHeading - imu) % TWO_PI
+        if (o < 0) o += TWO_PI
+        imuGpsOffset = o
+        aligned = true
+    }
 
     fun rollAlive(nowS: Double) = rollDeg != null && nowS - rollTimeS <= TIMEOUT_S
     fun headingAlive(nowS: Double) = headingDeg != null && nowS - headingTimeS <= TIMEOUT_S
@@ -50,7 +65,7 @@ class Imu {
     }
 
     fun disconnect() {
-        rollDeg = null; headingDeg = null
+        rollDeg = null; headingDeg = null; aligned = false
         rollTimeS = Double.NEGATIVE_INFINITY; headingTimeS = Double.NEGATIVE_INFINITY
     }
 

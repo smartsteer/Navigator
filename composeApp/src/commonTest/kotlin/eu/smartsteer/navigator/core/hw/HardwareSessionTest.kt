@@ -174,6 +174,38 @@ class HardwareSessionTest {
         assertTrue(abs(h.headingRad - 271.5 * PI / 180) < 1e-9)
     }
 
+    /** IMU (BNO085) ma dowolne zero: jazda do przodu nie może być brana za cofanie (zgłoszenie z pola 2026-11-13). */
+    @Test
+    fun imuWithArbitraryZeroIsNotReverse() {
+        val h = HardwareSession()
+        var t = 0.0
+        var y = 0.0
+        // IMU pokazuje 200°, ciągnik jedzie na północ (kurs GPS 0°)
+        repeat(20) {
+            h.imu.onHeading(200.0, t)
+            h.onNmea(vtg(0.0, 7.2), t); h.onNmea(gga(Vec2(0.0, y)), t)
+            y += 1.0; t += 0.5
+        }
+        assertEquals(HeadingSource.IMU, h.headingSource)
+        assertTrue(!h.reversing, "jazda do przodu, nie cofanie")
+        assertTrue(abs(h.headingRad) < 0.05 || abs(h.headingRad - 2 * PI) < 0.05, "kurs ${h.headingRad}")
+        // prawdziwe cofanie: IMU bez zmian, kurs ruchu odwrócony, wolno
+        repeat(6) {
+            h.imu.onHeading(200.0, t)
+            h.onNmea(vtg(180.0, 3.0), t); h.onNmea(gga(Vec2(0.0, y)), t)
+            y -= 0.4; t += 0.5
+        }
+        assertTrue(h.reversing, "cofanie wykryte")
+        assertTrue(abs(h.headingRad) < 0.1 || abs(h.headingRad - 2 * PI) < 0.1, "przód dalej na północ")
+        // błędne „cofanie” przy szybkiej jeździe samo się prostuje po 5 s
+        repeat(14) {
+            h.imu.onHeading(200.0, t)
+            h.onNmea(vtg(180.0, 10.0), t); h.onNmea(gga(Vec2(0.0, y)), t)
+            y -= 1.4; t += 0.5
+        }
+        assertTrue(!h.reversing, "po 5 s szybkiej jazdy kurs IMU ustawiony od nowa")
+    }
+
     @Test
     fun recordedCurveAndNeighbourPass() {
         val h = HardwareSession(VehicleProfile(toolWidth = 3.0, antennaPivot = 0.0))

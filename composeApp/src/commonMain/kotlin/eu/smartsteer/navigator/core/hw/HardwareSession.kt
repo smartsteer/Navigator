@@ -132,6 +132,16 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     /** Dotknięcie ciągnika: zamiana przodu z tyłem (kurs + 180°). */
     fun flipHeading() {
+        // z IMU: zamiana przodu z tyłem = przestawienie offsetu IMU o 180° (inaczej zostałoby „cofanie” i blokada autosteru)
+        if (headingSource == HeadingSource.IMU && imu.aligned) {
+            imu.align(norm(imu.corrected() + PI))
+            reversing = !reversing
+            rawHeadingRad = imu.corrected()
+            headingRad = norm(rawHeadingRad + if (headingFlipped) PI else 0.0)
+            engaged = false; pathHint = -1; steering.reset()
+            ok("Przód i tył zamienione (kurs IMU ustawiony od nowa)")
+            return
+        }
         headingFlipped = !headingFlipped
         headingRad = norm(rawHeadingRad + if (headingFlipped) PI else 0.0)
         engaged = false
@@ -262,6 +272,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
      * (jak wykrywanie cofania w AgOpenGPS, Position.designer.cs). Z IMU / dwiema antenami porównujemy wprost.
      */
     var reversing = false; private set
+    private var fastReverseSinceS = Double.NaN
 
     private fun angDiff(a: Double, b: Double): Double {
         var d = (a - b) % (2 * PI)
@@ -293,7 +304,15 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             }
         }
         if (imu.headingAlive(nowS) && profile.fusionWeight > 0) {
+            // IMU ma dowolne zero: pierwszy kurs z GPS ustawia offset (zakładamy ruszenie do przodu, jak AgOpenGPS).
+            // Bez tego przy zerze IMU odwróconym o ponad 90° program uznawał jazdę do przodu za cofanie i blokował autoster.
+            if (gps != null && !imu.aligned) { imu.align(gps); reversing = false; fastReverseSinceS = Double.NaN }
             if (gps != null) reversing = angDiff(gps, imu.corrected()) > PI / 2
+            // zabezpieczenie: „cofanie” szybciej niż 8 km/h przez 5 s to błędnie ustawiony kurs IMU, nie cofanie — ustaw od nowa
+            if (gps != null && reversing && speedKmh >= REALIGN_KMH) {
+                if (fastReverseSinceS.isNaN()) fastReverseSinceS = nowS
+                else if (nowS - fastReverseSinceS >= REALIGN_S) { imu.align(gps); reversing = false; fastReverseSinceS = Double.NaN }
+            } else fastReverseSinceS = Double.NaN
             val g = gps?.let { if (reversing) norm(it + PI) else it }
             rawHeadingRad = if (g != null) imu.fuse(g, profile.fusionWeight) else imu.corrected()
             headingSource = HeadingSource.IMU
@@ -1305,6 +1324,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         const val REVERSE_DETECT_KMH = 6.0
         /** Przeskok kursu ruchu, który znaczy „zmiana kierunku jazdy”. */
         const val REVERSE_JUMP = 2.1
+        /** „Cofanie” szybsze niż tyle km/h przez [REALIGN_S] s = źle ustawiony kurs IMU → ustawienie od nowa. */
+        const val REALIGN_KMH = 8.0
+        const val REALIGN_S = 5.0
         /** Poniżej tej prędkości nie liczymy kursu z ruchu (szum RTK), km/h. */
         const val MIN_HEADING_KMH = 1.0
     }
