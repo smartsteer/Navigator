@@ -862,7 +862,7 @@ private fun ColumnScope.ProfilesTab(hw: HardwareController) {
     } else {
         Label("Folder AgOpenGPS: ${hw.agoFolder}", Ss.TextMuted, 12.sp)
     }
-    ActionButton(onClick = { eu.smartsteer.navigator.core.settings.chooseAgoFolder()?.let { msg = "Folder AgOpenGPS: $it"; hw.tick++ } }) {
+    ActionButton(onClick = { eu.smartsteer.navigator.core.settings.chooseAgoFolder()?.let { msg = "Folder AgOpenGPS: $it — lista odświeży się za chwilę" } }) {
         ButtonText("Wskaż folder AgOpenGPS…", size = 13.sp)
     }
     if (vehicles.isNotEmpty() || tools.isNotEmpty()) {
