@@ -53,6 +53,7 @@ import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.core.field.HeadlandSequence
 import eu.smartsteer.navigator.core.hw.AutoTune
 import eu.smartsteer.navigator.ui.DisplayPrefs
+import eu.smartsteer.navigator.ui.drawTractorIcon
 import eu.smartsteer.navigator.ui.components.ActionButton
 import eu.smartsteer.navigator.ui.components.ButtonText
 import eu.smartsteer.navigator.ui.components.IconKind
@@ -1026,17 +1027,17 @@ private fun TractorIconPicker(hw: HardwareController) {
             val k = (size.height / len.toFloat()) * 0.92f
             val cx = size.width / 2f
             val by = size.height / 2f + ((p.wheelbase.coerceIn(1.5, 5.0) + 0.2) / 2).toFloat() * k
-            eu.smartsteer.navigator.ui.drawTractorIcon(
+            drawTractorIcon(
                 { Offset(cx + it.x.toFloat() * k, by - it.y.toFloat() * k) }, eu.smartsteer.navigator.core.geo.Vec2(0.0, 0.0), 0.0, p, 12.0, outline = Ss.Text,
             )
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Ikona ciągnika", Modifier.weight(1f), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Segmented(listOf("Strzałka", "Ciągnik", "Własna"), DisplayPrefs.tractorIcon) { i ->
+                Segmented(listOf("Strzałka", "Ciągnik", "Własna"), DisplayPrefs.tractorIcon, onSelect = { i ->
                     if (i == 2 && icons.custom == null) eu.smartsteer.navigator.ui.pickImageFile { b -> msg = if (b == null) null else icons.setCustom(b) ?: "Wczytano własną ikonę" }
                     else DisplayPrefs.updateTractorIcon(i)
-                }
+                })
             }
             if (DisplayPrefs.tractorIcon != 2) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Kolor ciągnika", Modifier.weight(1f), color = Ss.TextSoft, fontSize = 13.sp)
@@ -1235,7 +1236,7 @@ private fun RigDrawing(hw: HardwareController, modifier: Modifier) {
         fun pt(x: Double, y: Double) = Offset(ox + x.toFloat() * k, oy - y.toFloat() * k)
 
         // ciągnik z góry (albo własny obraz) — ten sam rysunek co na mapie
-        eu.smartsteer.navigator.ui.drawTractorIcon(
+        drawTractorIcon(
             { pt(it.x, it.y) }, eu.smartsteer.navigator.core.geo.Vec2(0.0, 0.0), 0.0, p, hw.session.autosteer?.actualAngleDeg ?: 0.0,
             icon = if (DisplayPrefs.tractorIcon == 0) 1 else DisplayPrefs.tractorIcon, outline = Ss.Text,
         )

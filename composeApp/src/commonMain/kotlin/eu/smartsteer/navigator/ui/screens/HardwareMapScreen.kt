@@ -59,6 +59,7 @@ import eu.smartsteer.navigator.core.guidance.Pose
 import eu.smartsteer.navigator.core.hw.GuidanceMode
 import eu.smartsteer.navigator.ui.HardwareController
 import eu.smartsteer.navigator.ui.DisplayPrefs
+import eu.smartsteer.navigator.ui.drawTractorIcon
 import eu.smartsteer.navigator.core.map.TileMath
 import eu.smartsteer.navigator.core.map.TileSource
 import eu.smartsteer.navigator.ui.map.TileManager
@@ -1100,7 +1101,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             // ciągnik: strzałka, ciągnik z góry (przednie koła skręcają jak prawdziwe) albo własny obraz — Ustawienia → Ciągnik
             val p = s.pivot
             if (p != null) {
-                eu.smartsteer.navigator.ui.drawTractorIcon({ o(it) }, p, s.headingRad, s.profile, s.autosteer?.actualAngleDeg ?: 0.0, outline = Ss.Text, px = px)
+                drawTractorIcon({ o(it) }, p, s.headingRad, s.profile, s.autosteer?.actualAngleDeg ?: 0.0, outline = Ss.Text, px = px)
                 if (DisplayPrefs.tractorIcon == 0) drawCircle(Ss.Text, 4f * px, o(p))
             }
         }
