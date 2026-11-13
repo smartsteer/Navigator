@@ -259,8 +259,8 @@ object WarProtocol {
         "pokrycie" to Json.Raw(gridJson(g)),
     )
 
-    /** Rodzaje pracy (jak rodzaje zleceń w WAR) — sekcje omijają tylko pracę innych maszyn tego samego rodzaju. */
-    val WORK_KINDS = listOf("" to "Nie ustawiono", "oprysk" to "Oprysk", "nawoz" to "Nawożenie", "siew" to "Siew", "uprawa" to "Uprawa", "zbior" to "Zbiór", "inne" to "Inne")
+    /** Rodzaje pracy — te same co rodzaje zleceń w WAR (RODZ_ZLEC w app.js) — sekcje omijają tylko pracę innych maszyn tego samego rodzaju. */
+    val WORK_KINDS = listOf("" to "Nie ustawiono", "oprysk" to "Oprysk", "dolistny" to "Dolistne", "nawoz" to "Nawóz doglebowy", "siew" to "Siew", "uprawa" to "Uprawa", "inne" to "Inna praca")
 
     fun gridJson(g: CoverageGrid): String = Json.obj(
         "lat0" to Json.Raw(r(g.lat0, 7)), "lon0" to Json.Raw(r(g.lon0, 7)), "e0" to g.e0, "n0" to g.n0,
