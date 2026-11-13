@@ -1,5 +1,17 @@
 # Inne maszyny na mapie Navigatora (flota gospodarstwa) — checklista dla WAR
 
+> **Stan (WAR, 13.11.2026): strona WAR gotowa — ostateczny opis w docs/WAR.md 3.10.** Zmiany względem propozycji niżej:
+> - **bez klucza floty**: gospodarstwo ma JEDEN kod nawigacji dla wszystkich maszyn (WAR → Maszyny → WAR Sync), więc adres
+>   skrzynki floty = `SHA-256("war-flota:" + kod)`, szyfrowanie kluczem z kodu. Paczka `flota` z kluczem i przycisk
+>   „Nowy klucz floty” niepotrzebne (zgubiony tablet = nowy kod nawigacji, jak dziś);
+> - zapis z `skrzynka_prac` (tak serwer wie, do którego konta należy flota — telefon nic nie musi robić);
+> - `od` = `ts` z poprzedniej odpowiedzi (zegar serwera), odczyt z `maszyna` w adresie (limit 3 s na tablet).
+>
+> **Do poprawy po stronie Navigatora (znalezione przy okazji):** skoro kod jest wspólny, wszystkie Navigatory gospodarstwa
+> czytają TĘ SAMĄ skrzynkę `war-nav-zl:` — pierwszy, który potwierdzi odbiór, kasuje paczki (pola, produkty, mapy dawek,
+> zlecenia) i drugi Navigator ich nie dostanie. Propozycja: skrzynka każdego Navigatora `war-nav-zl:` + kod + `:` + id maszyny
+> (telefon zna id z paczki `urzadzenie`); WAR wyśle wtedy paczki do każdej z nich — do uzgodnienia, nie zrobione.
+
 Cel: każdy Navigator gospodarstwa widzi na mapie **pozycje innych maszyn** (ikonka z kierunkiem, nazwa, narzędzie, prędkość)
 i **ich obrobione pasy** na wspólnym polu (sekcje je omijają). Dziś Navigator wysyła pozycję tylko do WAR („Na żywo”),
 a pokrycie innych (docs/WAR.md 3.9) jest gotowe po stronie Navigatora, ale WAR go nie rozsyła.

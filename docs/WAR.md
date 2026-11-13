@@ -26,6 +26,7 @@ Rolnik przepisuje z telefonu (WAR → Gospodarstwo → Maszyny → WAR Sync) **k
 |---|---|---|---|
 | prac | `war-sync-id:` + kod | Navigator (i WAR Sync) | telefon WAR |
 | Navigatora | `war-nav-zl:` + kod | telefon WAR | **Navigator** |
+| floty | `war-flota:` + kod | każdy Navigator gospodarstwa (nadpisuje swoje) | każdy Navigator gospodarstwa (3.10) |
 | (zleceń WAR Sync) | `war-sync-zl:` + kod | telefon WAR | WAR Sync — **Navigator jej nie czyta** (WAR Sync usuwa z niej wszystko, co odczyta) |
 
 Serwer zna tylko adresy i szyfrogramy — nie zna pól, położenia ani treści.
@@ -46,6 +47,8 @@ kod nie należy do konta WAR z modułem **WAR Sync** (pokazać rolnikowi treść
 | Pozycja na żywo | `POST /api/sync/pozycja` | `{"skrzynka": <adres prac>, "maszyna": <id maszyny>, "dane": <paczka pozycji>}` | `{"ok": true}` |
 | Odbierz pola i zlecenia | `GET /api/sync/zlecenia?skrzynka=<adres Navigatora>` | — | `{"zlecenia": [{"id", "dane", "ts"}, …]}` (do 100 naraz, najstarsze pierwsze) |
 | Potwierdź odbiór | `POST /api/sync/zlecenia/odebrane` | `{"skrzynka": <adres Navigatora>, "ids": [<id>, …]}` | `{"usuniete": n}` |
+| Flota: zapisz pozycję / pokrycie | `POST /api/sync/flota` | `{"skrzynka": <adres floty>, "skrzynka_prac": <adres prac>, "maszyna": <id maszyny>, "rodzaj": "pozycja"\|"pokrycie", "dane": <paczka>}` | `{"ok": true, "ts"}` · `429` za często |
+| Flota: odczytaj innych | `GET /api/sync/flota?skrzynka=<adres floty>&maszyna=<id maszyny>&od=<ts>` | — | `{"maszyny": [{"maszyna", "rodzaj", "dane", "ts"}, …], "ts": <do następnego od>}` |
 
 - `id` paczki: 4–64 znaki `[A-Za-z0-9_-]`, unikalne (np. `nav-<maszyna>-<czas ms>`). Ponowienie z tym samym `id` po zerwanym
   połączeniu jest bezpieczne. Paczka po zaszyfrowaniu do 600 kB.
@@ -197,7 +200,7 @@ Sentinel-2 jako siatka oczek ~10 m (ta sama co w pliku ISO-XML dla terminali ISO
 
 ### 3.9 Wspólna praca kilku maszyn (PROPOZYCJA — po stronie WAR do zrobienia)
 
-> Nowsza propozycja (pozycje innych maszyn + pokrycie przez wspólną skrzynkę floty, bez pośrednictwa telefonu): **docs/WAR_FLOTA.md**.
+> **Nieaktualne — zastąpione przez 3.10 (skrzynka floty).** WAR nie przekazuje paczek `pokrycie_na_zywo`.
 
 Navigator (opcja „Wspólna praca kilku maszyn na polu” w Ustawienia → WAR, domyślnie wyłączona) co minutę, gdy otwarte
 jest pole z `war_id` i przybyło pokrycia, wysyła do skrzynki prac:
@@ -217,6 +220,38 @@ pozostałym Navigatorom gospodarstwa (do ich skrzynek), jako:
 
 Navigator z otwartym polem o tym `war_id` rysuje pracę innej maszyny na niebiesko, a sekcje omijają ją jak własne pokrycie.
 Paczki z własnym `komputer` są pomijane.
+
+### 3.10 Flota: pozycje i pokrycie innych maszyn (`pozycja_floty`, `pokrycie_floty`) — skrzynka floty
+
+Po stronie WAR **gotowe** (zastępuje 3.9). Wszystkie maszyny gospodarstwa mają ten sam kod nawigacji, więc **nie ma osobnego
+klucza floty**: skrzynka floty = `SHA-256("war-flota:" + kod)`, szyfrowanie tym samym kluczem co reszta (1). Telefon nic
+nie rozsyła — Navigatory wymieniają się przez serwer same.
+
+- **Zapis** `POST /api/sync/flota` z `skrzynka_prac` (adres prac tego samego kodu): serwer sprawdza, że kod należy do konta
+  z modułem WAR Sync, i przy pierwszym zapisie przypisuje skrzynkę floty do tego konta (wcześniej odczyt → `403 NIEAKTYWNY`).
+- Serwer trzyma **tylko ostatnią** paczkę każdego `rodzaj` dla każdej `maszyna` (nadpisuje). `pozycja` do 4 000 znaków,
+  najczęściej co 2 s; `pokrycie` do 600 kB, najczęściej co 30 s (częściej → `429`, nie błąd — następna paczka przejdzie).
+- **Odczyt** `GET /api/sync/flota`: tylko paczki nowsze niż `od`; jako `od` podawać **`ts` z poprzedniej odpowiedzi** (zegar
+  serwera, np. `2026-11-13T08:30:05.123+00:00` — zakodować w adresie, `+` → `%2B`). Pierwszy odczyt bez `od` — wszystko.
+  Pozycje starsze niż 15 min i pokrycia starsze niż 7 dni nie wracają. Najczęściej co 3 s na maszynę (`maszyna` w adresie
+  rozróżnia kilka tabletów za jednym hotspotem), inaczej `429`. Zalecane: co 5 s w pracy, co 30 s na postoju.
+- Własne paczki (ta sama `maszyna`) też wracają — pomijać.
+
+```json
+{"typ": "pozycja_floty", "v": 1, "komputer": "tab-7f3k2", "pojazd": "Renault 133.14", "narzedzie": "Opryskiwacz 21 m",
+ "szer": 21.0, "lat": 52.1773124, "lon": 19.4695011, "kurs": 87.5, "kmh": 8.4, "fix": 4,
+ "pole": {"war_id": "p1", "nazwa": "Za stodołą"}, "pracuje": true, "kto": "Marek", "t": "2026-11-13T08:30:05+01:00"}
+```
+
+```json
+{"typ": "pokrycie_floty", "v": 1, "komputer": "tab-7f3k2", "pojazd": "Renault 133.14", "pole": {"war_id": "p1"}, "t": "…",
+ "pokrycie": {"lat0": …, "lon0": …, "e0": …, "n0": …, "k": 2.0, "w": …, "h": …, "b": "<base64>"}}
+```
+
+Wektor testowy (kod `ABCD-EFGH-JKLM-NPQR`):
+- adres floty: `5c9804e7df32aa3c7bc85063c111ba510b553a6618f3f064537a10758e7fa19e`
+- iv = bajty 0…11, treść `{"typ":"pozycja_floty","v":1,"komputer":"tab-test","lat":52.1,"lon":19.4}` →
+  `AAECAwQFBgcICQoL8EqYwnX6Gwx1p4X0JyfGTHtWu1+ODHhYZ0xivEQOkHSxVDuhOlFoHkZ9L14XeFDXFQ1C7xTyTTZJfT1/Hg/TvutWNxqU4ISRyFlAlLZ1fYwgOJ4a1DEiTe4=`
 
 ## 4. Pliki (bez internetu)
 
