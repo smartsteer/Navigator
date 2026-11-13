@@ -1006,7 +1006,7 @@ class HardwareController {
             vKPhase = s.kPhase
         }
         // RTK (gdy jest pozycja)
-        if (s.gpsAlive(now())) {
+        if (s.gpsAlive(now()) && !rtkNotExpected) {
             val rtk = s.fix == eu.smartsteer.navigator.core.gps.FixQuality.RTK_FIX
             if (vRtk == true && !rtk) say("Utracono RTK")
             if (vRtk == false && rtk) say("RTK fix")
@@ -1289,6 +1289,8 @@ class HardwareController {
 
     /** GPS z telefonu (2–5 m): tylko prowadzenie ręczne — autoster zablokowany i bez przycisku na mapie. */
     val phoneGps: Boolean get() = serialPort.startsWith("Telefon")
+    /** RTK nie jest tu oczekiwany (GPS telefonu, tryb „tylko opryskiwacz”) — brak RTK FIX to normalny stan, nie ostrzeżenie. */
+    val rtkNotExpected: Boolean get() = phoneGps || sprayerOnly
 
     private fun applySteerBlock() {
         session.gpsTimeoutS = if (phoneGps) 3.0 else eu.smartsteer.navigator.core.hw.HardwareSession.GPS_TIMEOUT_S
@@ -1544,7 +1546,7 @@ class HardwareController {
         val ev = alerts.events(
             AlertState(
                 hardware = hardware, engaged = s.engaged, userToggleS = s.lastUserToggleS,
-                gpsOk = hardware && s.gpsAlive(n), rtkFix = s.fix == FixQuality.RTK_FIX, turning = s.youTurnPath != null,
+                gpsOk = hardware && s.gpsAlive(n), rtkFix = rtkNotExpected || s.fix == FixQuality.RTK_FIX, turning = s.youTurnPath != null,
                 anySection = s.sections.anyOn(), newOrders = war.newOrders.size, nowS = n,
                 obstacle = if (hardware) s.obstacleVerdict?.level ?: 0 else 0,
             ),

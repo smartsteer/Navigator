@@ -259,12 +259,15 @@ private fun HwTopBar(hw: HardwareController) {
     val gpsOk = h.gpsAlive(now)
     val g = h.lastGga
     val rtk = gpsOk && h.fix == FixQuality.RTK_FIX
+    // GPS telefonu / tylko opryskiwacz: brak RTK jest normalny — bez pomarańczowych ostrzeżeń
+    val noRtk = hw.rtkNotExpected
+    val ok = rtk || (gpsOk && noRtk)
     val stamp = remember(hw.tick / 50) { runCatching { nowText() }.getOrDefault("") }
     val clock = stamp.takeLast(5)
     val stateColor = when {
         !gpsOk -> Ss.Danger
         h.engaged -> Ss.Accent
-        !rtk -> Ss.Warning
+        !ok -> Ss.Warning
         else -> Ss.Leaf
     }
     Column(Modifier.fillMaxWidth().background(Ss.Bar)) {
@@ -279,22 +282,22 @@ private fun HwTopBar(hw: HardwareController) {
             Text(clock, color = Ss.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             // RTK + satelity
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                val label = if (gpsOk) h.fix.label else "BRAK GPS"
+                val label = if (!gpsOk) "BRAK GPS" else if (noRtk && !rtk) (if (hw.phoneGps) "GPS TELEFONU" else h.fix.label) else h.fix.label
                 Box(
-                    Modifier.clip(RoundedCornerShape(8.dp)).background(if (rtk) Ss.Accent else if (gpsOk) Ss.Warning else Ss.Danger)
+                    Modifier.clip(RoundedCornerShape(8.dp)).background(if (ok) Ss.Accent else if (gpsOk) Ss.Warning else Ss.Danger)
                         .padding(horizontal = 10.dp, vertical = 3.dp),
-                ) { Text(label, color = if (rtk) Ss.OnAccent else Ss.Ground, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+                ) { Text(label, color = if (ok) Ss.OnAccent else Ss.Ground, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
                 Text(
                     "${if (gpsOk && g != null) g.satellites else "—"} SAT${if (hw.ntripReceiving) " · NTRIP" else ""}",
                     color = Ss.TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                 )
             }
-            TopStat(g?.correctionAge?.takeIf { gpsOk }?.let { "${it.pl(0)} s" } ?: "—", "POPRAWKI",
+            if (!noRtk) TopStat(g?.correctionAge?.takeIf { gpsOk }?.let { "${it.pl(0)} s" } ?: "—", "POPRAWKI",
                 if (gpsOk && (g?.correctionAge ?: 99.0) <= 5) Ss.Text else Ss.Warning)
             // zmierzona (GST z odbiornika / telefonu): „±1,4 cm”, „±3,2 m”; bez GST — przybliżenie dla rodzaju poprawki
             val acc = h.horizontalAccuracy(now)
             TopStat(if (gpsOk) acc?.takeIf { it.second }?.let { "±" + metersText(it.first) } ?: accuracyText(h.fix) else "—", "DOKŁADNOŚĆ",
-                if (rtk && (acc == null || acc.first < 0.05)) Ss.Text else Ss.Warning)
+                if ((rtk && (acc == null || acc.first < 0.05)) || (gpsOk && noRtk)) Ss.Text else Ss.Warning)
             val hasLine = h.line != null || h.curveRef != null || h.contour.guide.isNotEmpty()
             HwLightBar(if (hasLine && gpsOk) h.xteCm else null, Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

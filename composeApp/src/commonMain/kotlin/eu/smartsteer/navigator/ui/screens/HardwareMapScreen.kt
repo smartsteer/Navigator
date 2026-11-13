@@ -793,7 +793,7 @@ private fun HwStats(hw: HardwareController) {
                 Box(Modifier.weight(1f)) { Stat("Satelity", if (g != null) "${g.satellites}" else "—", valueSize = 18.sp) }
                 Box(Modifier.weight(1f)) {
                     Stat("Wiek poprawek", g?.correctionAge?.let { "${it.pl(1)} s" } ?: "—", valueSize = 18.sp,
-                        valueColor = if (s.fix == FixQuality.RTK_FIX) Ss.Text else Ss.Warning)
+                        valueColor = if (s.fix == FixQuality.RTK_FIX || hw.rtkNotExpected) Ss.Text else Ss.Warning)
                 }
             }
         }
