@@ -66,7 +66,7 @@ class AbSteering {
      * @param pivot środek tylnej osi
      * @param heading kurs ciągnika, rad
      * @param speedKmh prędkość, km/h
-     * @param engaged czy autoster jest włączony (całkowanie tylko wtedy)
+     * @param engaged czy liczyć całkę: autoster włączony, jazda do przodu, poza zawrotem (jak w CABLine.cs: isBtnAutoSteerOn, !isReverse, !isYouTurnTriggered)
      * @param rollDeg przechył z IMU (null = brak)
      */
     fun compute(

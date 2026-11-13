@@ -678,7 +678,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         if (kPhase != 0 && p != null && kTurnStep(p, roll)) return
         val turn = youTurnPath
         if (turn != null && p != null) {
-            val res = if (engaged) steering.computePath(turn, turnHint, p, headingRad, speedKmh, true, profile, roll) else null
+            val res = if (engaged) steering.computePath(turn, turnHint, p, headingRad, speedKmh, false, profile, roll) else null
             if (res == null) {
                 finishTurn("Zawrót przerwany", flip = false)
             } else if (res.pastEnd) {
@@ -695,7 +695,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             GuidanceMode.AB -> line?.let { l ->
                 if (p == null) return@let null
                 val (a, b) = activeSegment(l, p)
-                steering.compute(a, b, p, headingRad, speedKmh, engaged, profile, roll)
+                steering.compute(a, b, p, headingRad, speedKmh, engaged && !reversing, profile, roll)
             }
             GuidanceMode.CURVE -> if (p != null && curveRef != null) followPath(activeCurve(p), p, roll, endMessage = "Koniec krzywej — autoster wyłączony") else null
             GuidanceMode.CONTOUR -> if (p != null) {
@@ -820,7 +820,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         when (kPhase) {
             1 -> {
                 val path = youTurnPath ?: return false
-                val res = steering.computePath(path, turnHint, p, headingRad, speedKmh, true, profile, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
+                val res = steering.computePath(path, turnHint, p, headingRad, speedKmh, false, profile, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
                 turnHint = res.index
                 xteCm = res.out.distanceFromLine * 100; goal = res.out.goal
                 steerSetDeg = res.out.steerAngleDeg
@@ -832,7 +832,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             2 -> {
                 val path = kReverse ?: return false
                 // prowadzenie wstecz: „przód” wirtualnie z tyłu ciągnika, skręt odwrotny
-                val res = steering.computePath(path, turnHint, p, norm(headingRad + PI), speedKmh, true, pp, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
+                val res = steering.computePath(path, turnHint, p, norm(headingRad + PI), speedKmh, false, pp, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
                 xteCm = res.out.distanceFromLine * 100; goal = res.out.goal
                 if (reversing) {
                     turnHint = res.index
@@ -851,7 +851,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             3 -> {
                 val path = kExit ?: return false
                 if (reversing) { steerSetDeg = 0.0; return true }
-                val res = steering.computePath(path, turnHint, p, headingRad, speedKmh, true, profile, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
+                val res = steering.computePath(path, turnHint, p, headingRad, speedKmh, false, profile, roll) ?: run { finishTurn("Zawrót przerwany", false); return false }
                 turnHint = res.index
                 xteCm = res.out.distanceFromLine * 100; goal = res.out.goal
                 steerSetDeg = res.out.steerAngleDeg
@@ -875,7 +875,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun cancelTurn() { if (youTurnPath != null) { youTurnPath = null; kPhase = 0; kReverse = null; kExit = null; pathHint = -1; steering.reset(); ok("Zawrót przerwany") } }
 
     private fun followPath(path: List<Pose>, p: Vec2, roll: Double?, endMessage: String?): AbSteering.Output? {
-        val res = steering.computePath(path, pathHint, p, headingRad, speedKmh, engaged, profile, roll) ?: return null
+        val res = steering.computePath(path, pathHint, p, headingRad, speedKmh, engaged && !reversing, profile, roll) ?: return null
         pathHint = res.index
         if (engaged && res.pastEnd && endMessage != null) { engaged = false; fail(endMessage) }
         return res.out
