@@ -414,12 +414,15 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     /** Komórki pracy innych maszyn do rysowania (narożniki) i licznik zmian. */
     var othersCells: Map<String, List<List<Vec2>>> = emptyMap()
     var othersVersion = 0; private set
+    /** Kolor śladu każdej z innych maszyn („#RRGGBB”, pusty = domyślny). */
+    var othersColors: Map<String, String> = emptyMap()
 
     /** Pokrycie innej maszyny z WAR (cała jej dotychczasowa praca na tym polu). */
-    fun addOthersCoverage(machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid) {
+    fun addOthersCoverage(machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid, color: String = "") {
         val pl = plane ?: return
         val quads = g.paintInto(othersCoverage, pl)
         othersMachines = othersMachines + (machine to name)
+        othersColors = othersColors + (machine to color)
         othersCells = othersCells + (machine to quads)
         othersVersion++
     }
@@ -1191,7 +1194,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         coverage.clear(); sections.reset()
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         contour.clear(); engaged = false; youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersMachines = emptyMap(); othersCells = emptyMap()
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersMachines = emptyMap(); othersCells = emptyMap(); othersColors = emptyMap()
         ok("Pole zamknięte")
     }
 
@@ -1202,7 +1205,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         engaged = false; pathHint = -1; steering.reset(); youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersMachines = emptyMap(); othersCells = emptyMap()
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersMachines = emptyMap(); othersCells = emptyMap(); othersColors = emptyMap()
     }
 
     fun startBoundary(): Boolean {

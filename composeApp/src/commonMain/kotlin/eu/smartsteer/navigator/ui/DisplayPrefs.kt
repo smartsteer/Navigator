@@ -34,6 +34,11 @@ object DisplayPrefs {
         private set
     fun updateDay(on: Boolean) { day = on; save() }
 
+    /** Kolor śladu (pokrycia) tej maszyny, „#RRGGBB”; pusty = domyślny zielony. Inne Navigatory gospodarstwa rysują jej pracę tym kolorem. */
+    var trailColor by mutableStateOf(saved["kolor"]?.takeIf { TrailColors.valid(it) } ?: "")
+        private set
+    fun updateTrailColor(hex: String) { trailColor = if (TrailColors.valid(hex)) hex.uppercase() else ""; save() }
+
     /** Ustawia okno Windows (main.kt); na Androidzie pełny ekran jest zawsze. */
     var fullScreenSupported = false
 
@@ -42,6 +47,14 @@ object DisplayPrefs {
     fun toggleFullScreen() = updateFullScreen(!fullScreen)
 
     private fun save() {
-        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\n") }
+        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nkolor=$trailColor\n") }
     }
+}
+
+/** Kolory śladu do wyboru (jak w AgOpenGPS) i zamiana „#RRGGBB” → ARGB. */
+object TrailColors {
+    val palette = listOf("#3DDC6A", "#2F9BFF", "#FFD23F", "#FF8C1A", "#FF4D4D", "#B36BFF", "#FF6EC7", "#2EE6D6", "#A0A0A0")
+    fun valid(hex: String) = Regex("#[0-9A-Fa-f]{6}").matches(hex)
+    /** ARGB albo null, gdy zły zapis. */
+    fun argb(hex: String?): Long? = hex?.takeIf { valid(it) }?.substring(1)?.toLong(16)?.let { 0xFF000000L or it }
 }

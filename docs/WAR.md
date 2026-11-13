@@ -236,6 +236,8 @@ nie rozsyła — Navigatory wymieniają się przez serwer same.
   Pozycje starsze niż 15 min i pokrycia starsze niż 7 dni nie wracają. Najczęściej co 3 s na maszynę (`maszyna` w adresie
   rozróżnia kilka tabletów za jednym hotspotem), inaczej `429`. Zalecane: co 5 s w pracy, co 30 s na postoju.
 - Własne paczki (ta sama `maszyna`) też wracają — pomijać.
+- `kolor` (opcjonalnie, „#RRGGBB”, w `pozycja_floty` i `pokrycie_floty`): kolor śladu maszyny z Navigatora (Ustawienia →
+  Pojazd → Kolor śladu) — inne Navigatory rysują nim jej trójkąt i obrobione pasy. Brak = domyślny niebieski.
 
 ```json
 {"typ": "pozycja_floty", "v": 1, "komputer": "tab-7f3k2", "pojazd": "Renault 133.14", "narzedzie": "Opryskiwacz 21 m",

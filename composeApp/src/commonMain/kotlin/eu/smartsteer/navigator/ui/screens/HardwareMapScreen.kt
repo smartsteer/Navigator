@@ -804,7 +804,7 @@ private fun HwStats(hw: HardwareController) {
 private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, tilt: Boolean, locked: Boolean, modifier: Modifier) {
     // pasy pokrycia zamieniamy na Path raz (otwarty pas — gdy przybędzie punktów)
     val stripCache = remember { HashMap<Coverage.Strip, Pair<Int, Path>>() }
-    val othersCache = remember { mutableStateOf<Pair<Int, Path>?>(null) }
+    val othersCache = remember { mutableStateOf<Pair<Int, Map<String, Path>>?>(null) }
     val density = LocalDensity.current.density
     val tm = rememberTextMeasurer()
     Canvas(
@@ -913,7 +913,7 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
 
             // mapa pokrycia
             if (s.coverage.strips.isEmpty()) stripCache.clear()
-            val coverColor = Ss.Accent.copy(alpha = 0.35f)
+            val coverColor = (eu.smartsteer.navigator.ui.TrailColors.argb(DisplayPrefs.trailColor)?.let { Color(it) } ?: Ss.Accent).copy(alpha = 0.35f)
             for (st in s.coverage.strips) {
                 val n = st.left.size
                 if (n < 2) continue
@@ -928,14 +928,15 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             }
 
             // praca innych maszyn na tym polu (wspólna praca przez WAR)
-            if (s.othersCells.isNotEmpty()) {
+            if (s.othersCells.isNotEmpty()) {                          // każda maszyna w swoim kolorze śladu
                 val cached = othersCache.value
-                val path = if (cached != null && cached.first == s.othersVersion) cached.second else Path().apply {
-                    for (quads in s.othersCells.values) for (q in quads) {
-                        moveTo(q[0].x.toFloat(), q[0].y.toFloat()); for (i in 1 until q.size) lineTo(q[i].x.toFloat(), q[i].y.toFloat()); close()
-                    }
+                val paths = if (cached != null && cached.first == s.othersVersion) cached.second else s.othersCells.mapValues { (_, quads) ->
+                    Path().apply { for (q in quads) { moveTo(q[0].x.toFloat(), q[0].y.toFloat()); for (i in 1 until q.size) lineTo(q[i].x.toFloat(), q[i].y.toFloat()); close() } }
                 }.also { othersCache.value = s.othersVersion to it }
-                drawPath(path, Ss.Info.copy(alpha = 0.3f))
+                for ((m, path) in paths) {
+                    val c = eu.smartsteer.navigator.ui.TrailColors.argb(s.othersColors[m])?.let { Color(it) } ?: Ss.Info
+                    drawPath(path, c.copy(alpha = 0.3f))
+                }
             }
 
             // ślad jazdy
@@ -1045,11 +1046,12 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                     lineTo(o(mp - r * 1.1 - f * 0.6).x, o(mp - r * 1.1 - f * 0.6).y)
                     close()
                 }
-                drawPath(tri, Ss.Info)
+                val mc = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: Ss.Info
+                drawPath(tri, mc)
                 drawPath(tri, Ss.Text, style = Stroke(width = 2f * px))
                 if (m.width > 0.5) {
                     val half = m.width / 2
-                    drawLine(Ss.Info.copy(alpha = 0.8f), o(mp - r * half - f * 1.5), o(mp + r * half - f * 1.5), 3f * px)
+                    drawLine(mc.copy(alpha = 0.8f), o(mp - r * half - f * 1.5), o(mp + r * half - f * 1.5), 3f * px)
                 }
             }
 

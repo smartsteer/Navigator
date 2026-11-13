@@ -866,10 +866,10 @@ class HardwareController {
     }
 
     /** Pokrycie innej maszyny z WAR — tylko gdy otwarte jest to samo pole. */
-    fun onOthersCoverage(warId: String, machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid) {
+    fun onOthersCoverage(warId: String, machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid, color: String = "") {
         if (!shareCoverage || session.fieldWarId != warId) return
         val first = machine !in session.othersMachines
-        session.addOthersCoverage(machine, name, g)
+        session.addOthersCoverage(machine, name, g, color)
         if (first) { mapMessage("Na tym polu pracuje też: $name"); say("Na polu pracuje też $name") }
         tick++
     }

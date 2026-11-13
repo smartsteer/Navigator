@@ -95,4 +95,17 @@ class WarProtocolTest {
         assertNull(m["kto"])
         assertEquals(cov.passesM2, 120.0, 1e-6)
     }
+
+    /** Kolor śladu w paczce floty (§3.10 „kolor”): przechodzi w obie strony, zły zapis odrzucony. */
+    @Test
+    fun fleetColor() {
+        val c = WarConfig(machineId = "tab-abc")
+        val js = WarProtocol.fleetPosition(52.1, 19.4, 90.0, 8.0, 4, "Opryskiwacz", 21.0, "p1", "Za stodołą", true, "Renault", c, "t", "#FF8C1A")
+        val m = MiniJson.parse(js) as Map<*, *>
+        assertEquals("#FF8C1A", WarProtocol.parseFleetPosition(m, "tab-abc", 1L)!!.color)
+        assertEquals("", WarProtocol.fleetColor(mapOf("kolor" to "czerwony")))
+        assertNull((MiniJson.parse(WarProtocol.fleetPosition(52.1, 19.4, 0.0, 0.0, 1, "", 0.0, null, "", false, "R", c, "t")) as Map<*, *>)["kolor"])
+        val cov = MiniJson.parse(WarProtocol.fleetCoverage(c, "p1", "R", eu.smartsteer.navigator.core.war.CoverageGrid(52.0, 19.0, 0.0, 0.0, 2.0, 1, 1, ByteArray(1)), "t", "#2F9BFF")) as Map<*, *>
+        assertEquals("#2F9BFF", WarProtocol.fleetColor(cov))
+    }
 }

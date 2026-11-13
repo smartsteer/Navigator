@@ -196,6 +196,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
                 fleetPost("pozycja", WarProtocol.fleetPosition(
                     g.latitude, g.longitude, course, s.speedKmh, fix, config.toolName.ifEmpty { hw.profileName }, hw.profile.toolWidth,
                     s.fieldWarId, s.fieldName.orEmpty(), working, config.tractorName.ifEmpty { hw.profileName }, config, nowIso(),
+                    eu.smartsteer.navigator.ui.DisplayPrefs.trailColor,
                 ))
             }
         }
@@ -222,7 +223,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
                         "pokrycie_floty" -> {
                             val warId = (p["pole"] as? Map<*, *>)?.get("war_id") as? String ?: continue
                             val g = WarProtocol.parseGrid(p["pokrycie"] as? Map<*, *>) ?: continue
-                            hw.onOthersCoverage(warId, who, (p["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g)
+                            hw.onOthersCoverage(warId, who, (p["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g, WarProtocol.fleetColor(p))
                         }
                     }
                 }
@@ -376,7 +377,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
 
     /** Wysyła bieżące pokrycie pola innym maszynom gospodarstwa (skrzynka floty, §3.10). */
     fun sendLiveCoverage(warId: String, fieldName: String, g: CoverageGrid) {
-        pendingFleetCoverage = WarProtocol.fleetCoverage(config, warId, config.tractorName.ifEmpty { hw.profileName }, g, nowIso())
+        pendingFleetCoverage = WarProtocol.fleetCoverage(config, warId, config.tractorName.ifEmpty { hw.profileName }, g, nowIso(), eu.smartsteer.navigator.ui.DisplayPrefs.trailColor)
     }
 
     private fun loadProducts(): WarProducts = try {
