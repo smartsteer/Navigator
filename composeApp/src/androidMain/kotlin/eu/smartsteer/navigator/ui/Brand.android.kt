@@ -11,3 +11,9 @@ actual fun brandImage(): ImageBitmap? = try {
 } catch (e: Exception) {
     null
 }
+
+actual fun splashImage(): ImageBitmap? = try {
+    AndroidStorage.resources?.let { BitmapFactory.decodeResource(it, R.drawable.splash)?.asImageBitmap() }
+} catch (e: Exception) {
+    null
+}

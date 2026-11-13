@@ -42,6 +42,18 @@ actual fun WarCamPane(url: String, modifier: Modifier) {
                 }
                 loadUrl(url)
                 holder[0] = this
+                // po zgodzie w oknie systemu strona z kamerą ładuje się jeszcze raz (wcześniej kamera była zablokowana)
+                if (brak.isNotEmpty() && act != null) {
+                    var proby = 0
+                    val czekaj = object : Runnable {
+                        override fun run() {
+                            if (holder[0] !== this@apply) return
+                            if (act.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) { reload(); return }
+                            if (++proby < 60) postDelayed(this, 1000)
+                        }
+                    }
+                    postDelayed(czekaj, 1000)
+                }
             }
         },
     )

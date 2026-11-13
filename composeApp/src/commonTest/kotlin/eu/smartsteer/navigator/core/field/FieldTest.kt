@@ -99,6 +99,13 @@ class FieldTest {
         s4.updateTool(Vec2(50.0, 50.0), 0.0, p)
         s4.update(p, 0.2, Coverage(), square, null, true)
         assertFalse(s4.anyOn())
+        // słaby GPS (np. telefon w budynku) — stoją i nic się nie maluje
+        val c5 = Coverage()
+        val s5 = Sections()
+        s5.updateTool(Vec2(0.0, 0.0), 0.0, p)
+        s5.update(p, 7.2, c5, null, null, true, gpsOk = false)
+        assertFalse(s5.anyOn())
+        assertFalse(c5.isCovered(Vec2(0.0, 0.0)))
     }
 
     @Test

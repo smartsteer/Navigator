@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ciemne tło od pierwszej klatki (zanim pojawi się ekran startowy z logo) -->
+    <style name="Theme.WarNavigator" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/war_tlo</item>
+        <item name="android:statusBarColor">@color/war_tlo</item>
+        <item name="android:navigationBarColor">@color/war_tlo</item>
+    </style>
+    <color name="war_tlo">#0B0F0C</color>
+</resources>

@@ -153,6 +153,10 @@ fun HardwareMapScreen(hw: HardwareController) {
         SprayerMini(hw, Modifier.align(Alignment.TopEnd).padding(top = 354.dp, end = 12.dp))
         HwSectionsBar(hw, locked, Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
         HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))
+        if (hw.session.gpsTooPoorForSections) Text(
+            "Słaby GPS — sekcje nie pracują, aż pozycja będzie dokładniejsza niż 10 m", color = Ss.Ground, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 156.dp).clip(RoundedCornerShape(10.dp)).background(Ss.Warning).padding(horizontal = 10.dp, vertical = 6.dp),
+        )
         if (hw.session.steerBlockedReason == null) SteerButton(hw, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))
         else Text(
             "GPS telefonu · prowadzenie ręczne", color = Ss.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold,

@@ -78,13 +78,15 @@ class Sections {
         obstacles: List<List<Vec2>> = emptyList(),
         /** Pokrycie innych maszyn na tym polu (wspólna praca przez WAR) — tam też nie trzeba pracować. */
         others: Coverage? = null,
+        /** false — pozycja zbyt niepewna (np. ±20 m), sekcje stoją. */
+        gpsOk: Boolean = true,
     ) {
         val n = p.sectionWidthsEffective.size
         val fwd = Vec2.forward(toolHeading)
         val v = speedKmh / 3.6
         val lookOn = (v * p.lookAheadOn).coerceAtLeast(MIN_LOOK)
         val lookOff = (v * p.lookAheadOff).coerceAtLeast(MIN_LOOK)
-        val master = mode != SectionMode.OFF && speedKmh >= p.slowSpeedCutoff && (workOn || !p.useWorkSwitch)
+        val master = gpsOk && mode != SectionMode.OFF && speedKmh >= p.slowSpeedCutoff && (workOn || !p.useWorkSwitch)
 
         fun needsWork(a: Vec2, b: Vec2, ahead: Double): Boolean {
             for (k in 0..SAMPLES) {

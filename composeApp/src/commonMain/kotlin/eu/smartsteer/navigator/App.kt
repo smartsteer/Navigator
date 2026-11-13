@@ -93,6 +93,10 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map, sett
         LaunchedEffect(hw.sprayer.navRequest) {
             hw.sprayer.navRequest?.let { n -> Screen.entries.firstOrNull { it.name == n }?.let { screen = it }; hw.sprayer.navRequest = null }
         }
+        // ekran startowy z logo (w testach zrzutów — bez niego)
+        var splash by remember { mutableStateOf(hwIn == null) }
+        var splashUp by remember { mutableStateOf(hwIn == null) }
+        LaunchedEffect(Unit) { if (splashUp) { delay(1600); splashUp = false } }
         // X w oknie / przycisk Zamknij: najpierw zapis pola i wyłączenie autosteru
         LaunchedEffect(hw) { eu.smartsteer.navigator.ui.power.AppExit.onRequest = { hw.closeApp() } }
 
@@ -160,6 +164,9 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map, sett
         // klawiatura na ekranie (liczby; tekst na Windows) — nad wszystkim
         KeypadHost()
             }
+            // logo przy starcie i przy zamykaniu — zasłania przełączanie ekranów, gdy program wyłącza sprzęt
+            if (hw.exiting) eu.smartsteer.navigator.ui.SplashScreen("Zapisuję pole i zamykam…")
+            else if (splash) eu.smartsteer.navigator.ui.SplashScreen("Uruchamiam…", visible = splashUp) { splash = false }
         }
     }
 }
@@ -167,12 +174,7 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map, sett
 /** Pasek odliczania po zaniku zasilania z ciągnika. */
 @Composable
 private fun PowerBanner(hw: HardwareController) {
-    if (hw.exiting) {
-        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
-            Text("Zapisuję pole i zamykam…", color = androidx.compose.ui.graphics.Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        }
-        return
-    }
+    if (hw.exiting) return // ekran zamykania z logo (SplashScreen)
     val left = hw.powerCountdown ?: return
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Row(

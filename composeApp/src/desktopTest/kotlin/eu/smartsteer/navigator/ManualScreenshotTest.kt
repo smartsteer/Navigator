@@ -90,6 +90,7 @@ class ManualScreenshotTest {
             for ((tab, name) in listOf(0 to "06_ust_ciagnik", 1 to "07_ust_maszyna", 2 to "08_ust_prowadzenie", 5 to "09_ust_nadzor", 7 to "10_ust_ntrip", 8 to "11_ust_war")) {
                 shot(dir, name, 4) { App(hw, Screen.Settings, tab) }
             }
+            shot(dir, "14_start") { eu.smartsteer.navigator.ui.SplashScreen("Uruchamiam…") }
             hw.updateWorkMode(0)
             hw.setHardwareMode(false)
             hw.timeForScreenshots = null

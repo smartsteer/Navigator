@@ -229,7 +229,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         recordingObstacle?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= 0.5) r.add(pv) }
         autosteer?.let { wasCal.sample(pv, headingRad, it.actualAngleDeg, speedKmh) }
         sections.updateTool(pv, headingRad, profile)
-        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles, othersCoverage.takeIf { othersMachines.isNotEmpty() })
+        // słaby GPS (np. telefon w budynku, ±20 m): pozycja skacze, a mapa malowałaby obrobione „gwiazdy” — sekcje czekają
+        gpsTooPoorForSections = (horizontalAccuracy(nowS)?.first ?: 0.0) > POOR_GPS_SECTIONS_M
+        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles, othersCoverage.takeIf { othersMachines.isNotEmpty() }, gpsOk = !gpsTooPoorForSections)
         // mapa wykonania: szerokość pracujących sekcji i dawka z mapy
         if (sections.anyOn()) {
             val w = profile.sectionWidthsEffective.withIndex().sumOf { (i, sw) -> if (i < Sections.MAX && sections.on[i]) sw else 0.0 }
@@ -458,6 +460,10 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             else -> 2.5 * hdop
         } to false
     }
+
+    /** Dokładność gorsza niż [POOR_GPS_SECTIONS_M] — sekcje nie pracują i nic się nie maluje. */
+    var gpsTooPoorForSections = false
+        private set
 
     /** Gdy ustawione (np. GPS z telefonu, 2–5 m) — autostera nie da się włączyć, a przycisk znika z mapy. */
     var steerBlockedReason: String? = null
@@ -1276,6 +1282,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         const val FREE_DRIVE_MAX_KMH = 3.0
         const val CURVE_STEP_M = 0.5
         const val CONTOUR_MIN_KMH = 1.0
+        /** Powyżej tego błędu pozycji (m) sekcje nie pracują — tak jest np. z GPS telefonu w budynku albo pod drzewami. */
+        const val POOR_GPS_SECTIONS_M = 10.0
         const val PGN_EXTERNAL_IMU = 0xD3
         const val PGN_IMU_DISCONNECT = 0xD4
         const val GPS_TIMEOUT_S = 1.0

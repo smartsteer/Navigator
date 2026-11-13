@@ -8,3 +8,9 @@ actual fun brandImage(): ImageBitmap? = try {
 } catch (e: Exception) {
     null
 }
+
+actual fun splashImage(): ImageBitmap? = try {
+    Thread.currentThread().contextClassLoader?.getResourceAsStream("splash.png")?.use { loadImageBitmap(it) }
+} catch (e: Exception) {
+    null
+}
