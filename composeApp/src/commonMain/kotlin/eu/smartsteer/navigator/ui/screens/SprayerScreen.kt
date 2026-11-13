@@ -571,6 +571,7 @@ fun SprayerMini(hw: HardwareController, modifier: Modifier = Modifier) {
     val sp = hw.sprayer
     sp.tick
     val pc = sp.computer
+    if (hw.navOnly) return                     // tryb „tylko nawigacja”: bez opryskiwacza
     if (!hw.profile.isSprayer && !pc.running) return
     val c = sp.config
     val running = pc.running
