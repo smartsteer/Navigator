@@ -231,9 +231,12 @@ object YouTurn {
         }
         if (path.isEmpty()) return null
         path.addAll(turn.map { it.p })
-        val end = turn.last()
-        val back = Vec2(sin(end.heading), cos(end.heading))
-        for (k in 1..20) path.add(end.p + back * k.toDouble())
+        // wyjazd po następnym przejeździe (AddSequenceLines): punkty na linii odsuniętej o [width] w stronę zawrotu
+        val lateral = Vec2(cos(head), -sin(head)) * (if (right) width else -width)
+        val base = inPt.pt + lateral
+        val endOnLine = base + fwd * ((turn.last().p - base) dot fwd)
+        if (endOnLine.distanceTo(turn.last().p) > 0.05) path.add(endOnLine)
+        for (k in 1..20) path.add(endOnLine - fwd * k.toDouble())
         return Curves.headings(path)
     }
 
