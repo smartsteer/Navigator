@@ -1,5 +1,7 @@
 package eu.smartsteer.navigator.ui
 
+import eu.smartsteer.navigator.ui.components.touchVerticalScroll
+import eu.smartsteer.navigator.ui.components.touchHorizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -74,13 +76,13 @@ fun TreatmentDialog(war: WarController) {
         Column(
             Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(16.dp)
                 .clip(RoundedCornerShape(18.dp)).background(Ss.Surface).border(1.dp, Ss.BorderStrong, RoundedCornerShape(18.dp))
-                .verticalScroll(rememberScrollState()).padding(18.dp),
+                .touchVerticalScroll().padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text("Co robiłeś na polu „${ask.fieldName}”?", color = Ss.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Label("${ask.ha.pl(2)} ha${if (ask.tool.isNotEmpty()) " · ${ask.tool}" else ""} — trafi do WAR (ewidencja zabiegów / karta pola), nie trzeba przepisywać.", Ss.TextMuted, 13.sp)
 
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.touchHorizontalScroll(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 WarTreatment.KINDS.forEach { (k, n) ->
                     Chip(n, k == kind) {
                         if (k != kind) {

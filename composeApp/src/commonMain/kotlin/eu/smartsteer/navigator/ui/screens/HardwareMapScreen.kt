@@ -1,5 +1,7 @@
 package eu.smartsteer.navigator.ui.screens
 
+import eu.smartsteer.navigator.ui.components.touchVerticalScroll
+import eu.smartsteer.navigator.ui.components.touchHorizontalScroll
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -267,7 +269,7 @@ private fun GuideSheet(hw: HardwareController, modifier: Modifier, onClose: () -
     val s = hw.session
     Column(
         modifier.width(280.dp).clip(RoundedCornerShape(18.dp)).background(Ss.Bar.copy(alpha = 0.97f))
-            .border(1.dp, Ss.Border, RoundedCornerShape(18.dp)).verticalScroll(rememberScrollState()).padding(14.dp),
+            .border(1.dp, Ss.Border, RoundedCornerShape(18.dp)).touchVerticalScroll().padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

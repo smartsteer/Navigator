@@ -1,5 +1,7 @@
 package eu.smartsteer.navigator.ui.screens
 
+import eu.smartsteer.navigator.ui.components.touchVerticalScroll
+import eu.smartsteer.navigator.ui.components.touchHorizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -55,7 +57,7 @@ fun HardwareFieldsScreen(hw: HardwareController) {
     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         // --- lista pól ---
         Column(
-            Modifier.width(400.dp).fillMaxHeight().verticalScroll(rememberScrollState()),
+            Modifier.width(400.dp).fillMaxHeight().touchVerticalScroll(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             SectionTitle("Nowe pole")
@@ -143,7 +145,7 @@ fun HardwareFieldsScreen(hw: HardwareController) {
         }
 
         // --- bieżące pole ---
-        Panel(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) {
+        Panel(Modifier.weight(1f).fillMaxHeight().touchVerticalScroll()) {
             val name = s.fieldName
             if (name == null) {
                 SectionTitle("Żadne pole nie jest otwarte")

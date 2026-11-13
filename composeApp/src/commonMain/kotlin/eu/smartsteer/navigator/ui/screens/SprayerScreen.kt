@@ -1,5 +1,7 @@
 package eu.smartsteer.navigator.ui.screens
 
+import eu.smartsteer.navigator.ui.components.touchVerticalScroll
+import eu.smartsteer.navigator.ui.components.touchHorizontalScroll
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -369,7 +371,7 @@ private fun SprayerSettings(hw: HardwareController) {
     val c = sp.config
     val set: (SprayerConfig) -> Unit = { sp.update(it) }
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.weight(1f).fillMaxHeight().touchVerticalScroll(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             LinkPanel(hw)
             Panel(Modifier.fillMaxWidth()) {
                 SectionTitle("Tryb pracy i prędkość")
@@ -435,7 +437,7 @@ private fun SprayerSettings(hw: HardwareController) {
                 }
             }
         }
-        Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.weight(1f).fillMaxHeight().touchVerticalScroll(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Panel(Modifier.fillMaxWidth()) {
                 SectionTitle("Dysze")
                 Label("Rodzaj")

@@ -1,5 +1,7 @@
 package eu.smartsteer.navigator.ui.screens
 
+import eu.smartsteer.navigator.ui.components.touchVerticalScroll
+import eu.smartsteer.navigator.ui.components.touchHorizontalScroll
 import androidx.compose.foundation.Canvas
 import eu.smartsteer.navigator.core.field.SectionMode
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -93,7 +95,7 @@ fun SettingsScreen(hw: HardwareController, startTab: Int = 0) {
         hw.profileError?.let { Label(it, Ss.Warning, 14.sp) }
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Column(
-                Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                Modifier.weight(1f).fillMaxHeight().touchVerticalScroll(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 when (tab) {
@@ -880,7 +882,7 @@ private fun LivePanel(hw: HardwareController) {
     val now = hw.now()
     val st = s.autosteer?.takeIf { s.autosteerAlive(now) }
     val imu = s.imu
-    Panel(Modifier.width(300.dp).fillMaxHeight().verticalScroll(rememberScrollState())) {
+    Panel(Modifier.width(300.dp).fillMaxHeight().touchVerticalScroll()) {
         SectionTitle("Na żywo")
         if (!hw.hardware) {
             Label("Włącz tryb SPRZĘT na ekranie Połączenia, żeby widzieć odczyty z płytki.", Ss.TextSoft, 14.sp)
@@ -1111,7 +1113,7 @@ fun HardwareSteerScreen(hw: HardwareController) {
     val st = s.autosteer?.takeIf { s.autosteerAlive(now) }
     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(
-            Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+            Modifier.weight(1f).fillMaxHeight().touchVerticalScroll(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Panel(Modifier.fillMaxWidth()) {
@@ -1174,7 +1176,7 @@ fun HardwareImplementScreen(hw: HardwareController) {
             )
         }
         Column(
-            Modifier.width(470.dp).fillMaxHeight().verticalScroll(rememberScrollState()),
+            Modifier.width(470.dp).fillMaxHeight().touchVerticalScroll(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) { ToolTab(p, set) }
     }
@@ -1186,7 +1188,7 @@ private fun ToolPicker(hw: HardwareController) {
     var newName by remember { mutableStateOf("") }
     var msg by remember { mutableStateOf<String?>(null) }
     Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        Modifier.fillMaxWidth().touchHorizontalScroll(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

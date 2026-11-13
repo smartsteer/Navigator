@@ -1,5 +1,7 @@
 package eu.smartsteer.navigator.ui.screens
 
+import eu.smartsteer.navigator.ui.components.touchVerticalScroll
+import eu.smartsteer.navigator.ui.components.touchHorizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -53,7 +55,7 @@ fun ConnectionsScreen(@Suppress("UNUSED_PARAMETER") ctrl: DemoController, hw: Ha
     var rightTab by remember { mutableStateOf(0) }
     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(
-            Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+            Modifier.weight(1f).fillMaxHeight().touchVerticalScroll(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ModePanel(hw)
@@ -64,7 +66,7 @@ fun ConnectionsScreen(@Suppress("UNUSED_PARAMETER") ctrl: DemoController, hw: Ha
             SectionTitle("Moduły")
             ModulesStatus(hw)
         }
-        Panel(Modifier.width(460.dp).fillMaxHeight().verticalScroll(rememberScrollState())) {
+        Panel(Modifier.width(460.dp).fillMaxHeight().touchVerticalScroll()) {
             Segmented(listOf("Samouczek łączenia", "Co przychodzi"), rightTab, { rightTab = it })
             if (rightTab == 0) Tutorial(hw) else LiveLog(hw)
         }
