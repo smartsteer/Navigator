@@ -99,6 +99,14 @@ class SprayerController(private val files: TextFiles) {
         tick++
     }
 
+    /** Tryb „tylko nawigacja”: zamyka port płytki i czyści alarmy opryskiwacza. */
+    fun disconnect() {
+        link?.close(); link = null
+        linkStatus = ""
+        activeAlarms = emptyList()
+        tick++
+    }
+
     fun ports(): List<String> = runCatching { SprayerPorts.list() }.getOrDefault(emptyList())
 
     /** Wybór źródła; dla USB [port] z listy. */

@@ -92,9 +92,24 @@ class HardwareController {
     /** Tryb „tylko opryskiwacz”: bez nawigacji i autosteru — sam komputer opryskiwacza (sekcje z przycisków). */
     var sprayerOnly by mutableStateOf(runCatching { files.read("tryb_pracy.cfg")?.trim() == "oprysk" }.getOrDefault(false))
         private set
+    /** Tryb „tylko nawigacja”: bez komputera opryskiwacza (ekran Oprysk ukryty, płytka nie jest szukana). */
+    var navOnly by mutableStateOf(runCatching { files.read("tryb_pracy.cfg")?.trim() == "tylko_nawigacja" }.getOrDefault(false))
+        private set
+
+    /** 0 = nawigacja + opryskiwacz, 1 = tylko nawigacja, 2 = tylko opryskiwacz. */
+    fun updateWorkMode(mode: Int) {
+        if (mode == 2) { navOnly = false; updateSprayerOnly(true); return }
+        sprayerOnly = false
+        navOnly = mode == 1
+        if (navOnly) sprayer.disconnect()
+        runCatching { files.write("tryb_pracy.cfg", if (navOnly) "tylko_nawigacja" else "nawigacja") }
+        if (!navOnly) sprayer.connectUsb()
+        tick++
+    }
 
     fun updateSprayerOnly(on: Boolean) {
         sprayerOnly = on
+        if (on) navOnly = false
         // wersja bez autosteru: prędkość z GPS płytki opryskiwacza (przez USB), chyba że wybrano stałą
         if (on && sprayer.config.speedSource == eu.smartsteer.navigator.core.sprayer.SpeedSource.GPS)
             sprayer.update(sprayer.config.copy(speedSource = eu.smartsteer.navigator.core.sprayer.SpeedSource.BOARD_GPS))
@@ -474,7 +489,7 @@ class HardwareController {
         val json = FieldExchange.reportGeoJson(
             f, session.coverage, profileName, profile.toolWidth, profile.numSections,
             fieldStartedText.ifEmpty { end }, end,
-            spray = sprayer.sprayJson(session.coverage.workedM2 / 10_000),
+            spray = if (navOnly) null else sprayer.sprayJson(session.coverage.workedM2 / 10_000),
         )
         val file = "${Profiles.sanitize(f.name)} ${end.replace(":", "")}.geojson"
         return try {
@@ -1393,7 +1408,7 @@ class HardwareController {
         val saved = runCatching { files.read(modeFile)?.trim() }.getOrNull()
         if (!hardware && (saved == "sprzet" || simulating)) setHardwareMode(true)
         if (serialPort.isNotBlank() && serial == null) setSerial(serialPort, serialBaud)
-        sprayer.connectUsb()
+        if (!navOnly) sprayer.connectUsb()
         PowerPlatform.startMonitor()
         // pole otwarte przy poprzednim uruchomieniu (z pokryciem i liniami)
         val lastField = runCatching { files.read(lastFieldFile)?.trim() }.getOrNull()
@@ -1427,7 +1442,7 @@ class HardwareController {
         }
         while (true) {
             delay(100)
-            val sprayEvents = sprayer.step(100, if (hardware) session.speedKmh else 0.0, session.fieldName) { i -> sprayerOnly || session.sections.on.getOrElse(i) { false } }
+            val sprayEvents = if (navOnly) emptyList() else sprayer.step(100, if (hardware) session.speedKmh else 0.0, session.fieldName) { i -> sprayerOnly || session.sections.on.getOrElse(i) { false } }
             if (soundOn && sprayEvents.isNotEmpty()) SoundPlayer.play(if (sprayEvents.any { it.loud }) SoundKind.ALARM else SoundKind.WARNING)
             if (mapNote != null && now() > mapNoteUntilS) mapNote = null
             if (exiting) { exitCountdown++; if (exitCountdown >= 8) eu.smartsteer.navigator.ui.power.PowerPlatform.exit(false) }

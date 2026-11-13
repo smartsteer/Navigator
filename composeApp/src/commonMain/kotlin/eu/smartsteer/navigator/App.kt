@@ -89,6 +89,7 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
         // miniatura opryskiwacza na Mapie ↔ ekran Opryskiwacz
         // tryb „tylko opryskiwacz”: od razu ekran opryskiwacza, menu tylko Oprysk i Ustawienia
         LaunchedEffect(hw.sprayerOnly) { if (hw.sprayerOnly && screen != Screen.Settings) screen = Screen.Sprayer }
+        LaunchedEffect(hw.navOnly) { if (hw.navOnly && screen == Screen.Sprayer) screen = Screen.Map }
         LaunchedEffect(hw.sprayer.navRequest) {
             hw.sprayer.navRequest?.let { n -> Screen.entries.firstOrNull { it.name == n }?.let { screen = it }; hw.sprayer.navRequest = null }
         }
@@ -138,7 +139,8 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
             if (!hw.sprayerOnly) TopBar(ctrl, hw)
             UpdateBar(upd, ctrl, hw)
             Row(Modifier.fillMaxSize()) {
-                NavRail(screen, if (hw.sprayerOnly) listOf(Screen.Sprayer, Screen.Settings) else Screen.entries, onClose = { hw.closeApp() }) { screen = it }
+                NavRail(screen, if (hw.sprayerOnly) listOf(Screen.Sprayer, Screen.Settings) else if (hw.navOnly) Screen.entries.filter { it != Screen.Sprayer } else Screen.entries,
+                    onClose = { hw.closeApp() }) { screen = it }
                 Box(Modifier.fillMaxSize()) {
                     when (screen) {
                         Screen.Map -> if (hw.hardware) HardwareMapScreen(hw) else MapScreen(ctrl)

@@ -1113,14 +1113,23 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
 /** Inne maszyny gospodarstwa (flota WAR): nazwa, narzędzie, prędkość, odległość — niebieskie trójkąty na mapie. */
 @Composable
 private fun FleetChip(hw: HardwareController, modifier: Modifier) {
-    val fleet = hw.war.fleet.values.sortedBy { it.tractor }
-    if (fleet.isEmpty()) return
+    val w = hw.war
+    if (!w.configured || !w.config.fleet) return
+    val fleet = w.fleet.values.sortedBy { it.tractor }
+    var open by remember { mutableStateOf(true) }
     val s = hw.session
     val me = s.pivot
     val plane = s.plane
-    Column(modifier.width(260.dp).hwOverlay().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("INNE MASZYNY", color = Ss.Info, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        for (m in fleet.take(4)) {
+    Column(
+        modifier.width(if (open && fleet.isNotEmpty()) 260.dp else 170.dp).hwOverlay().clickable { open = !open }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            if (fleet.isEmpty()) "FLOTA · nikogo nie widać" else "FLOTA · ${fleet.size} ${if (open) "▾" else "▸"}",
+            color = if (fleet.isEmpty()) Ss.TextMuted else Ss.Info, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+        )
+        if (open) for (m in fleet.take(4)) {
             val dist = if (me != null && plane != null) plane.toLocal(m.lat, m.lon).distanceTo(me) else null
             Text(
                 "${if (m.tracker) "📡 " else ""}${m.tractor}${if (m.tool.isNotEmpty()) " · ${m.tool}" else ""}",

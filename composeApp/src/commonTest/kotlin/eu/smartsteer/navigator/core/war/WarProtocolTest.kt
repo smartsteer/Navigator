@@ -131,4 +131,11 @@ class WarProtocolTest {
         assertEquals(1, l.size)
         assertTrue(l[0].tracker && l[0].working); assertEquals("Ursus", l[0].tractor); assertEquals(7L, l[0].receivedMs)
     }
+
+    @Test
+    fun fleetSwitchSaved() {
+        assertTrue(WarConfig().fleet)
+        assertFalse(WarConfig.fromJson(WarConfig(fleet = false).toJson())!!.fleet)
+        assertTrue(WarConfig.fromJson("{}")!!.fleet)                     // stara konfiguracja — flota włączona
+    }
 }

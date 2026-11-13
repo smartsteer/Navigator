@@ -187,6 +187,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
     private suspend fun fleetStep(now: Long) {
         val s = hw.session
         val k = key ?: return
+        if (!config.fleet) { if (fleet.isNotEmpty()) fleet = emptyMap(); return }
         val share = hw.shareCoverage
         val working = s.engaged || s.sections.anyOn()
         // własna pozycja dla innych (ten sam wyłącznik co „Pokazuj na mapie WAR”)

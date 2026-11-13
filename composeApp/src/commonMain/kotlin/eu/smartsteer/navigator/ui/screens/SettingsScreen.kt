@@ -97,7 +97,9 @@ fun SettingsScreen(hw: HardwareController) {
             ) {
                 when (tab) {
                     Tab.Vehicle -> {
-                        Choice("Tryb pracy", listOf("Nawigacja + opryskiwacz", "Tylko opryskiwacz"), if (hw.sprayerOnly) 1 else 0) { hw.updateSprayerOnly(it == 1) }
+                        Choice("Tryb pracy", listOf("Nawigacja + opryskiwacz", "Tylko nawigacja", "Tylko opryskiwacz"),
+                            if (hw.sprayerOnly) 2 else if (hw.navOnly) 1 else 0) { hw.updateWorkMode(it) }
+                        if (hw.navOnly) Label("Bez komputera opryskiwacza: ekran Oprysk ukryty, płytka opryskiwacza nie jest potrzebna. Sekcje działają jak w AgOpenGPS (moduł maszyny).", Ss.TextMuted, 12.sp)
                         Choice("Dźwięki (autoster, alarmy, zawrót, sekcje)", listOf("WŁ.", "WYŁ."), if (hw.soundOn) 0 else 1) { hw.setSound(it == 0) }
                         Choice("Ekran", listOf("Zwykły", "Tablet (powiększony)"), if (DisplayPrefs.tablet) 1 else 0) { DisplayPrefs.updateTablet(it == 1) }
                         Choice("Kolory", listOf("Noc (ciemne)", "Dzień (jasne)"), if (DisplayPrefs.day) 1 else 0) { DisplayPrefs.updateDay(it == 1) }
@@ -713,6 +715,17 @@ private fun ColumnScope.WarTab(hw: HardwareController) {
     var who by remember { mutableStateOf(c.operator) }
     var server by remember { mutableStateOf(c.server) }
     var msg by remember { mutableStateOf<String?>(null) }
+    SectionTitle("Flota gospodarstwa")
+    Toggle("Flota — inne maszyny gospodarstwa na mapie", c.fleet) { w.update(w.config.copy(fleet = it)) }
+    if (c.fleet) {
+        val f = w.fleet.values.sortedBy { it.tractor }
+        Label(
+            if (!w.configured) "Wpisz kod nawigacji niżej — flota to maszyny z tym samym kodem gospodarstwa (inne Navigatory i lokalizatory WAR Track)."
+            else if (f.isEmpty()) "Na razie nikogo nie widać. Inne Navigatory pojawią się, gdy mają ten sam kod nawigacji i włączoną flotę; lokalizatory WAR Track — gdy jeżdżą."
+            else "Widać: " + f.joinToString(", ") { (if (it.tracker) "📡 " else "") + it.tractor + if (it.working) " (pracuje)" else "" },
+            if (f.isEmpty()) Ss.TextMuted else Ss.Accent, 13.sp,
+        )
+    }
     Choice("Wspólna praca kilku maszyn na polu", listOf("WYŁ.", "WŁ."), if (hw.shareCoverage) 1 else 0) { hw.changeShareCoverage(it == 1) }
     if (hw.shareCoverage) Label(
         "Co minutę wysyła do WAR pokrycie pola z WAR i pokazuje pracę innych maszyn gospodarstwa (na niebiesko) — sekcje omijają to, co już zrobiły. " +

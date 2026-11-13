@@ -28,11 +28,13 @@ data class WarConfig(
     val lastDeviceMs: Long = 0,
     /** Po zamknięciu pola pytaj, co zrobiono (środek, nawóz, odmiana, dawka) — trafia do ewidencji w WAR. */
     val askTreatment: Boolean = true,
+    /** Flota gospodarstwa: inne maszyny (Navigatory, lokalizatory WAR Track) na mapie i ta maszyna u nich. */
+    val fleet: Boolean = true,
 ) {
     fun toJson(): String = Json.obj(
         "server" to server, "code" to code, "machineId" to machineId, "tractorName" to tractorName,
         "toolName" to toolName, "operator" to operator, "live" to live, "lastDeviceMs" to lastDeviceMs,
-        "askTreatment" to askTreatment,
+        "askTreatment" to askTreatment, "fleet" to fleet,
     )
 
     companion object {
@@ -49,6 +51,7 @@ data class WarConfig(
                 live = m["live"] as? Boolean ?: d.live,
                 lastDeviceMs = (m["lastDeviceMs"] as? Double)?.toLong() ?: d.lastDeviceMs,
                 askTreatment = m["askTreatment"] as? Boolean ?: d.askTreatment,
+                fleet = m["fleet"] as? Boolean ?: d.fleet,
             )
         }
     }
