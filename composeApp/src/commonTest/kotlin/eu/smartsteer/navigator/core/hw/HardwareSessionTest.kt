@@ -322,4 +322,21 @@ class HardwareSessionTest {
         sw = 0x02; sim.step(0.1, h.steerSetDeg); t += 0.1; feed()
         assertFalse(h.engaged)
     }
+
+    /** Wspólna praca: sekcje omijają tylko pracę innych maszyn tego samego rodzaju (siew ≠ oprysk doglebowy). */
+    @Test
+    fun othersCoverageOnlyForSameWork() {
+        val h = HardwareSession()
+        h.onNmea(gga(Vec2(0.0, 0.0)), 0.0)
+        val other = eu.smartsteer.navigator.core.field.Coverage()
+        val st = other.newStrip()
+        other.extend(st, Vec2(-5.0, 0.0), Vec2(5.0, 0.0))
+        other.extend(st, Vec2(-5.0, 20.0), Vec2(5.0, 20.0))
+        val g = assertNotNull(eu.smartsteer.navigator.core.war.CoverageGrid.from(other, h.plane!!))
+        h.addOthersCoverage("m2", "Zetor", g, work = "siew", sameWork = false)
+        assertTrue(h.othersCoverage.cellCount > 0, "na mapie widać")
+        assertEquals(0L, h.othersSameWork.cellCount, "siew nie wyłącza sekcji opryskiwacza")
+        h.setOthersForSections { it == "siew" }
+        assertTrue(h.othersSameWork.cellCount > 0, "ten sam rodzaj pracy — sekcje omijają")
+    }
 }

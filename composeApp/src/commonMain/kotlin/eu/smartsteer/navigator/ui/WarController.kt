@@ -322,7 +322,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
                         "pokrycie_floty" -> {
                             val warId = (p["pole"] as? Map<*, *>)?.get("war_id") as? String ?: continue
                             val g = WarProtocol.parseGrid(p["pokrycie"] as? Map<*, *>) ?: continue
-                            hw.onOthersCoverage(warId, who, (p["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g, WarProtocol.fleetColor(p))
+                            hw.onOthersCoverage(warId, who, (p["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g, WarProtocol.fleetColor(p), (p["praca"] as? String).orEmpty())
                         }
                     }
                 }
@@ -456,7 +456,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
                 if (who == config.machineId) return true
                 val warId = (m["pole"] as? Map<*, *>)?.get("war_id") as? String ?: return true
                 val g = WarProtocol.parseGrid(m["pokrycie"] as? Map<*, *>) ?: return true
-                hw.onOthersCoverage(warId, who, (m["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g)
+                hw.onOthersCoverage(warId, who, (m["pojazd"] as? String).orEmpty().ifEmpty { "inna maszyna" }, g, work = (m["praca"] as? String).orEmpty())
             }
             "produkty_war" -> {
                 try { files.write(PRODUCTS, json) } catch (_: Exception) { return false }
@@ -488,7 +488,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
 
     /** Wysyła bieżące pokrycie pola innym maszynom gospodarstwa (skrzynka floty, §3.10). */
     fun sendLiveCoverage(warId: String, fieldName: String, g: CoverageGrid) {
-        pendingFleetCoverage = WarProtocol.fleetCoverage(config, warId, config.tractorName.ifEmpty { hw.profileName }, g, nowIso(), eu.smartsteer.navigator.ui.DisplayPrefs.trailColor)
+        pendingFleetCoverage = WarProtocol.fleetCoverage(config, warId, config.tractorName.ifEmpty { hw.profileName }, g, nowIso(), eu.smartsteer.navigator.ui.DisplayPrefs.trailColor, hw.workKind)
     }
 
     private fun loadProducts(): WarProducts = try {
@@ -582,6 +582,8 @@ class WarController(private val hw: HardwareController, private val files: TextF
         setLocal(o.id, "przyjete")
         enqueue("st-${o.id}-${nowMillis()}", WarProtocol.orderStatus(o.id, "przyjete", config, nowIso()))
         activeOrderId = o.id
+        // rodzaj pracy ze zlecenia — sekcje omijają tylko pracę innych maszyn przy tym samym rodzaju
+        if (WarProtocol.WORK_KINDS.any { it.first == o.kind && it.first.isNotEmpty() }) hw.setWorkKind(o.kind)
         val f = o.warField ?: return "Przyjęto: ${o.title}"
         val err = hw.openWarField(f)
         activeOrderId = o.id // otwarcie pola czyści przypisanie — przywracamy

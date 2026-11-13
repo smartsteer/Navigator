@@ -247,7 +247,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         sections.updateTool(pv, headingRad, profile)
         // słaby GPS (np. telefon w budynku, ±20 m): pozycja skacze, a mapa malowałaby obrobione „gwiazdy” — sekcje czekają
         gpsTooPoorForSections = (horizontalAccuracy(nowS)?.first ?: 0.0) > POOR_GPS_SECTIONS_M
-        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles, othersCoverage.takeIf { othersMachines.isNotEmpty() }, gpsOk = !gpsTooPoorForSections)
+        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles, othersSameWork.takeIf { it.cellCount > 0 }, gpsOk = !gpsTooPoorForSections)
         // mapa wykonania: szerokość pracujących sekcji i dawka z mapy
         if (sections.anyOn()) {
             val w = profile.sectionWidthsEffective.withIndex().sumOf { (i, sw) -> if (i < Sections.MAX && sections.on[i]) sw else 0.0 }
@@ -526,14 +526,30 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     /** Kolor śladu każdej z innych maszyn („#RRGGBB”, pusty = domyślny). */
     var othersColors: Map<String, String> = emptyMap()
 
+    /** Pokrycie innych maszyn robiących ten sam rodzaj pracy — tylko to omijają sekcje. */
+    val othersSameWork = Coverage()
+    private val othersGrids = HashMap<String, Pair<eu.smartsteer.navigator.core.war.CoverageGrid, String>>()
+    /** Rodzaj pracy każdej z innych maszyn. */
+    var othersWork: Map<String, String> = emptyMap(); private set
+
     /** Pokrycie innej maszyny z WAR (cała jej dotychczasowa praca na tym polu). */
-    fun addOthersCoverage(machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid, color: String = "") {
+    fun addOthersCoverage(machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid, color: String = "", work: String = "", sameWork: Boolean = false) {
         val pl = plane ?: return
+        othersGrids[machine] = g to work
+        othersWork = othersWork + (machine to work)
+        if (sameWork) g.paintInto(othersSameWork, pl)
         val quads = g.paintInto(othersCoverage, pl)
         othersMachines = othersMachines + (machine to name)
         othersColors = othersColors + (machine to color)
         othersCells = othersCells + (machine to quads)
         othersVersion++
+    }
+
+    /** Po zmianie rodzaju pracy tej maszyny: na nowo, które cudze pokrycia omijają sekcje. */
+    fun setOthersForSections(same: (String) -> Boolean) {
+        val pl = plane ?: return
+        othersSameWork.clear()
+        for ((g, w) in othersGrids.values) if (same(w)) g.paintInto(othersSameWork, pl)
     }
 
     /** Mapa wykonania otwartego pola. */
@@ -1315,7 +1331,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         coverage.clear(); sections.reset()
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         contour.clear(); engaged = false; youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersMachines = emptyMap(); othersCells = emptyMap(); othersColors = emptyMap()
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersSameWork.clear(); othersGrids.clear(); othersWork = emptyMap(); othersMachines = emptyMap(); othersCells = emptyMap(); othersColors = emptyMap()
         ok("Pole zamknięte")
     }
 
@@ -1326,7 +1342,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
         engaged = false; pathHint = -1; steering.reset(); youTurnPath = null
-        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersMachines = emptyMap(); othersCells = emptyMap(); othersColors = emptyMap()
+        tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersSameWork.clear(); othersGrids.clear(); othersWork = emptyMap(); othersMachines = emptyMap(); othersCells = emptyMap(); othersColors = emptyMap()
     }
 
     fun startBoundary(): Boolean {

@@ -153,8 +153,9 @@ object WarProtocol {
     )
 
     /** Pokrycie dla innych maszyn gospodarstwa (§3.10, `pokrycie_floty`). */
-    fun fleetCoverage(c: WarConfig, warId: String, tractor: String, g: CoverageGrid, t: String, color: String = ""): String = Json.obj(
+    fun fleetCoverage(c: WarConfig, warId: String, tractor: String, g: CoverageGrid, t: String, color: String = "", work: String = ""): String = Json.obj(
         "typ" to "pokrycie_floty", "v" to 1, "komputer" to c.machineId, "pojazd" to tractor, "kolor" to color.ifEmpty { null },
+        "praca" to work.ifEmpty { null },
         "pole" to Json.Raw(Json.obj("war_id" to warId)), "t" to t, "pokrycie" to Json.Raw(gridJson(g)),
     )
 
@@ -252,11 +253,14 @@ object WarProtocol {
      * Wspólna praca kilku maszyn (propozycja, docs/WAR.md 3.8): bieżące pokrycie tej maszyny na polu z WAR,
      * wysyłane co minutę do skrzynki prac; WAR przekazuje je innym Navigatorom gospodarstwa jako `pokrycie_innych`.
      */
-    fun liveCoverage(c: WarConfig, id: String, warId: String, fieldName: String, tractor: String, g: CoverageGrid, t: String): String = Json.obj(
-        "typ" to "pokrycie_na_zywo", "v" to 1, "id" to id, "komputer" to c.machineId, "pojazd" to tractor,
+    fun liveCoverage(c: WarConfig, id: String, warId: String, fieldName: String, tractor: String, g: CoverageGrid, t: String, work: String = ""): String = Json.obj(
+        "typ" to "pokrycie_na_zywo", "v" to 1, "id" to id, "komputer" to c.machineId, "pojazd" to tractor, "praca" to work.ifEmpty { null },
         "pole" to Json.Raw(Json.obj("war_id" to warId, "nazwa" to fieldName)), "t" to t,
         "pokrycie" to Json.Raw(gridJson(g)),
     )
+
+    /** Rodzaje pracy (jak rodzaje zleceń w WAR) — sekcje omijają tylko pracę innych maszyn tego samego rodzaju. */
+    val WORK_KINDS = listOf("" to "Nie ustawiono", "oprysk" to "Oprysk", "nawoz" to "Nawożenie", "siew" to "Siew", "uprawa" to "Uprawa", "zbior" to "Zbiór", "inne" to "Inne")
 
     fun gridJson(g: CoverageGrid): String = Json.obj(
         "lat0" to Json.Raw(r(g.lat0, 7)), "lon0" to Json.Raw(r(g.lon0, 7)), "e0" to g.e0, "n0" to g.n0,

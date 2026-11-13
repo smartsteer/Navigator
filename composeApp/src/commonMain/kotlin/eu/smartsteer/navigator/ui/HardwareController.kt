@@ -881,11 +881,26 @@ class HardwareController {
         tick++
     }
 
-    /** Pokrycie innej maszyny z WAR — tylko gdy otwarte jest to samo pole. */
-    fun onOthersCoverage(warId: String, machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid, color: String = "") {
+    /** Rodzaj pracy tej maszyny (oprysk, siew…) — ze zlecenia WAR albo ustawiony ręcznie; pusty = nie wiadomo. */
+    var workKind by mutableStateOf(runCatching { files.read("praca.cfg")?.trim().orEmpty() }.getOrDefault(""))
+        private set
+
+    fun setWorkKind(k: String) {
+        if (k == workKind) return
+        workKind = k
+        try { files.write("praca.cfg", k) } catch (_: Exception) {}
+        session.setOthersForSections { it.isNotEmpty() && it == k }
+        tick++
+    }
+
+    /**
+     * Pokrycie innej maszyny z WAR — tylko gdy otwarte jest to samo pole. Na mapie zawsze; sekcje omijają je tylko,
+     * gdy obie maszyny robią ten sam rodzaj pracy (siew i oprysk doglebowy na tym samym polu się nie wykluczają).
+     */
+    fun onOthersCoverage(warId: String, machine: String, name: String, g: eu.smartsteer.navigator.core.war.CoverageGrid, color: String = "", work: String = "") {
         if (!shareCoverage || session.fieldWarId != warId) return
         val first = machine !in session.othersMachines
-        session.addOthersCoverage(machine, name, g, color)
+        session.addOthersCoverage(machine, name, g, color, work, sameWork = work.isNotEmpty() && work == workKind)
         if (first) { mapMessage("Na tym polu pracuje też: $name"); say("Na polu pracuje też $name") }
         tick++
     }

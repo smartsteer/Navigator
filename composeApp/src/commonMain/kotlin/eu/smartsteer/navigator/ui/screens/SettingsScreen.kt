@@ -750,8 +750,13 @@ private fun ColumnScope.WarTab(hw: HardwareController) {
         )
     }
     Choice("Wspólna praca kilku maszyn na polu", listOf("WYŁ.", "WŁ."), if (hw.shareCoverage) 1 else 0) { hw.changeShareCoverage(it == 1) }
+    if (hw.shareCoverage) {
+        val kinds = eu.smartsteer.navigator.core.war.WarProtocol.WORK_KINDS
+        Choice("Ta maszyna teraz robi", kinds.map { it.second }, kinds.indexOfFirst { it.first == hw.workKind }.coerceAtLeast(0)) { hw.setWorkKind(kinds[it].first) }
+        Label("Sekcje omijają tylko pracę innych maszyn tego samego rodzaju (np. dwa opryskiwacze). Siew i oprysk doglebowy na tym samym polu się nie wykluczają. Przy przyjęciu zlecenia z WAR rodzaj ustawia się sam.", Ss.TextMuted, 12.sp)
+    }
     if (hw.shareCoverage) Label(
-        "Co minutę wysyła do WAR pokrycie pola z WAR i pokazuje pracę innych maszyn gospodarstwa (na niebiesko) — sekcje omijają to, co już zrobiły. " +
+        "Co minutę wysyła do WAR pokrycie pola z WAR i pokazuje pracę innych maszyn gospodarstwa (na niebiesko) — sekcje omijają to, co już zrobiły przy tej samej pracy. " +
             "Wymaga obsługi po stronie WAR (paczki pokrycie_na_zywo / pokrycie_innych, docs/WAR.md 3.8).",
         Ss.TextMuted, 12.sp,
     )
