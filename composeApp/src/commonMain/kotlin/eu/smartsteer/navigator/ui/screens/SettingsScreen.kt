@@ -78,8 +78,8 @@ private enum class Tab(val label: String) {
 
 /** Ustawienia sprzętu i prowadzenia, zapisywane w profilu pojazdu (jak w AgOpenGPS). */
 @Composable
-fun SettingsScreen(hw: HardwareController) {
-    var tab by remember { mutableStateOf(Tab.Vehicle) }
+fun SettingsScreen(hw: HardwareController, startTab: Int = 0) {
+    var tab by remember { mutableStateOf(Tab.entries.getOrElse(startTab) { Tab.Vehicle }) }
     hw.tick
     val p = hw.profile
     val set: (VehicleProfile) -> Unit = { hw.updateProfile(it) }

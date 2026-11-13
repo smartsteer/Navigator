@@ -77,6 +77,9 @@ class WarController(private val hw: HardwareController, private val files: TextF
     /** Inne maszyny gospodarstwa (§3.10): id maszyny → ostatnia pozycja. */
     var fleet by mutableStateOf<Map<String, WarProtocol.FleetMachine>>(emptyMap())
         private set
+    /** Tylko do zrzutów ekranu (instrukcja): inne maszyny i wiadomość głosowa bez serwera. */
+    fun setFleetForScreenshots(m: List<WarProtocol.FleetMachine>) { fleet = m.associateBy { it.id } }
+    fun addVoiceForScreenshots(from: String) { voice = voice + eu.smartsteer.navigator.core.war.VoiceMsg("glos-zrzut", from, "", 5.0, false, ByteArray(0)) }
     private val assembler = FieldPartsAssembler()
     private var deviceSentThisRun = false
     private var nextPollMs = 0L

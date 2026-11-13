@@ -80,7 +80,7 @@ enum class Screen(val label: String, val icon: IconKind) {
 
 /** [hwIn] i [startScreen] — tylko do zrzutów ekranu w testach. */
 @Composable
-fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
+fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map, settingsTab: Int = 0) {
     SmartSteerTheme {
         val ctrl = remember { DemoController() }
         var screen by remember { mutableStateOf(startScreen) }
@@ -149,7 +149,7 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map) {
                         Screen.Implement -> if (hw.hardware) HardwareImplementScreen(hw) else ImplementScreen(ctrl)
                         Screen.Sprayer -> eu.smartsteer.navigator.ui.screens.SprayerScreen(hw)
                         Screen.Connections -> ConnectionsScreen(ctrl, hw)
-                        Screen.Settings -> SettingsScreen(hw)
+                        Screen.Settings -> SettingsScreen(hw, settingsTab)
                     }
                 }
             }
