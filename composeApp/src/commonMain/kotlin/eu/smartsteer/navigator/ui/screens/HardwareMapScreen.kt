@@ -1097,19 +1097,11 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 }
             }
 
-            // ciągnik: prosty trójkąt w kolorze z projektu, czubek = przód
+            // ciągnik: strzałka, ciągnik z góry (przednie koła skręcają jak prawdziwe) albo własny obraz — Ustawienia → Ciągnik
             val p = s.pivot
             if (p != null) {
-                val rt = Vec2.right(s.headingRad)
-                val tri = Path().apply {
-                    moveTo(o(p + fwd * 3.2).x, o(p + fwd * 3.2).y)
-                    lineTo(o(p + rt * 1.1 - fwd * 0.6).x, o(p + rt * 1.1 - fwd * 0.6).y)
-                    lineTo(o(p - rt * 1.1 - fwd * 0.6).x, o(p - rt * 1.1 - fwd * 0.6).y)
-                    close()
-                }
-                drawPath(tri, Ss.Tractor)
-                drawPath(tri, Ss.Text, style = Stroke(width = 2f * px))
-                drawCircle(Ss.Text, 4f * px, o(p))
+                eu.smartsteer.navigator.ui.drawTractorIcon({ o(it) }, p, s.headingRad, s.profile, s.autosteer?.actualAngleDeg ?: 0.0, outline = Ss.Text, px = px)
+                if (DisplayPrefs.tractorIcon == 0) drawCircle(Ss.Text, 4f * px, o(p))
             }
         }
 

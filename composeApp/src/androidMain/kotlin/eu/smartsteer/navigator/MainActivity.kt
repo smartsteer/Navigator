@@ -31,6 +31,13 @@ class MainActivity : ComponentActivity() {
         eu.smartsteer.navigator.core.settings.AndroidStorage.filesDir = filesDir
         eu.smartsteer.navigator.core.settings.AndroidStorage.resources = resources
         eu.smartsteer.navigator.ui.power.PowerPlatform.activity = java.lang.ref.WeakReference(this)
+        // wybór własnej ikony ciągnika (Ustawienia → Ciągnik)
+        eu.smartsteer.navigator.ui.ImagePicker.launcher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
+            val cb = eu.smartsteer.navigator.ui.ImagePicker.pending
+            eu.smartsteer.navigator.ui.ImagePicker.pending = null
+            val bytes = uri?.let { u -> runCatching { contentResolver.openInputStream(u)?.use { it.readBytes() } }.getOrNull() }
+            cb?.invoke(bytes)
+        }
         setContent { App() }
         hideSystemBars()
     }

@@ -104,6 +104,7 @@ fun SettingsScreen(hw: HardwareController, startTab: Int = 0) {
                         Choice("Ekran", listOf("Zwykły", "Tablet (powiększony)"), if (DisplayPrefs.tablet) 1 else 0) { DisplayPrefs.updateTablet(it == 1) }
                         Choice("Kolory", listOf("Noc (ciemne)", "Dzień (jasne)"), if (DisplayPrefs.day) 1 else 0) { DisplayPrefs.updateDay(it == 1) }
                         TrailColorPicker()
+                        TractorIconPicker(hw)
                         if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }
                         Choice("Podkład mapy", eu.smartsteer.navigator.core.map.TileSource.entries.map { it.short }, DisplayPrefs.background) { DisplayPrefs.updateBackground(it) }
                         Label("ORTO = ortofotomapa Polski z Geoportalu, SAT = zdjęcia satelitarne Esri. Raz obejrzane kafelki zostają na dysku; całe pole pobierzesz na ekranie Pola.", Ss.TextMuted, 12.sp)
@@ -1008,6 +1009,55 @@ private fun NumberField(
     ) { Text(display, color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
 }
 
+/** Wygląd ciągnika na mapie: strzałka, ciągnik z góry albo własny obraz; kolor ciągnika. */
+@Composable
+private fun TractorIconPicker(hw: HardwareController) {
+    var msg by remember { mutableStateOf<String?>(null) }
+    val icons = eu.smartsteer.navigator.ui.TractorIcons
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Ss.Surface)
+            .border(1.dp, Ss.Border, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        // podgląd
+        val p = hw.profile
+        Canvas(Modifier.size(width = 70.dp, height = 96.dp).clip(RoundedCornerShape(10.dp)).background(Ss.Ground)) {
+            val len = p.wheelbase.coerceIn(1.5, 5.0) + 2.4
+            val k = (size.height / len.toFloat()) * 0.92f
+            val cx = size.width / 2f
+            val by = size.height / 2f + ((p.wheelbase.coerceIn(1.5, 5.0) + 0.2) / 2).toFloat() * k
+            eu.smartsteer.navigator.ui.drawTractorIcon(
+                { Offset(cx + it.x.toFloat() * k, by - it.y.toFloat() * k) }, eu.smartsteer.navigator.core.geo.Vec2(0.0, 0.0), 0.0, p, 12.0, outline = Ss.Text,
+            )
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Ikona ciągnika", Modifier.weight(1f), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Segmented(listOf("Strzałka", "Ciągnik", "Własna"), DisplayPrefs.tractorIcon) { i ->
+                    if (i == 2 && icons.custom == null) eu.smartsteer.navigator.ui.pickImageFile { b -> msg = if (b == null) null else icons.setCustom(b) ?: "Wczytano własną ikonę" }
+                    else DisplayPrefs.updateTractorIcon(i)
+                }
+            }
+            if (DisplayPrefs.tractorIcon != 2) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Kolor ciągnika", Modifier.weight(1f), color = Ss.TextSoft, fontSize = 13.sp)
+                for (hex in icons.palette) {
+                    val sel = hex.equals(DisplayPrefs.tractorColor, ignoreCase = true)
+                    Box(
+                        Modifier.size(28.dp).clip(RoundedCornerShape(14.dp))
+                            .background(if (hex.isEmpty()) Ss.Tractor else Color(eu.smartsteer.navigator.ui.TrailColors.argb(hex)!!))
+                            .border(if (sel) 3.dp else 1.dp, if (sel) Ss.Text else Ss.Border, RoundedCornerShape(14.dp))
+                            .clickable { DisplayPrefs.updateTractorColor(hex) },
+                    )
+                }
+            } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ActionButton(onClick = { eu.smartsteer.navigator.ui.pickImageFile { b -> msg = if (b == null) null else icons.setCustom(b) ?: "Wczytano własną ikonę" } }) { ButtonText("Wczytaj inny obraz", size = 13.sp) }
+                ActionButton(onClick = { icons.clearCustom(); msg = "Usunięto własną ikonę" }) { ButtonText("Usuń", size = 13.sp) }
+            }
+            Label(msg ?: "Własna ikona: obraz PNG z przezroczystym tłem, ciągnik widziany z góry, przodem do góry. Program dopasuje go do rozstawu osi.", Ss.TextMuted, 12.sp)
+        }
+    }
+}
+
 /** Kolor śladu tej maszyny (jak w AgOpenGPS) — widzą go też inne Navigatory gospodarstwa. */
 @Composable
 private fun TrailColorPicker() {
@@ -1169,8 +1219,8 @@ private fun RigDrawing(hw: HardwareController, modifier: Modifier) {
         val widths = p.sectionWidthsEffective
         val total = widths.sum().coerceAtLeast(0.1)
         val track = p.trackWidth.coerceAtLeast(0.5)
-        val front = p.wheelbase + 0.9
-        val rear = -0.7
+        val front = p.wheelbase + 1.3
+        val rear = -1.0
         val hitchY = p.hitchLength
         val toolY = if (p.toolTrailing) hitchY + p.trailingHitchLength else hitchY
         val depth = 0.7
@@ -1184,20 +1234,11 @@ private fun RigDrawing(hw: HardwareController, modifier: Modifier) {
         val oy = size.height / 2f + ((minY + maxY) / 2).toFloat() * k
         fun pt(x: Double, y: Double) = Offset(ox + x.toFloat() * k, oy - y.toFloat() * k)
 
-        // ciągnik: kadłub, koła, kabina
-        val body = Path().apply {
-            val a = pt(-track / 2 + 0.25, front); val b = pt(track / 2 - 0.25, rear)
-            addRoundRect(androidx.compose.ui.geometry.RoundRect(a.x, a.y, b.x, b.y, androidx.compose.ui.geometry.CornerRadius(0.3f * k)))
-        }
-        drawPath(body, Ss.Tractor)
-        fun wheel(x: Double, y: Double, w: Double, l: Double) {
-            val a = pt(x - w / 2, y + l / 2); val b = pt(x + w / 2, y - l / 2)
-            drawRect(Color(0xFF1B1F1D), a, androidx.compose.ui.geometry.Size(b.x - a.x, b.y - a.y))
-        }
-        wheel(-track / 2, 0.0, 0.5, 1.5); wheel(track / 2, 0.0, 0.5, 1.5)
-        wheel(-track / 2 + 0.1, p.wheelbase, 0.4, 1.0); wheel(track / 2 - 0.1, p.wheelbase, 0.4, 1.0)
-        drawLine(Ss.Text.copy(alpha = 0.5f), pt(-track / 2, 0.0), pt(track / 2, 0.0), 2f)
-        drawLine(Ss.Text.copy(alpha = 0.5f), pt(-track / 2, p.wheelbase), pt(track / 2, p.wheelbase), 2f)
+        // ciągnik z góry (albo własny obraz) — ten sam rysunek co na mapie
+        eu.smartsteer.navigator.ui.drawTractorIcon(
+            { pt(it.x, it.y) }, eu.smartsteer.navigator.core.geo.Vec2(0.0, 0.0), 0.0, p, hw.session.autosteer?.actualAngleDeg ?: 0.0,
+            icon = if (DisplayPrefs.tractorIcon == 0) 1 else DisplayPrefs.tractorIcon, outline = Ss.Text,
+        )
         // antena
         val ant = pt(-p.antennaOffset, p.antennaPivot)
         drawCircle(Ss.GuideLine, 0.22f * k + 3f, ant)

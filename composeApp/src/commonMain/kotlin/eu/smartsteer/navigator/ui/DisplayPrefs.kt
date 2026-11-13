@@ -39,6 +39,16 @@ object DisplayPrefs {
         private set
     fun updateTrailColor(hex: String) { trailColor = if (TrailColors.valid(hex)) hex.uppercase() else ""; save() }
 
+    /** Ikona ciągnika na mapie: 0 = strzałka, 1 = ciągnik z góry (domyślnie), 2 = własny obraz (TractorIcons). */
+    var tractorIcon by mutableStateOf(saved["ikona"]?.toIntOrNull()?.coerceIn(0, 2) ?: 1)
+        private set
+    fun updateTractorIcon(i: Int) { tractorIcon = i.coerceIn(0, 2); save() }
+
+    /** Kolor ciągnika „#RRGGBB”; pusty = czerwony z motywu. */
+    var tractorColor by mutableStateOf(saved["kolor_c"]?.takeIf { TrailColors.valid(it) } ?: "")
+        private set
+    fun updateTractorColor(hex: String) { tractorColor = if (TrailColors.valid(hex)) hex.uppercase() else ""; save() }
+
     /** Ustawia okno Windows (main.kt); na Androidzie pełny ekran jest zawsze. */
     var fullScreenSupported = false
 
@@ -47,7 +57,7 @@ object DisplayPrefs {
     fun toggleFullScreen() = updateFullScreen(!fullScreen)
 
     private fun save() {
-        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nkolor=$trailColor\n") }
+        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nkolor=$trailColor\nikona=$tractorIcon\nkolor_c=$tractorColor\n") }
     }
 }
 
