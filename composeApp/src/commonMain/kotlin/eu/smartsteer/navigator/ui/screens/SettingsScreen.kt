@@ -306,6 +306,11 @@ private fun ColumnScope.ImuTab(hw: HardwareController, p: VehicleProfile, set: (
     Num("Filtr przechyłu", "Większy = spokojniej, ale z opóźnieniem", p.rollFilter, "", 0.05, 0.0, 0.95, 2) { set(p.copy(rollFilter = it)) }
     Label("Wysokość anteny (zakładka Ciągnik): ${p.antennaHeight.pl(2)} m — od niej zależy poprawka pozycji na zboczu.", Ss.TextSoft, 13.sp)
     SectionTitle("Kurs")
+    Choice("Kurs przy jednej antenie", eu.smartsteer.navigator.core.settings.HeadingFrom.entries.map { it.label }, p.headingFrom.ordinal) {
+        set(p.copy(headingFrom = eu.smartsteer.navigator.core.settings.HeadingFrom.entries[it])); hw.session.resetDirection()
+    }
+    Toggle("Wykrywanie jazdy do tyłu", p.reverseDetect) { set(p.copy(reverseDetect = it)) }
+    Num("Odległość pozycji do kursu", "Kurs z pozycji oddalonych co najmniej o tyle (AgOpenGPS: 0,5 m)", p.minHeadingStepM, "m", 0.1, 0.2, 3.0, 1) { set(p.copy(minHeadingStepM = it)) }
     Num("Korekta kursu IMU przez GPS", "Fuzja; 0 = kurs tylko z GPS", p.fusionWeight, "", 0.01, 0.0, 0.5, 2) { set(p.copy(fusionWeight = it)) }
     Num("Poprawka kursu z dwóch anten", "Gdy anteny nie stoją dokładnie w poprzek ciągnika", p.dualHeadingOffset, "°", 0.1, -180.0, 180.0, 1) { set(p.copy(dualHeadingOffset = it)) }
     Num("Kompensacja zbocza", "Stopnie skrętu na stopień przechyłu", p.sideHillComp, "", 0.01, 0.0, 1.0, 2) { set(p.copy(sideHillComp = it)) }

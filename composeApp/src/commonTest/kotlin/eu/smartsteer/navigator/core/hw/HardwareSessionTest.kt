@@ -5,6 +5,7 @@ import eu.smartsteer.navigator.core.aog.Pgn
 import eu.smartsteer.navigator.core.geo.LocalPlane
 import eu.smartsteer.navigator.core.geo.Vec2
 import eu.smartsteer.navigator.core.gps.Nmea
+import eu.smartsteer.navigator.core.settings.HeadingFrom
 import eu.smartsteer.navigator.core.settings.VehicleProfile
 import kotlin.math.PI
 import kotlin.math.abs
@@ -62,7 +63,7 @@ class HardwareSessionTest {
     fun abLineFromButtonsAndParallelPass() {
         val h = HardwareSession(VehicleProfile(toolWidth = 3.0, antennaPivot = 0.0))
         var t = driveNorth(h, 0.0, 0.0, 2.0, 0.0)
-        assertEquals(HeadingSource.VTG, h.headingSource)
+        assertEquals(HeadingSource.MOTION, h.headingSource)   // jak AgOpenGPS: kurs z pozycji po 3 krokach
         assertTrue(h.markA())
         assertFalse(h.markB(), "za blisko A")
         t = driveNorth(h, 0.0, 3.0, 30.0, t)
@@ -147,7 +148,7 @@ class HardwareSessionTest {
 
     @Test
     fun nmeaDatagramWithSeveralSentences() {
-        val h = HardwareSession()
+        val h = HardwareSession(VehicleProfile(headingFrom = HeadingFrom.VTG))
         val text = vtg(90.0, 5.0) + "\r\n" + gga(Vec2(10.0, 20.0)) + "\r\n"
         val b = text.encodeToByteArray()
         h.onDatagram(b, b.size, 1.0)
@@ -174,7 +175,7 @@ class HardwareSessionTest {
         assertTrue(abs(h.headingRad - 271.5 * PI / 180) < 1e-9)
     }
 
-    /** IMU (BNO085) ma dowolne zero: jazda do przodu nie może być brana za cofanie (zgłoszenie z pola 2026-11-13). */
+    /** IMU (BNO085) ma dowolne zero: przód ustawia pierwsze ruszenie, potem cofanie z porównania z IMU — jak AgOpenGPS. */
     @Test
     fun imuWithArbitraryZeroIsNotReverse() {
         val h = HardwareSession()
@@ -189,26 +190,34 @@ class HardwareSessionTest {
         assertEquals(HeadingSource.IMU, h.headingSource)
         assertTrue(!h.reversing, "jazda do przodu, nie cofanie")
         assertTrue(abs(h.headingRad) < 0.05 || abs(h.headingRad - 2 * PI) < 0.05, "kurs ${h.headingRad}")
-        // prawdziwe cofanie: IMU bez zmian, kurs ruchu odwrócony, wolno
-        repeat(6) {
+        // prawdziwe cofanie: IMU bez zmian, ciągnik jedzie tyłem na południe, wolno
+        repeat(8) {
             h.imu.onHeading(200.0, t)
             h.onNmea(vtg(180.0, 3.0), t); h.onNmea(gga(Vec2(0.0, y)), t)
             y -= 0.4; t += 0.5
         }
         assertTrue(h.reversing, "cofanie wykryte")
         assertTrue(abs(h.headingRad) < 0.1 || abs(h.headingRad - 2 * PI) < 0.1, "przód dalej na północ")
-        // błędne „cofanie” przy szybkiej jeździe samo się prostuje po 5 s
-        repeat(14) {
-            h.imu.onHeading(200.0, t)
-            h.onNmea(vtg(180.0, 10.0), t); h.onNmea(gga(Vec2(0.0, y)), t)
-            y -= 1.4; t += 0.5
-        }
-        assertTrue(!h.reversing, "po 5 s szybkiej jazdy kurs IMU ustawiony od nowa")
+    }
+
+    /** Dotknięcie ciągnika = kierunek od nowa; przód ustawia następne ruszenie > 1,5 km/h (AgOpenGPS „Reset Direction”). */
+    @Test
+    fun tapOnTractorResetsDirection() {
+        val h = HardwareSession(VehicleProfile(antennaPivot = 0.0))
+        var t = driveNorth(h, 0.0, 0.0, 10.0, 0.0)
+        assertTrue(abs(h.headingRad) < 0.05 || abs(h.headingRad - 2 * PI) < 0.05)
+        h.flipHeading()
+        assertFalse(h.reversing)
+        // ciągnik naprawdę stał tyłem: rusza „do przodu” na południe
+        var y = 10.0
+        repeat(6) { h.onNmea(vtg(180.0, 5.0), t); h.onNmea(gga(Vec2(0.0, y)), t); y -= 1.0; t += 0.5 }
+        assertTrue(abs(h.headingRad - PI) < 0.05, "kurs ${h.headingRad}")
+        assertFalse(h.reversing)
     }
 
     @Test
     fun recordedCurveAndNeighbourPass() {
-        val h = HardwareSession(VehicleProfile(toolWidth = 3.0, antennaPivot = 0.0))
+        val h = HardwareSession(VehicleProfile(headingFrom = HeadingFrom.VTG, toolWidth = 3.0, antennaPivot = 0.0))
         var t = 0.0
         // pierwsza pozycja wyznacza początek pola; jedziemy łukiem R = 60 m w prawo
         fun at(p: Vec2, courseDeg: Double) { h.onNmea(vtg(courseDeg, 7.2), t); h.onNmea(gga(p), t); t += 0.25 }
@@ -234,7 +243,7 @@ class HardwareSessionTest {
 
     @Test
     fun autoUturnAtFieldEnd() {
-        val h = HardwareSession(VehicleProfile(toolWidth = 6.0, antennaPivot = 0.0, supSteerErrDeg = 0.0)) // moduł w teście zawsze odpowiada kątem 0°
+        val h = HardwareSession(VehicleProfile(headingFrom = HeadingFrom.VTG, toolWidth = 6.0, antennaPivot = 0.0, supSteerErrDeg = 0.0)) // moduł w teście zawsze odpowiada kątem 0°
         var t = 0.0
         val reply = steerReply()
         fun at(p: Vec2, course: Double) {
@@ -267,21 +276,6 @@ class HardwareSessionTest {
         h.update(t)
         assertEquals(1, h.passIndex)
         assertTrue(h.reversed)
-    }
-
-    @Test
-    fun tapOnTractorFlipsFrontAndBack() {
-        val h = HardwareSession(VehicleProfile(antennaPivot = 0.0))
-        h.onNmea(vtg(10.0, 7.2), 0.0)
-        h.onNmea(gga(Vec2(0.0, 0.0)), 0.0)
-        assertTrue(abs(h.headingRad - 10 * PI / 180) < 1e-9)
-        h.flipHeading()
-        assertTrue(abs(h.headingRad - 190 * PI / 180) < 1e-9)
-        h.onNmea(vtg(12.0, 7.2), 0.5)
-        h.onNmea(gga(Vec2(0.0, 1.0)), 0.5)
-        assertTrue(abs(h.headingRad - 192 * PI / 180) < 1e-9, "odwrócenie zostaje przy nowych pozycjach")
-        h.flipHeading()
-        assertTrue(abs(h.headingRad - 12 * PI / 180) < 1e-9)
     }
 
     @Test

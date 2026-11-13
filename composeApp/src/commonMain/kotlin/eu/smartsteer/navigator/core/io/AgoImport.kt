@@ -5,6 +5,7 @@ import eu.smartsteer.navigator.core.field.Polygon
 import eu.smartsteer.navigator.core.geo.LocalPlane
 import eu.smartsteer.navigator.core.geo.Vec2
 import eu.smartsteer.navigator.core.hw.AbLine
+import eu.smartsteer.navigator.core.settings.HeadingFrom
 import eu.smartsteer.navigator.core.settings.SteerAlgorithm
 import eu.smartsteer.navigator.core.settings.SteerEnable
 import eu.smartsteer.navigator.core.settings.VehicleProfile
@@ -87,6 +88,12 @@ object AgoImport {
         d("setIMU_rollFilter")?.let { p = p.copy(rollFilter = it) }
         b("setIMU_invertRoll")?.let { p = p.copy(invertRoll = it) }
         d("setIMU_fusionWeight2")?.let { p = p.copy(fusionWeight = it) }
+        s["setGPS_headingFromWhichSource"]?.trim()?.let { v -> HeadingFrom.entries.firstOrNull { it.ago.equals(v, true) }?.let { n++; p = p.copy(headingFrom = it) } }
+        b("setIMU_isReverseOn")?.let { p = p.copy(reverseDetect = it) }
+        d("setGPS_minimumStepLimit")?.let { p = p.copy(minStepM = it) }
+        d("setF_minHeadingStepDistance")?.let { p = p.copy(minHeadingStepM = it) }
+        d("setGPS_forwardComp")?.let { p = p.copy(forwardComp = it) }
+        d("setGPS_reverseComp")?.let { p = p.copy(reverseComp = it) }
         // moduł skrętu (PGN 252)
         i("setAS_Kp")?.let { p = p.copy(gainP = it) }
         i("setAS_highSteerPWM")?.let { p = p.copy(highPwm = it) }

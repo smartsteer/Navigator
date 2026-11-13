@@ -42,6 +42,28 @@ class Imu {
         aligned = true
     }
 
+    /** Kasuje dopasowanie kursu IMU do GPS (reset kierunku: imuGPS_Offset = 0). */
+    fun resetAlignment() { imuGpsOffset = 0.0; aligned = false }
+
+    /**
+     * Fuzja dla źródła kursu „VTG” (AgOpenGPS, Position.designer.cs, case "VTG"): offset przesuwany o 0,1 różnicy,
+     * gdy różnica < 0,18 rad, inaczej o 0,2.
+     */
+    fun fuseVtg(gpsHeading: Double): Double {
+        val imu = (headingDeg ?: return gpsHeading) * PI / 180
+        var gyroDelta = (imu + imuGpsOffset) - gpsHeading
+        if (gyroDelta < 0) gyroDelta += TWO_PI
+        if (gyroDelta >= -HALF_PI && gyroDelta <= HALF_PI) gyroDelta *= -1.0
+        else gyroDelta = if (gyroDelta > HALF_PI) TWO_PI - gyroDelta else (TWO_PI + gyroDelta) * -1.0
+        if (gyroDelta > TWO_PI) gyroDelta -= TWO_PI
+        if (gyroDelta < -TWO_PI) gyroDelta += TWO_PI
+        imuGpsOffset += gyroDelta * (if (kotlin.math.abs(gyroDelta) < 0.18) 0.1 else 0.2)
+        if (imuGpsOffset > TWO_PI) imuGpsOffset -= TWO_PI
+        if (imuGpsOffset < -TWO_PI) imuGpsOffset += TWO_PI
+        aligned = true
+        return corrected()
+    }
+
     fun rollAlive(nowS: Double) = rollDeg != null && nowS - rollTimeS <= TIMEOUT_S
     fun headingAlive(nowS: Double) = headingDeg != null && nowS - headingTimeS <= TIMEOUT_S
 

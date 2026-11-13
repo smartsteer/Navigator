@@ -1,5 +1,6 @@
 package eu.smartsteer.navigator.core.hw
 
+import eu.smartsteer.navigator.core.settings.HeadingFrom
 import eu.smartsteer.navigator.core.settings.SteerEnable
 import eu.smartsteer.navigator.core.aog.AogFrame
 import eu.smartsteer.navigator.core.aog.AutosteerStatus
@@ -117,7 +118,6 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     /** Ślad jazdy (co ok. 0,5 m) do rysowania na mapie. */
     val trail = ArrayDeque<Vec2>()
 
-    private var motionRef: Vec2? = null
     private var vtgCourse: Double? = null
     private var vtgTimeS = Double.NEGATIVE_INFINITY
     private var dualHeading: Double? = null
@@ -127,27 +127,24 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     val imu = Imu()
     /** Kurs ze źródeł (przed odwróceniem przodu/tyłu). */
     private var rawHeadingRad = 0.0
-    /** Przód/tył odwrócony dotknięciem ciągnika na mapie (jak w AgOpenGPS) — gdy kurs wyszedł odwrotny. */
-    var headingFlipped = false; private set
 
-    /** Dotknięcie ciągnika: zamiana przodu z tyłem (kurs + 180°). */
+    /**
+     * Dotknięcie ciągnika na mapie — jak w AgOpenGPS (GUI.Designer.cs, „Reset Direction”): kierunek liczony od nowa,
+     * przód ustawia się przy następnym ruszeniu do przodu szybciej niż 1,5 km/h. Z dwiema antenami nic nie robi.
+     */
     fun flipHeading() {
-        // z IMU: zamiana przodu z tyłem = przestawienie offsetu IMU o 180° (inaczej zostałoby „cofanie” i blokada autosteru)
-        if (headingSource == HeadingSource.IMU && imu.aligned) {
-            imu.align(norm(imu.corrected() + PI))
-            reversing = !reversing
-            rawHeadingRad = imu.corrected()
-            headingRad = norm(rawHeadingRad + if (headingFlipped) PI else 0.0)
-            engaged = false; pathHint = -1; steering.reset()
-            ok("Przód i tył zamienione (kurs IMU ustawiony od nowa)")
-            return
-        }
-        headingFlipped = !headingFlipped
-        headingRad = norm(rawHeadingRad + if (headingFlipped) PI else 0.0)
-        engaged = false
-        pathHint = -1
-        steering.reset()
-        ok(if (headingFlipped) "Przód i tył zamienione" else "Przód i tył jak z GPS")
+        if (headingSource == HeadingSource.DUAL) { ok("Kurs z dwóch anten — kierunku nie trzeba ustawiać"); return }
+        resetDirection()
+        engaged = false; pathHint = -1; steering.reset()
+        ok("Kierunek od nowa — ruszaj do przodu szybciej niż 1,5 km/h")
+    }
+
+    /** Kasuje ustalony przód (punkty kursu, offset IMU, cofanie). */
+    fun resetDirection() {
+        stepFix.clear()
+        firstHeadingSet = false
+        reversing = false; reverseWithImu = false; changingDirection = false; filteredDelta = 0.0
+        imu.resetAlignment()
     }
 
     private fun norm(h: Double): Double { var r = h % (2 * PI); if (r < 0) r += 2 * PI; return r }
@@ -263,7 +260,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
      */
     private fun updateHeading(p: Vec2, nowS: Double) {
         rawHeading(p, nowS)
-        headingRad = norm(rawHeadingRad + if (headingFlipped) PI else 0.0)
+        headingRad = rawHeadingRad
     }
 
     /**
@@ -272,7 +269,6 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
      * (jak wykrywanie cofania w AgOpenGPS, Position.designer.cs). Z IMU / dwiema antenami porównujemy wprost.
      */
     var reversing = false; private set
-    private var fastReverseSinceS = Double.NaN
 
     private fun angDiff(a: Double, b: Double): Double {
         var d = (a - b) % (2 * PI)
@@ -289,44 +285,108 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             if (v != null && speedKmh >= MIN_HEADING_KMH && nowS - vtgTimeS < 1.0) reversing = angDiff(v, dual) > PI / 2
             return
         }
-        val moving = speedKmh >= MIN_HEADING_KMH
-        val vtg = vtgCourse
-        val ref = motionRef
-        var gps: Double? = null
-        var src = HeadingSource.NONE
-        when {
-            vtg != null && moving && nowS - vtgTimeS < 1.0 -> { gps = vtg; src = HeadingSource.VTG; motionRef = p }
-            ref == null -> motionRef = p
-            p.distanceTo(ref) >= 0.5 -> {
-                gps = atan2(p.x - ref.x, p.y - ref.y)
-                src = HeadingSource.MOTION
-                motionRef = p
-            }
+        when (profile.headingFrom) {
+            HeadingFrom.FIX -> fixHeading(p, nowS)
+            HeadingFrom.VTG -> vtgHeading(nowS)
         }
-        if (imu.headingAlive(nowS) && profile.fusionWeight > 0) {
-            // IMU ma dowolne zero: pierwszy kurs z GPS ustawia offset (zakładamy ruszenie do przodu, jak AgOpenGPS).
-            // Bez tego przy zerze IMU odwróconym o ponad 90° program uznawał jazdę do przodu za cofanie i blokował autoster.
-            if (gps != null && !imu.aligned) { imu.align(gps); reversing = false; fastReverseSinceS = Double.NaN }
-            if (gps != null) reversing = angDiff(gps, imu.corrected()) > PI / 2
-            // zabezpieczenie: „cofanie” szybciej niż 8 km/h przez 5 s to błędnie ustawiony kurs IMU, nie cofanie — ustaw od nowa
-            if (gps != null && reversing && speedKmh >= REALIGN_KMH) {
-                if (fastReverseSinceS.isNaN()) fastReverseSinceS = nowS
-                else if (nowS - fastReverseSinceS >= REALIGN_S) { imu.align(gps); reversing = false; fastReverseSinceS = Double.NaN }
-            } else fastReverseSinceS = Double.NaN
-            val g = gps?.let { if (reversing) norm(it + PI) else it }
-            rawHeadingRad = if (g != null) imu.fuse(g, profile.fusionWeight) else imu.corrected()
-            headingSource = HeadingSource.IMU
-        } else if (gps != null) {
-            // bez IMU: kierunek jazdy z ciągłości kursu ciągnika
-            val prev = if (headingSource == HeadingSource.NONE) gps else rawHeadingRad
-            val d = angDiff(gps, prev)
-            if (speedKmh < REVERSE_DETECT_KMH) {
-                val vehicleIfFwd = angDiff(gps, prev)
-                val vehicleIfRev = angDiff(norm(gps + PI), prev)
-                reversing = vehicleIfRev < vehicleIfFwd && (reversing || d > REVERSE_JUMP)
+    }
+
+    // --- kurs jak w AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), SourceCode/GPS/Forms/Position.designer.cs ---
+
+    /** Ostatnie pozycje anteny użyte do kursu, [0] = najnowsza (stepFixPts). */
+    private val stepFix = ArrayDeque<Vec2>()
+    private var firstHeadingSet = false
+    /** Ostatni kurs z GPS (gpsHeading), rad. */
+    private var gpsHeadingRad = 0.0
+    private var filteredDelta = 0.0
+    var changingDirection = false; private set
+    private var reverseWithImu = false
+
+    private fun imuOn(nowS: Double) = imu.headingAlive(nowS) && profile.fusionWeight > 0
+
+    /** byPass: na postoju i między krokami — kurs z IMU (gdy jest), inaczej ostatni. */
+    private fun headingFromImuOnly(nowS: Double) {
+        if (imuOn(nowS)) { rawHeadingRad = imu.corrected(); headingSource = HeadingSource.IMU }
+    }
+
+    private fun pushStep(p: Vec2) {
+        stepFix.addFirst(p)
+        while (stepFix.size > TOTAL_FIX_STEPS) stepFix.removeLast()
+    }
+
+    /** Źródło „Fix”: kurs z kolejnych pozycji anteny. [antenna] = pozycja po poprawce przesunięcia anteny i przechyłu. */
+    private fun fixHeading(antenna: Vec2, nowS: Double) {
+        // poprawki jak w AgOpenGPS: przesunięcie anteny w bok i przechył — z poprzednim kursem
+        val roll = imu.rollCorrection(profile, nowS)
+        val fix = antenna + Vec2.right(gpsHeadingRad) * (profile.antennaOffset + roll)
+        if (!firstHeadingSet) {
+            if (abs(speedKmh) < 1.5) { headingFromImuOnly(nowS); return }
+            pushStep(fix)
+            if (stepFix.size < 3) { headingFromImuOnly(nowS); return }
+            gpsHeadingRad = norm(atan2(fix.x - stepFix[2].x, fix.y - stepFix[2].y))
+            rawHeadingRad = gpsHeadingRad
+            headingSource = HeadingSource.MOTION
+            if (imu.headingDeg != null && imu.headingAlive(nowS)) {
+                imu.align(gpsHeadingRad)
+                if (profile.fusionWeight > 0) { rawHeadingRad = imu.corrected(); headingSource = HeadingSource.IMU }
             }
-            rawHeadingRad = if (reversing) norm(gps + PI) else gps
-            headingSource = src
+            reversing = false
+            firstHeadingSet = true
+            ok("Przód ustawiony")
+            return
+        }
+        val last = stepFix.firstOrNull()
+        if (last == null) { pushStep(fix); return }
+        if (last.distanceTo(fix) < profile.minStepM) { headingFromImuOnly(nowS); return }
+        val minSq = profile.minHeadingStepM * profile.minHeadingStepM
+        var idx = 0
+        var dSq = 0.0
+        for (i in stepFix.indices) {
+            idx = i
+            dSq = Curves.d2(stepFix[i], fix)
+            if (dSq > minSq) break
+        }
+        if (dSq < minSq * 0.5) { headingFromImuOnly(nowS); return }
+        var h = norm(atan2(fix.x - stepFix[idx].x, fix.y - stepFix[idx].y))
+        val steer = autosteer?.actualAngleDeg ?: 0.0
+        if (imuOn(nowS)) {
+            changingDirection = false
+            if (profile.reverseDetect) {
+                val delta = abs(PI - abs(abs(h - imu.corrected()) - PI))
+                if (delta > 1.57) { reversing = true; h = norm(h + PI); reverseWithImu = true }
+                else { reversing = false; reverseWithImu = false }
+            } else reversing = false
+            h = norm(h - (profile.antennaPivot * steer * (if (reversing) profile.reverseComp else profile.forwardComp)) * PI / 180)
+            gpsHeadingRad = h
+            rawHeadingRad = imu.fuse(h, if (reverseWithImu) 0.02 else profile.fusionWeight)
+            headingSource = HeadingSource.IMU
+        } else {
+            if (profile.reverseDetect) {
+                val delta = abs(PI - abs(abs(h - gpsHeadingRad) - PI))
+                filteredDelta = delta * 0.2 + filteredDelta * 0.8
+                changingDirection = abs(filteredDelta - delta) > 0.5
+                if (changingDirection) return // nie wiadomo, czy zmienia kierunek — czekamy
+                if (filteredDelta > 1.57) { reversing = true; h = norm(h + PI) } else reversing = false
+                h = norm(h - (profile.antennaPivot * steer * (if (reversing) profile.reverseComp else profile.forwardComp)) * PI / 180)
+            } else { reversing = false; changingDirection = false }
+            gpsHeadingRad = h
+            rawHeadingRad = h
+            headingSource = HeadingSource.MOTION
+        }
+        pushStep(fix)
+    }
+
+    /** Źródło „VTG”: kurs z odbiornika przy prędkości > 1 km/h, z IMU korygowanym jak w AgOpenGPS (bez wykrywania cofania). */
+    private fun vtgHeading(nowS: Double) {
+        firstHeadingSet = true
+        reversing = false
+        val v = vtgCourse
+        if (speedKmh > 1 && v != null && nowS - vtgTimeS < 1.0) {
+            gpsHeadingRad = norm(v); rawHeadingRad = gpsHeadingRad; headingSource = HeadingSource.VTG
+        }
+        if (imu.headingDeg != null && imu.headingAlive(nowS)) {
+            rawHeadingRad = imu.fuseVtg(gpsHeadingRad)
+            headingSource = HeadingSource.IMU
         }
     }
 
@@ -1239,7 +1299,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     private fun resetForField(pl: LocalPlane) {
         plane = pl
-        antenna = null; pivot = null; motionRef = null
+        antenna = null; pivot = null; resetDirection()
         trail.clear(); contour.clear(); coverage.clear(); sections.reset()
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
@@ -1320,13 +1380,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         const val PGN_EXTERNAL_IMU = 0xD3
         const val PGN_IMU_DISCONNECT = 0xD4
         const val GPS_TIMEOUT_S = 1.0
-        /** Wykrywanie zmiany kierunku jazdy tylko przy małej prędkości. */
-        const val REVERSE_DETECT_KMH = 6.0
-        /** Przeskok kursu ruchu, który znaczy „zmiana kierunku jazdy”. */
-        const val REVERSE_JUMP = 2.1
-        /** „Cofanie” szybsze niż tyle km/h przez [REALIGN_S] s = źle ustawiony kurs IMU → ustawienie od nowa. */
-        const val REALIGN_KMH = 8.0
-        const val REALIGN_S = 5.0
+        /** Liczba zapamiętanych pozycji do kursu (totalFixSteps w AgOpenGPS). */
+        const val TOTAL_FIX_STEPS = 10
         /** Poniżej tej prędkości nie liczymy kursu z ruchu (szum RTK), km/h. */
         const val MIN_HEADING_KMH = 1.0
     }

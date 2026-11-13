@@ -4,6 +4,9 @@ import eu.smartsteer.navigator.core.update.MiniJson
 
 enum class SteerAlgorithm(val label: String) { PURE_PURSUIT("Pure pursuit"), STANLEY("Stanley") }
 
+/** Skąd kurs przy jednej antenie (setGPS_headingFromWhichSource w AgOpenGPS): z kolejnych pozycji („Fix”) albo z VTG odbiornika. */
+enum class HeadingFrom(val label: String, val ago: String) { FIX("Z pozycji (Fix)", "Fix"), VTG("Z odbiornika (VTG)", "VTG") }
+
 /** Sposób włączania autosteru na płytce (PGN 251, bity 5–6). */
 enum class SteerEnable(val label: String) { NONE("Brak"), SWITCH("Przełącznik"), BUTTON("Przycisk") }
 
@@ -108,6 +111,17 @@ data class VehicleProfile(
     val fusionWeight: Double = 0.06,
     /** Poprawka kursu z dwóch anten, ° (setGPS_dualHeadingOffset) — gdy anteny nie stoją dokładnie w poprzek. */
     val dualHeadingOffset: Double = 0.0,
+    /** Kurs przy jednej antenie — jak w AgOpenGPS domyślnie z kolejnych pozycji. */
+    val headingFrom: HeadingFrom = HeadingFrom.FIX,
+    /** Wykrywanie jazdy do tyłu (setIMU_isReverseOn). */
+    val reverseDetect: Boolean = true,
+    /** Najmniejszy ruch anteny, przy którym liczy się nowy kurs, m (setGPS_minimumStepLimit). */
+    val minStepM: Double = 0.05,
+    /** Odległość między pozycjami do kursu, m (setF_minHeadingStepDistance). */
+    val minHeadingStepM: Double = 0.5,
+    /** Poprawka kursu o skręt kół przy jeździe do przodu / do tyłu (setGPS_forwardComp, setGPS_reverseComp). */
+    val forwardComp: Double = 0.15,
+    val reverseComp: Double = 0.3,
 
     // --- Moduł maszyny (PGN 238) ---
     val machineInvertRelays: Boolean = false,
@@ -270,6 +284,8 @@ data class VehicleProfile(
         "stanleyDistanceGain" to stanleyDistanceGain, "stanleyHeadingGain" to stanleyHeadingGain,
         "stanleyIntegral" to stanleyIntegral, "sideHillComp" to sideHillComp,
         "rollZero" to rollZero, "rollFilter" to rollFilter, "invertRoll" to invertRoll, "fusionWeight" to fusionWeight,
+        "headingFrom" to headingFrom.name, "reverseDetect" to reverseDetect, "minStepM" to minStepM, "minHeadingStepM" to minHeadingStepM,
+        "forwardComp" to forwardComp, "reverseComp" to reverseComp,
         "gainP" to gainP, "highPwm" to highPwm, "lowPwm" to lowPwm, "minPwm" to minPwm,
         "countsPerDegree" to countsPerDegree, "wasOffset" to wasOffset, "ackerman" to ackerman,
         "invertWas" to invertWas, "invertRelays" to invertRelays, "invertMotor" to invertMotor,
@@ -355,6 +371,12 @@ data class VehicleProfile(
                 rollFilter = num("rollFilter", d.rollFilter),
                 invertRoll = bool("invertRoll", d.invertRoll),
                 fusionWeight = num("fusionWeight", d.fusionWeight),
+                headingFrom = HeadingFrom.entries.firstOrNull { it.name == m["headingFrom"] } ?: d.headingFrom,
+                reverseDetect = bool("reverseDetect", d.reverseDetect),
+                minStepM = num("minStepM", d.minStepM),
+                minHeadingStepM = num("minHeadingStepM", d.minHeadingStepM),
+                forwardComp = num("forwardComp", d.forwardComp),
+                reverseComp = num("reverseComp", d.reverseComp),
                 gainP = int("gainP", d.gainP),
                 highPwm = int("highPwm", d.highPwm),
                 lowPwm = int("lowPwm", d.lowPwm),
