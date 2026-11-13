@@ -1,5 +1,6 @@
 package eu.smartsteer.navigator.core.hw
 
+import eu.smartsteer.navigator.core.settings.SteerEnable
 import eu.smartsteer.navigator.core.aog.AogFrame
 import eu.smartsteer.navigator.core.aog.AutosteerStatus
 import eu.smartsteer.navigator.core.aog.SteerConfig
@@ -658,6 +659,10 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         if (engaged && !autosteerAlive(nowS)) trip("Moduł autosterowania nie odpowiada — autoster wyłączony")
         checkSpeedLimits()
         if (freeDrive && speedKmh > FREE_DRIVE_MAX_KMH) { freeDrive = false; fail("Test silnika wyłączony — ciągnik jedzie") }
+        // płytka nie da prądu na silnik, gdy jej włącznik autosteru jest wyłączony (ustawienie „Przełącznik” / „Przycisk” w PGN 251)
+        val boardSwitchOff = (engaged || freeDrive) && profile.steerEnable != SteerEnable.NONE && autosteerAlive(nowS) && autosteer?.steerSwitch == false
+        if (boardSwitchOff && !boardSwitchWarned) fail("Włącznik autosteru na płytce jest wyłączony — silnik nie ruszy. Włącz go albo w Ustawienia → Płytka wybierz włączanie „Brak”.")
+        boardSwitchWarned = boardSwitchOff
         val p = pivot
         val roll = imu.rollDeg?.takeIf { imu.rollAlive(nowS) }
         // auto-zawrót: zaczynamy przed końcem przejazdu, a gdy trwa — jedziemy po nim
@@ -1057,6 +1062,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     // ---------------- test silnika (Free drive) ----------------
     /** Ręczne kręcenie kołami z ekranu — do sprawdzenia silnika i czujnika kąta bez jazdy. */
     var freeDrive = false; private set
+    private var boardSwitchWarned = false
     var freeDriveAngle = 0.0; private set
 
     fun setFreeDrive(on: Boolean) {

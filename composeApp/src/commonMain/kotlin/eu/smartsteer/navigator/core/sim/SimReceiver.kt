@@ -52,7 +52,7 @@ class SimReceiver(originLat: Double = 52.2297, originLon: Double = 21.0122, whee
             (a and 0xFF).toByte(), (a shr 8).toByte(),
             0x0F, 0x27, // 9999 = brak kursu IMU
             0xB8.toByte(), 0x22, // 8888 = brak przechyłu
-            0x02, // przełącznik autosteru
+            0x00, // włącznik autosteru włączony (bit 1 = 0, jak w AgOpenGPS)
             0,
         )
         return AogFrame.build(Pgn.FROM_AUTOSTEER, d, source = 0x7E)

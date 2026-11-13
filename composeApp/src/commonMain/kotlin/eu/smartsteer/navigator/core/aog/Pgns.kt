@@ -95,6 +95,7 @@ data class AutosteerStatus(
     val headingDeg: Double?,   // null = brak IMU (9999)
     val rollDeg: Double?,      // null = brak IMU (8888)
     val workSwitch: Boolean,
+    /** Włącznik autosteru na płytce włączony (płytka pozwala kręcić silnikiem). */
     val steerSwitch: Boolean,
     val pwm: Int,
 ) {
@@ -111,7 +112,8 @@ data class AutosteerStatus(
                 headingDeg = if (heading == 9999) null else heading / 10.0,
                 rollDeg = if (roll == 8888) null else roll / 10.0,
                 workSwitch = switches and 0x01 != 0,
-                steerSwitch = switches and 0x02 != 0,
+                // jak w AgOpenGPS (steerSwitchHigh): bit 1 ustawiony = styk rozwarty = włącznik WYŁĄCZONY, płytka nie da prądu na silnik
+                steerSwitch = switches and 0x02 == 0,
                 pwm = d[7].u8(),
             )
         }

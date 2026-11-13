@@ -44,7 +44,7 @@ class AogFrameTest {
             0xA6.toByte(), 0xFF.toByte(), // -90 -> -0,9°
             0x0F, 0x27,                   // 9999 -> brak kursu
             0xB8.toByte(), 0x22,          // 8888 -> brak przechyłu
-            0x03,                         // oba przełączniki
+            0x03,                         // bit 0 roboczy, bit 1 = włącznik autosteru rozwarty (wyłączony)
             48,
         )
         val frame = assertNotNull(AogFrame.parse(AogFrame.build(Pgn.FROM_AUTOSTEER, data, source = 0x7E)))
@@ -53,7 +53,7 @@ class AogFrameTest {
         assertNull(status.headingDeg)
         assertNull(status.rollDeg)
         assertEquals(true, status.workSwitch)
-        assertEquals(true, status.steerSwitch)
+        assertEquals(false, status.steerSwitch)   // jak AgOpenGPS: steerSwitchHigh = wyłączony
         assertEquals(48, status.pwm)
     }
 }
