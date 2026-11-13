@@ -1,5 +1,6 @@
 package eu.smartsteer.navigator.ui.screens
 
+import eu.smartsteer.navigator.core.hw.SmartWas
 import eu.smartsteer.navigator.ui.components.touchVerticalScroll
 import eu.smartsteer.navigator.ui.components.touchHorizontalScroll
 import androidx.compose.foundation.Canvas
@@ -352,6 +353,7 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
         zeroMsg?.let { Label(it, Ss.TextSoft, 14.sp) }
     }
     WasCalibrationPanel(hw, p, set)
+    SmartWasPanel(hw, p, set)
     Num("Ackermann", "Korekta różnicy skrętu w lewo i w prawo", p.ackerman.toDouble(), "%", 1.0, 1.0, 200.0, 0) { set(p.copy(ackerman = it.toInt())) }
     SectionTitle("Martwa strefa")
     Num("Martwa strefa kąta", "Poniżej tej różnicy kąta silnik nie poprawia", p.deadZoneDeg, "°", 0.05, 0.0, 2.0, 2) { set(p.copy(deadZoneDeg = it)) }
@@ -888,6 +890,32 @@ private fun ColumnScope.ProfilesTab(hw: HardwareController) {
         }
         msg?.let { Label(it, Ss.TextSoft, 14.sp) }
     }
+}
+
+/** Smart WAS (AgOpenGPS): zbieranie kątów zadanych w czasie jazdy z autosterem i poprawka zera czujnika kół. */
+@Composable
+private fun SmartWasPanel(hw: HardwareController, p: VehicleProfile, set: (VehicleProfile) -> Unit) {
+    val sw = hw.session.smartWas
+    var msg by remember { mutableStateOf<String?>(null) }
+    val tick = hw.tick // odświeżanie liczników
+    SectionTitle("Smart WAS — zero z jazdy (jak w AgOpenGPS)")
+    Label("Włącz zbieranie i jedź z autosterem po prostej (> 2 km/h). Program zbiera kąty zadane; gdy na prostej stale są przesunięte w jedną stronę, zero czujnika jest przestawione. Po 200 próbkach podpowie poprawkę.", Ss.TextSoft, 13.sp)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        ActionButton(onClick = { if (sw.collecting) sw.stop() else { sw.reset(); sw.start() }; hw.touch() }) {
+            ButtonText(if (sw.collecting) "Zatrzymaj zbieranie" else "Zbieraj od nowa")
+        }
+        ActionButton(background = Ss.AccentSoft, border = Ss.Accent, onClick = {
+            if (!sw.hasValidCalibration) { msg = "Za mało pewnych danych"; return@ActionButton }
+            val counts = sw.offsetCounts(p.countsPerDegree)
+            if (abs(counts) > SmartWas.MAX_APPLY_COUNTS) { msg = "Poprawka za duża ($counts impulsów) — nie zastosowano"; return@ActionButton }
+            set(p.copy(wasOffset = p.wasOffset + counts))
+            val off = sw.recommendedOffset
+            sw.applyOffsetCorrection(off)
+            msg = "Zastosowano ${off.pl(2, plusSign = true)}° ($counts impulsów)"
+        }) { ButtonText("Zastosuj zero", color = Ss.Accent, weight = FontWeight.Bold) }
+    }
+    Label("Próbki: ${sw.sampleCount} · pewność ${sw.confidence.pl(0)}% · poprawka ${sw.recommendedOffset.pl(2, plusSign = true)}°" + (if (sw.collecting) " · zbieram" else "") + if (tick < 0) "" else "", Ss.TextMuted, 13.sp)
+    msg?.let { Label(it, Ss.TextSoft, 14.sp) }
 }
 
 // ---------------- podgląd na żywo ----------------

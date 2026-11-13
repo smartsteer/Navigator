@@ -812,6 +812,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         xteCm = r.distanceFromLine * 100
         steerSetDeg = r.steerAngleDeg
         goal = r.goal
+        smartWas.addSample(steerSetDeg, engaged, speedKmh, xteCm * 10, profile.invertWas)
     }
 
     // ---------------- auto-zawrót ----------------
@@ -1373,6 +1374,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     /** Kalibracja czujnika kąta z jazdy po okręgu (Ustawienia → Moduł skrętu). */
     val wasCal = WasCalibration()
+    /** Smart WAS (AgOpenGPS): zero czujnika kół z mediany kąta zadanego przy jeździe z autosterem. */
+    val smartWas = SmartWas()
 
     // ---------------- nadzór ----------------
     private val supervisor = Supervisor()
