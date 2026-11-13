@@ -94,7 +94,7 @@ private fun ModePanel(hw: HardwareController) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text("Symulacja jazdy", color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Label("Udaje odbiornik RTK i moduł skrętu — można przećwiczyć linie, autoster, sekcje i zawroty bez ciągnika. W polu wyłącz.", Ss.TextMuted, 13.sp)
+                Label("Udaje odbiornik RTK i moduł skrętu — można przećwiczyć linie, autoster, sekcje i zawroty bez ciągnika. Po ponownym uruchomieniu programu jest zawsze wyłączona.", Ss.TextMuted, 13.sp)
             }
             Segmented(
                 options = listOf("WYŁ.", "WŁ."),

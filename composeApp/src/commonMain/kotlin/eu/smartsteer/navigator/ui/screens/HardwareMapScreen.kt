@@ -153,6 +153,10 @@ fun HardwareMapScreen(hw: HardwareController) {
         }
 
         if (hw.simulating) SimControls(hw, locked, Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 190.dp))
+        if (hw.simulating) Text(
+            "SYMULACJA JAZDY — udawany GPS i moduł skrętu. Wyłącz w Połączenia, żeby jeździć z płytką.", color = Ss.Ground, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp).clip(RoundedCornerShape(10.dp)).background(Ss.Warning).padding(horizontal = 10.dp, vertical = 5.dp),
+        )
         SprayerMini(hw, Modifier.align(Alignment.TopEnd).padding(top = 354.dp, end = 12.dp))
         HwSectionsBar(hw, locked, Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
         HwMessage(hw, Modifier.align(Alignment.BottomCenter).padding(bottom = 100.dp))

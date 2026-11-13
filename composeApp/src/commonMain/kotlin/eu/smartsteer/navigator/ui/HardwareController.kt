@@ -1507,15 +1507,14 @@ class HardwareController {
     }
 
     // ---------------- symulacja jazdy (bez płytki) ----------------
-    private val simFile = "symulacja.cfg"
     /** Udawany odbiornik RTK i moduł skrętu — do nauki obsługi i sprawdzenia ustawień bez ciągnika. */
     val sim = SimReceiver()
-    var simulating by mutableStateOf(runCatching { files.read(simFile)?.trim() == "1" }.getOrDefault(false))
+    /** Zawsze startuje wyłączona: po restarcie (np. już w ciągniku) program nie może jechać na udawanym GPS i udawanym module skrętu. */
+    var simulating by mutableStateOf(false)
         private set
 
     fun setSimulation(on: Boolean) {
         simulating = on
-        try { files.write(simFile, if (on) "1" else "0") } catch (_: Exception) {}
         if (on && !hardware) setHardwareMode(true)
         tick++
     }
