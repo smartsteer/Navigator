@@ -99,9 +99,14 @@ fun HardwareMapScreen(hw: HardwareController) {
             MapTool(IconKind.Follow, headingUp, enabled = !locked, label = if (headingUp) "KURS" else "N") { headingUp = !headingUp }
             MapTool(null, tilt, enabled = !locked, label = "3D") { tilt = !tilt }
             MapTool(if (locked) IconKind.Lock else IconKind.Unlock, locked, enabled = true, label = null) { locked = !locked }
-            if (hw.cameraUrl.isNotBlank()) {
+            // kamera zewnętrzna (np. z tyłu maszyny): zawsze pod ręką; bez adresu — dotknięcie pyta o adres
+            run {
                 val cam = eu.smartsteer.navigator.ui.camera.Camera
-                MapTool(null, cam.running, enabled = true, label = "KAM") { if (cam.running) cam.stop() else cam.start(hw.cameraUrl) }
+                MapTool(null, cam.running, enabled = true, label = "KAM") {
+                    if (cam.running) cam.stop()
+                    else if (hw.cameraUrl.isNotBlank()) cam.start(hw.cameraUrl)
+                    else askCameraUrl(hw)
+                }
             }
             val bg = TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }
             MapTool(null, bg != TileSource.NONE, enabled = !locked, label = bg.short) {
@@ -153,7 +158,7 @@ fun HardwareMapScreen(hw: HardwareController) {
             "GPS telefonu · prowadzenie ręczne", color = Ss.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 24.dp).clip(RoundedCornerShape(10.dp)).background(Ss.Bar.copy(alpha = 0.9f)).padding(horizontal = 10.dp, vertical = 6.dp),
         )
-        CameraView(Modifier.align(Alignment.BottomEnd).padding(end = 130.dp, bottom = 100.dp))
+        CameraView(hw, Modifier.align(Alignment.BottomEnd).padding(end = 130.dp, bottom = 100.dp))
         TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }.takeIf { it != TileSource.NONE }?.let {
             Text(it.attribution, Modifier.align(Alignment.BottomEnd).padding(end = 130.dp, bottom = 4.dp), color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
         }
@@ -370,9 +375,23 @@ private fun WeatherChip(hw: HardwareController, modifier: Modifier) {
     )
 }
 
+/** Pytanie o adres kamery IP (MJPEG albo zdjęcie JPEG) — zapis i od razu podgląd. */
+private fun askCameraUrl(hw: HardwareController) {
+    Keypad.open(KeypadRequest(
+        title = "Adres kamery (z tyłu maszyny, siewnik…)",
+        initial = hw.cameraUrl.ifBlank { "http://" },
+        mode = KeypadMode.Text,
+        hint = "Obraz MJPEG albo zdjęcie JPEG z kamery w sieci tabletu, np. http://192.168.5.50/video.mjpg",
+        maxLength = 200,
+    ) { t ->
+        val url = t.trim()
+        if (url.length > 8) { hw.setCamera(url); eu.smartsteer.navigator.ui.camera.Camera.start(url) }
+    })
+}
+
 /** Podgląd z kamery: dotknięcie powiększa / zmniejsza. */
 @Composable
-private fun CameraView(modifier: Modifier) {
+private fun CameraView(hw: HardwareController, modifier: Modifier) {
     val cam = eu.smartsteer.navigator.ui.camera.Camera
     if (!cam.running) return
     var big by remember { mutableStateOf(false) }
@@ -385,6 +404,9 @@ private fun CameraView(modifier: Modifier) {
         val f = cam.frame
         if (f != null) androidx.compose.foundation.Image(f, contentDescription = "Kamera", modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
         else Text(cam.status, color = Color.White, fontSize = 13.sp)
+        // zmiana adresu bez wchodzenia w Połączenia
+        Text("adres", Modifier.align(Alignment.TopEnd).background(Color.Black.copy(alpha = 0.6f)).clickable { askCameraUrl(hw) }
+            .padding(horizontal = 10.dp, vertical = 8.dp), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 

@@ -112,7 +112,7 @@ private fun CameraPanel(hw: HardwareController) {
     var url by remember { mutableStateOf(hw.cameraUrl) }
     val cam = eu.smartsteer.navigator.ui.camera.Camera
     Panel(Modifier.fillMaxWidth()) {
-        SectionTitle("Kamera IP")
+        SectionTitle("Kamera zewnętrzna (IP) — np. z tyłu maszyny")
         Label("Adres obrazu MJPEG albo zdjęcia JPEG z kamery w sieci (np. http://192.168.5.50/video.mjpg). Podgląd włączasz przyciskiem KAM na mapie.", Ss.TextMuted, 13.sp)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             eu.smartsteer.navigator.ui.components.TextInput(url, { url = it }, title = "Adres kamery", modifier = Modifier.weight(1f), hint = "http://…", maxLength = 200)
