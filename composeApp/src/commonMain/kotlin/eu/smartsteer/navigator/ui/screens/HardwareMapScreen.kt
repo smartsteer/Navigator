@@ -1138,6 +1138,18 @@ private fun VoiceButton(hw: HardwareController, modifier: Modifier) {
                 .clickable { w.voiceButton()?.let { hw.mapMessage(it) } },
             contentAlignment = Alignment.Center,
         ) { Text(if (rec) "■" else "🎙", color = Ss.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+        // WAR Cam: obraz z kamery tabletu do telefonu gospodarza — włącz / wyłącz jednym dotknięciem
+        Box(
+            Modifier.size(52.dp).clip(RoundedCornerShape(26.dp)).background(if (w.camOn) Ss.Accent else Ss.Bar.copy(alpha = 0.9f))
+                .border(2.dp, if (w.camOn) Ss.Accent else Ss.Border, RoundedCornerShape(26.dp))
+                .clickable { w.toggleCamera()?.let { hw.mapMessage(it) } },
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("📷", fontSize = 16.sp)
+                Text("CAM", color = if (w.camOn) Ss.OnAccent else Ss.TextSoft, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            }
+        }
         if (rec) Text("Nagrywam ${sec} s — stuknij, żeby wysłać", Modifier.hwOverlay().padding(horizontal = 10.dp, vertical = 6.dp), color = Ss.Text, fontSize = 13.sp)
         else w.voice.lastOrNull { !it.mine }?.let { m ->
             Text("▶ ${m.from}", Modifier.hwOverlay().clickable { w.playVoice(m) }.padding(horizontal = 10.dp, vertical = 6.dp),
