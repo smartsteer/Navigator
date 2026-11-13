@@ -39,7 +39,8 @@ class ManualScreenshotTest {
             val s = hw.session
             val sim = SimReceiver()
             sim.targetSpeedKmh = 9.0
-            var t = hw.now()
+            var t = 1000.0
+            hw.timeForScreenshots = t
             fun feed() {
                 s.onNmea(sim.vtg(), t); s.onNmea(sim.gga(), t)
                 val f = sim.pgn253(); s.onDatagram(f, f.size, t)
@@ -52,9 +53,9 @@ class ManualScreenshotTest {
             feed()
             s.restoreFieldForTest(listOf(Vec2(-60.0, -20.0), Vec2(60.0, -20.0), Vec2(60.0, 300.0), Vec2(-60.0, 300.0)))
             s.restoreLine(AbLine(Vec2(0.5, -20.0), Vec2(0.5, 300.0)))
-            repeat(30) { sim.step(0.1, null); t += 0.1; feed() }
+            repeat(30) { sim.step(0.1, null); t += 0.1; hw.timeForScreenshots = t; feed() }
             s.setEngaged(true, t)
-            repeat(350) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t += 0.1; feed() }
+            repeat(350) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t += 0.1; hw.timeForScreenshots = t; feed() }
 
             // połączenie z WAR (kod nawigacji gospodarstwa), dwie inne maszyny i lokalizator WAR Track, wiadomość od gospodarza
             hw.war.update(hw.war.config.copy(code = "ABCDEFGHJKLMNPQR", tractorName = "Renault 133.14", operator = "Marek"))
@@ -70,7 +71,7 @@ class ManualScreenshotTest {
             ))
             hw.war.addVoiceForScreenshots("Szef")
 
-            fun drive(n: Int) = repeat(n) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t = hw.now(); feed(); hw.sprayer.step(100, s.speedKmh) { true } }
+            fun drive(n: Int) = repeat(n) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t += 0.1; hw.timeForScreenshots = t; feed(); hw.sprayer.step(100, s.speedKmh) { true } }
             // nawigacja + opryskiwacz
             hw.updateProfile(hw.sprayer.applyTo(hw.profile))
             hw.sprayer.setTank(0.0); hw.sprayer.fill(850.0)
@@ -91,6 +92,7 @@ class ManualScreenshotTest {
             }
             hw.updateWorkMode(0)
             hw.setHardwareMode(false)
+            hw.timeForScreenshots = null
         } catch (e: Throwable) {
             File(dir, "blad.txt").writeText(e.stackTraceToString())
         }

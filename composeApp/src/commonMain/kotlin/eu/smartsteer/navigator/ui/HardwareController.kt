@@ -1352,7 +1352,9 @@ class HardwareController {
     private var link: UdpLink? = null
     private val clock = TimeSource.Monotonic.markNow()
 
-    fun now(): Double = clock.elapsedNow().inWholeMilliseconds / 1000.0
+    /** Tylko dla zrzutów ekranu w testach: zamrożony czas, żeby wolne renderowanie nie wyglądało jak zawieszenie programu. */
+    var timeForScreenshots: Double? = null
+    fun now(): Double = timeForScreenshots ?: (clock.elapsedNow().inWholeMilliseconds / 1000.0)
 
     private var stopRequested = false
 
