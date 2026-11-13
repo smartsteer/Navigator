@@ -98,7 +98,7 @@ class AbSteering {
         if (a.distanceTo(b) < 1e-9) return null
         var goalAtEnd = false
         val out = when (p.algorithm) {
-            SteerAlgorithm.STANLEY -> stanley(a, b, pivot, heading, speedKmh, engaged, p, rollDeg)
+            SteerAlgorithm.STANLEY -> stanleyPath(pts, pivot, heading, speedKmh, engaged, p, rollDeg) ?: stanley(a, b, pivot, heading, speedKmh, engaged, p, rollDeg)
             SteerAlgorithm.PURE_PURSUIT -> purePursuit(a, b, pivot, heading, speedKmh, engaged, p, rollDeg) { start, dist ->
                 var from = start
                 var soFar = 0.0
@@ -269,7 +269,74 @@ class AbSteering {
         if (steerHeadingError > PI / 2) steerHeadingError -= PI
         else if (steerHeadingError < -PI / 2) steerHeadingError += PI
 
-        // --- DoSteerAngleCalc ---
+        return doSteerAngleCalc(steerHeadingError, distanceFromCurrentLineSteer, distanceFromCurrentLinePivot, avgSpeed, engaged, p, rollDeg, Vec2(rEastSteer, rNorthSteer))
+    }
+
+    /**
+     * Stanley po krzywej — CGuidance.StanleyGuidanceCurve: dwa najbliższe punkty krzywej do osi przedniej (odcinek „steer”,
+     * przesunięty o całkę) i dwa wcześniejsze (odcinek „pivot”), błąd kursu względem kursu krzywej w punkcie B.
+     * [pts] skierowane zgodnie z jazdą (isHeadingSameWay).
+     */
+    fun stanleyPath(
+        pts: List<Pose>, pivot: Vec2, heading: Double, avgSpeed: Double,
+        engaged: Boolean, p: VehicleProfile, rollDeg: Double?,
+    ): Output? {
+        val n = pts.size
+        if (n <= 5) return null
+        val steer = pivot + Vec2(sin(heading), cos(heading)) * p.wheelbase
+        fun d2(j: Int) = (steer.x - pts[j].p.x) * (steer.x - pts[j].p.x) + (steer.y - pts[j].p.y) * (steer.y - pts[j].p.y)
+        var cc = 0
+        var minA = 1e12
+        var j = 0
+        while (j < n) { val d = d2(j); if (d < minA) { minA = d; cc = j }; j += 10 }
+        var dd = cc + 7; if (dd > n - 1) dd = n
+        cc -= 7; if (cc < 0) cc = 0
+        var sA = 0; var sB = 0
+        minA = 1e12; var minB = 1e12
+        for (k in cc until dd) {
+            val d = d2(k)
+            if (d < minA) { minB = minA; sB = sA; minA = d; sA = k } else if (d < minB) { minB = d; sB = k }
+        }
+        if (sA > sB) { val c = sA; sA = sB; sB = c }
+        if (sA > n - 1 || sB > n - 1) return null
+        // punkty „pivot”: wstecz od osi przedniej (AgOpenGPS liczy je też od osi przedniej)
+        dd = sB; cc = dd - 12; if (cc < 0) cc = 0
+        var pA = 0; var pB = 0
+        minA = 1e12; minB = 1e12
+        for (k in cc until dd) {
+            val d = d2(k)
+            if (d < minA) { minB = minA; pB = pA; minA = d; pA = k } else if (d < minB) { minB = d; pB = k }
+        }
+        if (pA > pB) { val c = pA; pA = pB; pB = c }
+        if (pA > n - 1 || pB > n - 1) { pA = n - 2; pB = n - 1 }
+        val pivA = pts[pA].p; val pivB = pts[pB].p
+        var dx = pivB.x - pivA.x
+        var dy = pivB.y - pivA.y
+        if (abs(dx) < 1e-12 && abs(dy) < 1e-12) return null
+        val distanceFromCurrentLinePivot = ((dy * steer.x) - (dx * steer.y) + (pivB.x * pivA.y) - (pivB.y * pivA.x)) / sqrt((dy * dy) + (dx * dx))
+        val steerA0 = pts[sA]; val steerB0 = pts[sB]
+        val sa = steerA0.p + Vec2(sin(steerA0.heading + PI / 2), cos(steerA0.heading + PI / 2)) * stInty
+        val sb = steerB0.p + Vec2(sin(steerB0.heading + PI / 2), cos(steerB0.heading + PI / 2)) * stInty
+        dx = sb.x - sa.x; dy = sb.y - sa.y
+        if (abs(dx) < 1e-12 && abs(dy) < 1e-12) return null
+        val distanceFromCurrentLineSteer = ((dy * steer.x) - (dx * steer.y) + (sb.x * sa.y) - (sb.y * sa.x)) / sqrt((dy * dy) + (dx * dx))
+        val u = (((steer.x - sa.x) * dx) + ((steer.y - sa.y) * dy)) / ((dx * dx) + (dy * dy))
+        val rSteer = Vec2(sa.x + u * dx, sa.y + u * dy)
+        var steerHeadingError = heading - steerB0.heading
+        // dokładnie jak w AgOpenGPS (łącznie z warunkiem „< PI”)
+        if (steerHeadingError > PI) steerHeadingError -= PI
+        else if (steerHeadingError < PI) steerHeadingError += PI
+        if (steerHeadingError > PI / 2) steerHeadingError -= PI
+        else if (steerHeadingError < -PI / 2) steerHeadingError += PI
+        return doSteerAngleCalc(steerHeadingError, distanceFromCurrentLineSteer, distanceFromCurrentLinePivot, avgSpeed, engaged, p, rollDeg, rSteer)
+    }
+
+    /** CGuidance.DoSteerAngleCalc. */
+    private fun doSteerAngleCalc(
+        steerHeadingError0: Double, distanceFromCurrentLineSteer: Double, distanceFromCurrentLinePivot: Double,
+        avgSpeed: Double, engaged: Boolean, p: VehicleProfile, rollDeg: Double?, goal: Vec2,
+    ): Output {
+        var steerHeadingError = steerHeadingError0
         steerHeadingError *= p.stanleyHeadingGain
         var sped = abs(avgSpeed)
         sped = if (sped > 1) 1 + 0.277 * (sped - 1) else 1.0
@@ -302,7 +369,7 @@ class AbSteering {
         if (rollDeg != null) steerAngle += rollDeg * -p.sideHillComp
         steerAngle = steerAngle.coerceIn(-p.maxSteerAngle, p.maxSteerAngle)
         modeActualXte = distanceFromCurrentLinePivot
-        return Output(steerAngle, distanceFromCurrentLinePivot, Vec2(rEastSteer, rNorthSteer))
+        return Output(steerAngle, distanceFromCurrentLinePivot, goal)
     }
 
     private fun toDeg(r: Double) = r * 180.0 / PI

@@ -51,10 +51,10 @@ class Contour {
     /**
      * Buduje linię prowadzenia przy ciągniku. [hold] = autoster włączony: trzymamy się wybranego pasa.
      */
-    fun build(pivot: Vec2, heading: Double, toolWidth: Double, overlap: Double, hold: Boolean): List<Pose> {
+    fun build(pivot: Vec2, heading: Double, toolWidth: Double, overlap: Double, hold: Boolean, toolOffset: Double = 0.0): List<Pose> {
         val spacing = (toolWidth - overlap).coerceAtLeast(0.1)
         val halfWidth = toolWidth / 2
-        val toolContourDistance = toolWidth * 3
+        val toolContourDistance = toolWidth * 3 + abs(toolOffset)
         if (strips.isEmpty()) return reset()
 
         val sinH = sin(heading) * 0.2
@@ -106,8 +106,8 @@ class Contour {
             else -> return reset()
         }
         sameWay = PI - abs(abs(heading - strip[pt].heading) - PI) < 1.57
-        val refDist = distanceFromRefLine / spacing
-        val howManyPathsAway = if (abs(distanceFromRefLine) > halfWidth) (if (refDist < 0) -1 else 1) else 0
+        val refDist = (distanceFromRefLine + (if (sameWay) toolOffset else -toolOffset)) / spacing
+        val howManyPathsAway = if (abs(distanceFromRefLine) > halfWidth || abs(toolOffset) > halfWidth) (if (refDist < 0) -1 else 1) else 0
 
         val start: Int
         val stop: Int
@@ -116,7 +116,7 @@ class Contour {
         } else {
             start = (pt - 70).coerceAtLeast(0); stop = (pt + 20).coerceAtMost(strip.size)
         }
-        val distAway = spacing * howManyPathsAway
+        val distAway = spacing * howManyPathsAway + (if (sameWay) -toolOffset else toolOffset)
         val distSqAway = distAway * distAway * 0.97
         val out = ArrayList<Vec2>()
         for (i in start until stop) {

@@ -800,7 +800,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             GuidanceMode.CONTOUR -> if (p != null) {
                 if (nowS - contourBuiltS >= (if (contour.guide.isEmpty()) 0.3 else 1.0)) {
                     val before = contour.guide
-                    contour.build(p, headingRad, profile.toolWidth, profile.toolOverlap, hold = engaged)
+                    contour.build(p, headingRad, profile.toolWidth, profile.toolOverlap, hold = engaged, toolOffset = profile.toolOffset)
                     contourBuiltS = nowS
                     if (contour.guide !== before) pathHint = -1
                 }
