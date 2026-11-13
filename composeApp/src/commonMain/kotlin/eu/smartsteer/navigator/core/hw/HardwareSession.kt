@@ -854,7 +854,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val exit = YouTurn.exitIndex(guide, from, tl)
         if (exit < 0) return
         val radius = profile.youTurnRadius
-        val width = profile.youTurnSkip * profile.passSpacing
+        // jak turnOffset w AgOpenGPS: odstęp przejazdów + podwójne przesunięcie maszyny w stronę zawrotu
+        val width = profile.youTurnSkip * profile.passSpacing + (if (uTurnRight) 2 * profile.toolOffset else -2 * profile.toolOffset)
         val reach = YouTurn.depth(YouTurn.shape(radius, width, uTurnRight)) + TURN_TRIGGER_M
         if (guide[exit].p.distanceTo(p) > reach) return
         val key = "$mode:$passIndex:$curvePassIndex:$reversed:$curveReversed"
