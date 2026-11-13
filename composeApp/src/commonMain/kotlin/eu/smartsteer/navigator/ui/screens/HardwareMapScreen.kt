@@ -1034,7 +1034,6 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             }
 
             // inne maszyny gospodarstwa (flota): trójkąt w ich kolorze śladu + belka narzędzia
-            val pl = s.plane
             if (pl != null) for (m in fleet) {
                 val q = pl.toLocal(m.lat, m.lon)
                 val h = m.courseDeg * PI / 180

@@ -988,7 +988,6 @@ private fun NumberField(
     ) { Text(display, color = Ss.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
 }
 
-@Composable
 /** Kolor śladu tej maszyny (jak w AgOpenGPS) — widzą go też inne Navigatory gospodarstwa. */
 @Composable
 private fun TrailColorPicker() {
@@ -1011,6 +1010,7 @@ private fun TrailColorPicker() {
     }
 }
 
+@Composable
 private fun Toggle(label: String, value: Boolean, onChange: (Boolean) -> Unit) =
     Choice(label, listOf("NIE", "TAK"), if (value) 1 else 0) { onChange(it == 1) }
 
