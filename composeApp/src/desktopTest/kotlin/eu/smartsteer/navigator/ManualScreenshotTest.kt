@@ -45,6 +45,8 @@ class ManualScreenshotTest {
                 val f = sim.pgn253(); s.onDatagram(f, f.size, t)
                 s.update(t)
             }
+            // zrzuty renderują się wolniej niż jazda — watchdog przerwy w pracy wyłączony tylko w tym teście
+            hw.updateProfile(hw.profile.copy(supLoopGapS = 0.0))
             feed()
             s.newField("Za stodołą")
             feed()
@@ -60,7 +62,7 @@ class ManualScreenshotTest {
             fun geo(x: Double, y: Double) = pl.toGeo(Vec2(x, y))
             val p0 = s.pivot!!
             val (la1, lo1) = geo(p0.x - 9.0, p0.y + 22.0)
-            val (la2, lo2) = geo(p0.x + 12.0, p0.y - 6.0)
+            val (la2, lo2) = geo(p0.x + 14.0, p0.y + 14.0)
             val now = System.currentTimeMillis()
             hw.war.setFleetForScreenshots(listOf(
                 WarProtocol.FleetMachine("tab-zetor", "Zetor 12045", "Agregat 4 m", 4.0, la1, lo1, 0.0, 8.5, true, null, "Za stodołą", "Janek", now, "#FF8C1A"),
