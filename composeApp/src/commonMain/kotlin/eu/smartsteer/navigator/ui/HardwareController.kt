@@ -128,12 +128,6 @@ class HardwareController {
         private set
     /** Ustawienia płytki (PGN 252/251) czekają na wysłanie — wysyłamy 1,5 s po ostatniej zmianie (oszczędza EEPROM). */
     private var configDirty = true
-    /**
-     * PGN 251 (elektronika płytki: czujnik, sterownik silnika, przełącznik/przycisk) — jak w AgOpenGPS wysyłamy go tylko,
-     * gdy rolnik zmieni ustawienia płytki albo naciśnie „Wyślij do płytki”. Płytka zapisuje go w pamięci i się restartuje,
-     * a profil (np. skopiowany z AgOpenGPS) mógłby nadpisać działającą konfigurację.
-     */
-    private var config251Dirty = false
     private var configChangedAt = 0.0
     var configSentAt by mutableStateOf<Double?>(null)
         private set
@@ -155,13 +149,10 @@ class HardwareController {
     fun updateProfile(p: VehicleProfile) {
         if (p == profile) return
         val boardChanged = p.boardBytes() != profile.boardBytes()
-        val electronicsChanged = p.setting0 != profile.setting0 || p.setting1 != profile.setting1 ||
-            p.maxPulseCounts != profile.maxPulseCounts || p.minSteerSpeed != profile.minSteerSpeed
         profile = p
         session.profile = p
         persist()
         if (boardChanged) { configDirty = true; configChangedAt = now() }
-        if (electronicsChanged) config251Dirty = true
         tick++
     }
 
@@ -1340,7 +1331,7 @@ class HardwareController {
     }
 
     /** Ręczne „Wyślij do płytki”. */
-    fun sendBoardConfig() { configDirty = true; config251Dirty = true; configChangedAt = now() - 10; tick++ }
+    fun sendBoardConfig() { configDirty = true; configChangedAt = now() - 10; tick++ }
 
     private fun persist() {
         try {
@@ -1507,9 +1498,8 @@ class HardwareController {
                     val f252 = session.steerSettingsFrame()
                     val f251 = session.steerConfigFrame()
                     val f238 = session.machineConfigFrame()
-                    val with251 = config251Dirty
-                    val err = withContext(Dispatchers.Default) { l.send(f252) ?: (if (with251) l.send(f251) else null) ?: l.send(f238) }
-                    if (err == null) { configDirty = false; if (with251) config251Dirty = false; configSentAt = now() }
+                    val err = withContext(Dispatchers.Default) { l.send(f252) ?: l.send(f251) ?: l.send(f238) }
+                    if (err == null) { configDirty = false; configSentAt = now() }
                 }
             }
             tick++
