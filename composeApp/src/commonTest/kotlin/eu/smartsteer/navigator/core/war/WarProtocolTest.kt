@@ -138,4 +138,21 @@ class WarProtocolTest {
         assertFalse(WarConfig.fromJson(WarConfig(fleet = false).toJson())!!.fleet)
         assertTrue(WarConfig.fromJson("{}")!!.fleet)                     // stara konfiguracja — flota włączona
     }
+
+    /** Wiadomości głosowe (§3.11): skrzynka jak w WAR Sync, WAV 12 kHz, paczka `glos`. */
+    @Test
+    fun voicePacket() {
+        assertEquals("war-sync-glos:tab-abc:ABCDEFGHJKLMNPQR", WarVoice.mailboxText("ABCDEFGHJKLMNPQR", "tab-abc"))
+        val pcm = ShortArray(16_000) { i -> (kotlin.math.sin(i * 0.1) * 3000).toInt().toShort() }   // 1 s 16 kHz
+        val s = WarVoice.resample16to12(pcm)
+        assertEquals(12_000, s.size)
+        assertTrue(s.maxOf { kotlin.math.abs(it.toInt()) } > 20_000)          // podgłośnione
+        val wav = WarVoice.wav(s)
+        assertTrue(WarVoice.isWav(wav)); assertEquals(44 + 24_000, wav.size)
+        assertEquals(12_000, (wav[24].toInt() and 0xFF) or ((wav[25].toInt() and 0xFF) shl 8))
+        assertEquals(WarVoice.RATE * WarVoice.MAX_S, WarVoice.resample16to12(ShortArray(16_000 * 40)).size)   // najwyżej 30 s
+        val m = MiniJson.parse(WarVoice.packet("glos-1", "Marek", "tab-abc", "t", 1.0, wav)) as Map<*, *>
+        assertEquals("glos", m["typ"]); assertEquals("tab-abc", m["maszyna"])
+        assertTrue(eu.smartsteer.navigator.core.ntrip.Ntrip.unbase64(m["wav"] as String).contentEquals(wav))
+    }
 }

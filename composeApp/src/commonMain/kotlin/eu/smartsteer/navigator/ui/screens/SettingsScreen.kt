@@ -715,6 +715,13 @@ private fun ColumnScope.WarTab(hw: HardwareController) {
     var who by remember { mutableStateOf(c.operator) }
     var server by remember { mutableStateOf(c.server) }
     var msg by remember { mutableStateOf<String?>(null) }
+    SectionTitle("WAR Cam — obraz z kamery tego tabletu")
+    var camMsg by remember { mutableStateOf<String?>(null) }
+    Label("Gospodarz ogląda na telefonie w WAR (Maszyny → WAR Cam) to, co widzi kamera tabletu — np. maszynę z tyłu. Szyfrowane, bez nagrywania.", Ss.TextSoft, 13.sp)
+    ActionButton(background = if (w.camOn) Ss.Warning else Ss.Accent, border = if (w.camOn) Ss.Warning else Ss.Accent, onClick = { camMsg = w.toggleCamera() }) {
+        ButtonText(if (w.camOn) "Zatrzymaj WAR Cam" else "Włącz WAR Cam", color = Ss.OnAccent, weight = FontWeight.Bold)
+    }
+    camMsg?.let { Label(it, Ss.TextSoft, 13.sp) }
     SectionTitle("Flota gospodarstwa")
     Toggle("Flota — inne maszyny gospodarstwa na mapie", c.fleet) { w.update(w.config.copy(fleet = it)) }
     if (c.fleet) {

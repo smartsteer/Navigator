@@ -25,3 +25,6 @@ expect fun nowIso(): String
 
 /** Milisekundy od 1970 (UTC). */
 expect fun nowMillis(): Long
+
+/** Otwiera adres w przeglądarce systemu (Windows) — np. WAR Cam. */
+expect fun openUrl(url: String): Boolean

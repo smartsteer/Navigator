@@ -96,6 +96,95 @@ class WarController(private val hw: HardwareController, private val files: TextF
     }
 
     val configured: Boolean get() = WarProtocol.isValidCode(config.code)
+
+    // ---------------- WAR Cam: obraz z kamery tabletu do telefonu gospodarza (strona kamery WAR, jak w WAR Sync) ----------------
+    /** Kamera nadaje (Android: okienko na Mapie; Windows: okno przeglądarki). */
+    var camOn by mutableStateOf(false)
+        private set
+
+    fun cameraUrl(): String? {
+        if (!configured || worksBox.isEmpty()) return null
+        val name = config.tractorName.ifEmpty { hw.profileName }.ifEmpty { "Navigator" }
+        val enc = name.encodeToByteArray().joinToString("") { b ->
+            val c = (b.toInt() and 0xFF)
+            if (c in 0x30..0x39 || c in 0x41..0x5A || c in 0x61..0x7A || c == 0x2D || c == 0x5F || c == 0x2E) c.toChar().toString()
+            else "%" + c.toString(16).uppercase().padStart(2, '0')
+        }
+        return config.server.trimEnd('/') + "/kamera#s=" + worksBox + "&auto=1&n=" + enc
+    }
+
+    /** Włącza/wyłącza WAR Cam; zwraca komunikat dla rolnika albo null. */
+    fun toggleCamera(): String? {
+        val url = cameraUrl() ?: return "Najpierw połącz z WAR (kod nawigacji)"
+        if (eu.smartsteer.navigator.ui.war.warCamInApp) { camOn = !camOn; return null }
+        return if (eu.smartsteer.navigator.core.war.openUrl(url)) "Kamera nadaje z okna przeglądarki — zamknij je, żeby przestać" else "Nie udało się otworzyć przeglądarki"
+    }
+    fun stopCamera() { camOn = false }
+
+    // ---------------- wiadomości głosowe (docs/WAR.md 3.11) — z telefonu gospodarza i do niego ----------------
+    /** Ostatnie wiadomości (najnowsza na końcu). */
+    var voice by mutableStateOf<List<eu.smartsteer.navigator.core.war.VoiceMsg>>(emptyList())
+        private set
+    var voiceRecording by mutableStateOf(false)
+        private set
+    var voiceStartedMs = 0L
+        private set
+    private var voiceBox = ""
+    private var nextVoiceMs = 0L
+
+    /** Mikrofon: pierwsze naciśnięcie — nagrywa, drugie — wysyła do WAR (telefon gospodarza). Zwraca komunikat albo null. */
+    fun voiceButton(): String? {
+        val a = eu.smartsteer.navigator.ui.voice.VoiceAudio
+        if (!voiceRecording) {
+            if (!configured) return "Najpierw połącz z WAR (kod nawigacji)"
+            a.start()?.let { return it }
+            voiceRecording = true
+            voiceStartedMs = nowMillis()
+            return null
+        }
+        voiceRecording = false
+        val pcm = a.stop() ?: return "Nic nie nagrano"
+        val s = eu.smartsteer.navigator.core.war.WarVoice.resample16to12(pcm)
+        val sec = s.size.toDouble() / eu.smartsteer.navigator.core.war.WarVoice.RATE
+        if (sec < 0.5) return "Za krótko — przytrzymaj dłużej"
+        if (eu.smartsteer.navigator.core.war.WarVoice.level(pcm) < 0.005) return "Cisza — mikrofon nic nie słyszy (wyciszony?)"
+        val wav = eu.smartsteer.navigator.core.war.WarVoice.wav(s)
+        val id = "glos-" + WarCrypto.random(6).joinToString("") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }
+        val from = config.operator.ifEmpty { config.tractorName.ifEmpty { hw.profileName } }
+        val t = nowIso()
+        enqueue(id, eu.smartsteer.navigator.core.war.WarVoice.packet(id, from, config.machineId, t, sec, wav))
+        voice = (voice + eu.smartsteer.navigator.core.war.VoiceMsg(id, "Ja", t, sec, true, wav)).takeLast(10)
+        return "Wysłano (${sec.toInt()} s) — gospodarz usłyszy w WAR na telefonie"
+    }
+
+    fun playVoice(m: eu.smartsteer.navigator.core.war.VoiceMsg) = eu.smartsteer.navigator.ui.voice.VoiceAudio.play(m.wav)
+
+    private suspend fun voiceStep(now: Long) {
+        val k = key ?: return
+        if (now < nextVoiceMs || voiceBox.isEmpty()) return
+        nextVoiceMs = now + 15_000
+        val r = call("GET", "/api/sync/zlecenia?skrzynka=$voiceBox", null, backoffOn429 = false)
+        if (r.code != 200) return                     // 403: nikt jeszcze nic nie nagrał do tego tabletu
+        val list = (MiniJson.parse(r.body) as? Map<*, *>)?.get("zlecenia") as? List<*> ?: return
+        val done = ArrayList<String>()
+        for (e in list) {
+            val m = e as? Map<*, *> ?: continue
+            val id = m["id"] as? String ?: continue
+            val plain = withContext(Dispatchers.Default) { WarCrypto.decrypt(k, m["dane"] as? String ?: "") } ?: continue
+            done.add(id)
+            val p = MiniJson.parse(plain.decodeToString()) as? Map<*, *> ?: continue
+            if (p["typ"] != "glos" || voice.any { it.id == p["id"] }) continue
+            val wav = runCatching { eu.smartsteer.navigator.core.ntrip.Ntrip.unbase64(p["wav"] as? String ?: "") }.getOrNull() ?: continue
+            if (!eu.smartsteer.navigator.core.war.WarVoice.isWav(wav)) continue
+            val from = (p["od"] as? String).orEmpty().ifEmpty { "WAR" }.take(40)
+            val msg = eu.smartsteer.navigator.core.war.VoiceMsg((p["id"] as? String).orEmpty(), from, (p["czas"] as? String).orEmpty(),
+                (p["s"] as? Number)?.toDouble() ?: 0.0, false, wav)
+            voice = (voice + msg).takeLast(10)
+            hw.mapMessage("📞 Wiadomość głosowa od $from")
+            if (!voiceRecording) eu.smartsteer.navigator.ui.voice.VoiceAudio.play(wav)
+        }
+        if (done.isNotEmpty()) call("POST", "/api/sync/zlecenia/odebrane", Json.obj("skrzynka" to voiceBox, "ids" to done), backoffOn429 = false)
+    }
     val newOrders: List<WarOrder> get() = orders.filter {
         it.status == "nowe" && it.local.isEmpty() && (it.takenByMachine.isEmpty() || it.takenByMachine == config.machineId)
     }
@@ -135,6 +224,8 @@ class WarController(private val hw: HardwareController, private val files: TextF
     suspend fun loop() {
         while (true) {
             delay(1000)
+            // wiadomość głosowa: najwyżej 30 s — po czasie wysyłamy sami
+            if (voiceRecording && nowMillis() - voiceStartedMs >= eu.smartsteer.navigator.core.war.WarVoice.MAX_S * 1000L) voiceButton()?.let { hw.mapMessage(it) }
             try { step() } catch (e: Exception) { status = "Błąd WAR: ${e.message}" }
         }
     }
@@ -172,6 +263,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
         if (now >= nextPollMs) { nextPollMs = now + if (inactiveNav) 180_000 else 60_000; poll() }
         position(now)
         fleetStep(now)
+        voiceStep(now)
     }
 
     // ---------------- flota: inne maszyny gospodarstwa (§3.10) ----------------
@@ -248,6 +340,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
         keyCode = c
         worksBox = WarCrypto.sha256Hex(WarProtocol.worksMailboxText(c))
         navBox = WarCrypto.sha256Hex(WarProtocol.navMailboxText(c))
+        voiceBox = WarCrypto.sha256Hex(eu.smartsteer.navigator.core.war.WarVoice.mailboxText(c, config.machineId))
         ownNavBox = WarCrypto.sha256Hex(WarProtocol.ownNavMailboxText(c, config.machineId))
         fleetBox = WarCrypto.sha256Hex(WarProtocol.fleetMailboxText(c))
         fleetOd = null
@@ -284,7 +377,9 @@ class WarController(private val hw: HardwareController, private val files: TextF
             val plain = m?.get("plain") as? String
             if (id == null || plain == null) { files.delete(name); continue }
             val dane = withContext(Dispatchers.Default) { WarCrypto.encrypt(k, plain.encodeToByteArray()) }
-            val r = call("POST", "/api/sync/praca", Json.obj("skrzynka" to worksBox, "id" to id, "dane" to dane, "zrodlo" to "Navigator"))
+            // wiadomość głosowa: większa paczka (do 1,7 MB), WAR powiadamia telefon gospodarza
+            val r = call("POST", "/api/sync/praca", Json.obj("skrzynka" to worksBox, "id" to id, "dane" to dane, "zrodlo" to "Navigator",
+                "glos" to if (id.startsWith("glos-")) true else null))
             when (r.code) {
                 200 -> { files.delete(name); lastSentText = nowIso().take(16).replace('T', ' ') }
                 400 -> files.delete(name) // zła paczka — ponawianie nic nie da

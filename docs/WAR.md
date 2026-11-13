@@ -260,6 +260,22 @@ Wektor testowy (kod `ABCD-EFGH-JKLM-NPQR`):
 - iv = bajty 0…11, treść `{"typ":"pozycja_floty","v":1,"komputer":"tab-test","lat":52.1,"lon":19.4}` →
   `AAECAwQFBgcICQoL8EqYwnX6Gwx1p4X0JyfGTHtWu1+ODHhYZ0xivEQOkHSxVDuhOlFoHkZ9L14XeFDXFQ1C7xTyTTZJfT1/Hg/TvutWNxqU4ISRyFlAlLZ1fYwgOJ4a1DEiTe4=`
 
+### 3.11 Wiadomości głosowe (`glos`) i WAR Cam
+
+**Głos — z telefonu do tabletu**: telefon wkłada paczkę do skrzynki `SHA-256("war-sync-glos:" + id maszyny + ":" + kod)`
+(jak dla WAR Sync; telefon widzi Navigator po pozycji na żywo). Navigator czyta ją co 15 s (`GET /api/sync/zlecenia`),
+odtwarza od razu i potwierdza odbiór. **Z tabletu do telefonu**: paczka do skrzynki prac przez kolejkę, `POST /api/sync/praca`
+z `"glos": true` (paczka do 1,7 MB; WAR wysyła powiadomienie na telefon).
+
+```json
+{"typ": "glos", "v": 1, "id": "glos-a1b2c3d4e5f6", "od": "Marek", "maszyna": "tab-7f3k2", "czas": "2026-11-13T09:40:00+01:00",
+ "s": 6.4, "wav": "<base64 WAV PCM 16 bit mono 12 kHz, do 30 s>"}
+```
+
+**WAR Cam**: Navigator otwiera stronę kamery WAR `<serwer>/kamera#s=<adres prac>&auto=1&n=<nazwa>` — Android w okienku na Mapie
+(WebView z dostępem do kamery i mikrofonu), Windows w przeglądarce. Obraz idzie bezpośrednio do telefonu (WebRTC); Navigator
+nie ma własnego kodu kamery.
+
 ## 4. Pliki (bez internetu)
 
 ### Z WAR do Navigatora: pola, granice, linie

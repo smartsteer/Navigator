@@ -72,3 +72,10 @@ actual fun nowIso(): String =
     java.time.OffsetDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString()
 
 actual fun nowMillis(): Long = System.currentTimeMillis()
+
+actual fun openUrl(url: String): Boolean = try {
+    java.awt.Desktop.getDesktop().browse(java.net.URI(url))
+    true
+} catch (_: Exception) {
+    false
+}

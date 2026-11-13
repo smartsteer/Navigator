@@ -72,3 +72,11 @@ actual fun nowIso(): String =
     java.time.OffsetDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString()
 
 actual fun nowMillis(): Long = System.currentTimeMillis()
+
+actual fun openUrl(url: String): Boolean = try {
+    val a = eu.smartsteer.navigator.ui.power.PowerPlatform.activity?.get() ?: throw IllegalStateException()
+    a.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+    true
+} catch (_: Exception) {
+    false
+}

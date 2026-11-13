@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -126,6 +127,15 @@ fun HardwareMapScreen(hw: HardwareController) {
         RatePill(hw, Modifier.align(Alignment.TopCenter).padding(top = 215.dp))
         WeatherChip(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp))
         FleetChip(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 112.dp))
+        VoiceButton(hw, Modifier.align(Alignment.TopStart).padding(start = 344.dp, top = 112.dp))
+        // WAR Cam (Android): okienko ze stroną kamery WAR — działa, dopóki jest na ekranie
+        if (hw.war.camOn) hw.war.cameraUrl()?.let { url ->
+            Box(Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 96.dp).size(220.dp, 165.dp).hwOverlay()) {
+                eu.smartsteer.navigator.ui.war.WarCamPane(url, Modifier.fillMaxSize())
+                Text("✕ WAR Cam", Modifier.align(Alignment.TopEnd).background(Ss.Bar.copy(alpha = 0.85f)).clickable { hw.war.stopCamera() }
+                    .padding(horizontal = 8.dp, vertical = 4.dp), color = Ss.Text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
         TunePendingCard(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 60.dp).width(380.dp))
 
         // prawa kolumna: linia, zawrót, sekcje
@@ -1109,6 +1119,32 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
     }
 }
 
+
+/** Wiadomość głosowa do gospodarza (WAR na telefonie): stuknij — nagrywa, stuknij drugi raz — wysyła; ▶ ostatnia odebrana. */
+@Composable
+private fun VoiceButton(hw: HardwareController, modifier: Modifier) {
+    val w = hw.war
+    if (!w.configured) return
+    val rec = w.voiceRecording
+    var sec by remember { mutableStateOf(0) }
+    LaunchedEffect(rec) {
+        sec = 0
+        while (rec) { kotlinx.coroutines.delay(500); sec = ((eu.smartsteer.navigator.core.war.nowMillis() - w.voiceStartedMs) / 1000).toInt() }
+    }
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            Modifier.size(52.dp).clip(RoundedCornerShape(26.dp)).background(if (rec) Ss.Warning else Ss.Bar.copy(alpha = 0.9f))
+                .border(2.dp, if (rec) Ss.Warning else Ss.Border, RoundedCornerShape(26.dp))
+                .clickable { w.voiceButton()?.let { hw.mapMessage(it) } },
+            contentAlignment = Alignment.Center,
+        ) { Text(if (rec) "■" else "🎙", color = Ss.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+        if (rec) Text("Nagrywam ${sec} s — stuknij, żeby wysłać", Modifier.hwOverlay().padding(horizontal = 10.dp, vertical = 6.dp), color = Ss.Text, fontSize = 13.sp)
+        else w.voice.lastOrNull { !it.mine }?.let { m ->
+            Text("▶ ${m.from}", Modifier.hwOverlay().clickable { w.playVoice(m) }.padding(horizontal = 10.dp, vertical = 6.dp),
+                color = Ss.Info, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        }
+    }
+}
 
 /** Inne maszyny gospodarstwa (flota WAR): nazwa, narzędzie, prędkość, odległość — niebieskie trójkąty na mapie. */
 @Composable
