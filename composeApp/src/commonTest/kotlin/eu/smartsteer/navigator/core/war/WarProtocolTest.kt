@@ -108,4 +108,27 @@ class WarProtocolTest {
         val cov = MiniJson.parse(WarProtocol.fleetCoverage(c, "p1", "R", eu.smartsteer.navigator.core.war.CoverageGrid(52.0, 19.0, 0.0, 0.0, 2.0, 1, 1, ByteArray(1)), "t", "#2F9BFF")) as Map<*, *>
         assertEquals("#2F9BFF", WarProtocol.fleetColor(cov))
     }
+
+    /** Zlecenie przyjęte na innej maszynie (`przyjal`) i własna skrzynka Navigatora. */
+    @Test
+    fun orderTakenElsewhereAndOwnMailbox() {
+        val o = WarProtocol.parseOrder(MiniJson.parse("""{"id":"zl1","status":"nowe","rodzaj":"oprysk","przyjal":{"komputer":"tab-inny","kto":"Janek"}}""") as Map<*, *>)!!
+        assertEquals("tab-inny", o.takenByMachine); assertEquals("Janek", o.takenBy)
+        val back = WarProtocol.parseOrderWithLocal(MiniJson.parse(WarProtocol.orderJson(o)) as Map<*, *>)!!
+        assertEquals("tab-inny", back.takenByMachine)
+        assertEquals("", WarProtocol.parseOrder(mapOf("id" to "zl2"))!!.takenByMachine)
+        assertEquals("war-nav-zl:ABCDEFGHJKLMNPQR:tab-abc", WarProtocol.ownNavMailboxText("ABCDEFGHJKLMNPQR", "tab-abc"))
+        val dev = MiniJson.parse(WarProtocol.device(WarConfig(machineId = "tab-abc"), "0.1.1", "t")) as Map<*, *>
+        assertEquals(true, dev["skrzynka_wlasna"])
+    }
+
+    @Test
+    fun trackersFromFleetResponse() {
+        val l = WarProtocol.parseTrackers(listOf(
+            mapOf("id" to "trk-abc", "nazwa" to "Ursus", "lat" to 52.1, "lon" to 19.4, "kmh" to 12.0, "kurs" to 90.0, "zaplon" to true),
+            mapOf("id" to "zly", "lat" to 1.0, "lon" to 1.0),
+        ), 7L)
+        assertEquals(1, l.size)
+        assertTrue(l[0].tracker && l[0].working); assertEquals("Ursus", l[0].tractor); assertEquals(7L, l[0].receivedMs)
+    }
 }

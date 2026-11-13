@@ -84,6 +84,9 @@ data class WarOrder(
     val warField: WarField?,
     /** Stan po stronie Navigatora: "" (nowe), przyjete, odrzucone, zrobione. */
     val local: String = "",
+    /** Przyjęte już na innej maszynie (id komputera i kto) — wtedy tu się nie pokazuje (WAR, `przyjal`). */
+    val takenByMachine: String = "",
+    val takenBy: String = "",
 ) {
     val title: String get() = "${kindName.ifEmpty { kind }}${warField?.let { " — ${it.name}" } ?: ""}"
     val details: String get() = listOfNotNull(
@@ -113,6 +116,8 @@ object WarProtocol {
 
     fun worksMailboxText(code: String) = "war-sync-id:$code"
     fun navMailboxText(code: String) = "war-nav-zl:$code"
+    /** Własna skrzynka tego Navigatora (WAR od v246): kilka Navigatorów nie zabiera sobie nawzajem pól i zleceń. */
+    fun ownNavMailboxText(code: String, machineId: String) = "war-nav-zl:$code:$machineId"
 
     /** Losowe id maszyny: „tab-” + 8 znaków z alfabetu kodu (mieści się w [A-Za-z0-9_-]). */
     fun machineId(random: ByteArray): String = "tab-" + random.take(8).joinToString("") { ALPHABET[(it.toInt() and 0xFF) % ALPHABET.length].lowercase() }
@@ -120,7 +125,7 @@ object WarProtocol {
     // ---------------- paczki Navigator → WAR ----------------
 
     fun device(c: WarConfig, version: String, t: String): String = Json.obj(
-        "typ" to "urzadzenie", "v" to 1, "program" to "navigator", "maszyna" to c.machineId,
+        "typ" to "urzadzenie", "v" to 1, "program" to "navigator", "maszyna" to c.machineId, "skrzynka_wlasna" to true,
         "nazwa" to c.tractorName.ifEmpty { "Navigator" }, "wersja" to version, "t" to t,
     )
 
@@ -157,7 +162,23 @@ object WarProtocol {
         val receivedMs: Long,
         /** Kolor śladu tej maszyny „#RRGGBB” (pusty = domyślny niebieski). */
         val color: String = "",
+        /** Lokalizator WAR Track (maszyna bez Navigatora), nie Navigator. */
+        val tracker: Boolean = false,
     )
+
+    /** Lokalizatory WAR Track gospodarstwa z odpowiedzi floty (`lokalizatory`: id, nazwa, lat, lon, kmh, kurs, zaplon). */
+    fun parseTrackers(v: Any?, receivedMs: Long): List<FleetMachine> = (v as? List<*>).orEmpty().mapNotNull { e ->
+        val m = e as? Map<*, *> ?: return@mapNotNull null
+        val id = (m["id"] as? String)?.takeIf { it.startsWith("trk-") } ?: return@mapNotNull null
+        val lat = (m["lat"] as? Number)?.toDouble() ?: return@mapNotNull null
+        val lon = (m["lon"] as? Number)?.toDouble() ?: return@mapNotNull null
+        val kmh = (m["kmh"] as? Number)?.toDouble() ?: 0.0
+        FleetMachine(
+            id = id, tractor = (m["nazwa"] as? String).orEmpty().ifEmpty { "Lokalizator" }.take(40), tool = "", width = 0.0, lat = lat, lon = lon,
+            courseDeg = (m["kurs"] as? Number)?.toDouble() ?: 0.0, kmh = kmh, working = m["zaplon"] == true && kmh >= 1.0,
+            warId = null, field = "", who = "", receivedMs = receivedMs, tracker = true,
+        )
+    }
 
     /** Kolor z paczki floty — tylko poprawne „#RRGGBB”. */
     fun fleetColor(m: Map<*, *>): String = (m["kolor"] as? String)?.takeIf { Regex("#[0-9A-Fa-f]{6}").matches(it) }.orEmpty()
@@ -281,6 +302,8 @@ object WarProtocol {
             dose = m["dawka"] as? Double, unit = m["jedn"] as? String ?: "", water = m["ciecz"] as? Double,
             due = m["termin"] as? String ?: "", forWho = m["dla"] as? String ?: "", from = m["od"] as? String ?: "",
             notes = m["uwagi"] as? String ?: "", warField = (m["pole"] as? Map<*, *>)?.let { parseField(it) },
+            takenByMachine = ((m["przyjal"] as? Map<*, *>)?.get("komputer") as? String).orEmpty(),
+            takenBy = ((m["przyjal"] as? Map<*, *>)?.get("kto") as? String).orEmpty(),
         )
     }
 
@@ -298,6 +321,7 @@ object WarProtocol {
         "id" to o.id, "status" to o.status, "rodzaj" to o.kind, "rodzaj_nazwa" to o.kindName, "produkt" to o.product,
         "dawka" to o.dose, "jedn" to o.unit, "ciecz" to o.water, "termin" to o.due, "dla" to o.forWho, "od" to o.from,
         "uwagi" to o.notes, "pole" to o.warField?.let { Json.Raw(fieldJson(it)) }, "lokalnie" to o.local,
+        "przyjal" to o.takenByMachine.takeIf { it.isNotEmpty() }?.let { Json.Raw(Json.obj("komputer" to it, "kto" to o.takenBy)) },
     )
 
     fun parseOrderWithLocal(m: Map<*, *>): WarOrder? = parseOrder(m)?.copy(local = m["lokalnie"] as? String ?: "")

@@ -68,6 +68,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
     private var keyCode = ""
     private var worksBox = ""
     private var navBox = ""
+    private var ownNavBox = ""
     private var fleetBox = ""
     private var fleetOd: String? = null
     private var nextFleetReadMs = 0L
@@ -95,7 +96,9 @@ class WarController(private val hw: HardwareController, private val files: TextF
     }
 
     val configured: Boolean get() = WarProtocol.isValidCode(config.code)
-    val newOrders: List<WarOrder> get() = orders.filter { it.status == "nowe" && it.local.isEmpty() }
+    val newOrders: List<WarOrder> get() = orders.filter {
+        it.status == "nowe" && it.local.isEmpty() && (it.takenByMachine.isEmpty() || it.takenByMachine == config.machineId)
+    }
 
     // ---------------- ustawienia ----------------
 
@@ -227,6 +230,8 @@ class WarController(private val hw: HardwareController, private val files: TextF
                         }
                     }
                 }
+                // lokalizatory WAR Track (maszyny bez Navigatora): serwer podaje za każdym razem wszystkie świeże
+                f = f.filterValues { !it.tracker } + WarProtocol.parseTrackers(m?.get("lokalizatory"), now).associateBy { it.id }
                 fleet = f.filterValues { now - it.receivedMs < 5 * 60_000 }   // znika po 5 min ciszy
             } else if (fleet.isNotEmpty()) {
                 fleet = fleet.filterValues { now - it.receivedMs < 5 * 60_000 }
@@ -242,6 +247,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
         keyCode = c
         worksBox = WarCrypto.sha256Hex(WarProtocol.worksMailboxText(c))
         navBox = WarCrypto.sha256Hex(WarProtocol.navMailboxText(c))
+        ownNavBox = WarCrypto.sha256Hex(WarProtocol.ownNavMailboxText(c, config.machineId))
         fleetBox = WarCrypto.sha256Hex(WarProtocol.fleetMailboxText(c))
         fleetOd = null
         return true
@@ -291,33 +297,39 @@ class WarController(private val hw: HardwareController, private val files: TextF
 
     // ---------------- odbiór pól i zleceń ----------------
 
+    /** Własna skrzynka (nowy WAR) i wspólna (starszy WAR / starsze Navigatory w gospodarstwie). */
     private suspend fun poll() {
-        val k = key ?: return
-        val r = call("GET", "/api/sync/zlecenia?skrzynka=$navBox", null)
-        when (r.code) {
-            200 -> {
-                inactiveNav = false
-                if (codeActive == true) status = "Połączono z WAR"
-                val list = (MiniJson.parse(r.body) as? Map<*, *>)?.get("zlecenia") as? List<*> ?: return
-                val done = ArrayList<String>()
-                for (e in list) {
-                    val m = e as? Map<*, *> ?: continue
-                    val id = m["id"] as? String ?: continue
-                    val dane = m["dane"] as? String ?: continue
-                    val plain = withContext(Dispatchers.Default) { WarCrypto.decrypt(k, dane) } ?: continue // inny kod — nie ruszamy
-                    if (handle(plain.decodeToString())) done.add(id)
-                }
-                if (done.isNotEmpty()) {
-                    call("POST", "/api/sync/zlecenia/odebrane", Json.obj("skrzynka" to navBox, "ids" to done))
-                    if (list.size >= 100) nextPollMs = 0
-                }
-            }
-            402, 403 -> {
+        val own = pollBox(ownNavBox)
+        val shared = pollBox(navBox)
+        val codes = listOf(own.code, shared.code)
+        when {
+            200 in codes -> { inactiveNav = false; if (codeActive == true) status = "Połączono z WAR" }
+            codes.all { it == 402 || it == 403 } -> {
                 inactiveNav = true
-                if (codeActive == true) status = "Czekam na WAR — otwórz WAR na telefonie" else status = detail(r)
+                status = if (codeActive == true) "Czekam na WAR — otwórz WAR na telefonie" else detail(shared)
             }
-            0 -> status = "Brak internetu — dane czekają w kolejce"
+            0 in codes -> status = "Brak internetu — dane czekają w kolejce"
         }
+    }
+
+    private suspend fun pollBox(box: String): HttpResult {
+        val k = key ?: return HttpResult(0, "")
+        val r = call("GET", "/api/sync/zlecenia?skrzynka=$box", null)
+        if (r.code != 200) return r
+        val list = (MiniJson.parse(r.body) as? Map<*, *>)?.get("zlecenia") as? List<*> ?: return r
+        val done = ArrayList<String>()
+        for (e in list) {
+            val m = e as? Map<*, *> ?: continue
+            val id = m["id"] as? String ?: continue
+            val dane = m["dane"] as? String ?: continue
+            val plain = withContext(Dispatchers.Default) { WarCrypto.decrypt(k, dane) } ?: continue // inny kod — nie ruszamy
+            if (handle(plain.decodeToString())) done.add(id)
+        }
+        if (done.isNotEmpty()) {
+            call("POST", "/api/sync/zlecenia/odebrane", Json.obj("skrzynka" to box, "ids" to done))
+            if (list.size >= 100) nextPollMs = 0
+        }
+        return r
     }
 
     /** Obsługa odszyfrowanej paczki; true = zapisano, można potwierdzić odbiór. */

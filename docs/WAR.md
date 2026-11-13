@@ -26,6 +26,7 @@ Rolnik przepisuje z telefonu (WAR → Gospodarstwo → Maszyny → WAR Sync) **k
 |---|---|---|---|
 | prac | `war-sync-id:` + kod | Navigator (i WAR Sync) | telefon WAR |
 | Navigatora | `war-nav-zl:` + kod | telefon WAR | **Navigator** |
+| Navigatora — własna | `war-nav-zl:` + kod + `:` + id maszyny | telefon WAR (od v246, gdy `urzadzenie` ma `"skrzynka_wlasna": true`) | **ten jeden** Navigator (czyta też wspólną) |
 | floty | `war-flota:` + kod | każdy Navigator gospodarstwa (nadpisuje swoje) | każdy Navigator gospodarstwa (3.10) |
 | (zleceń WAR Sync) | `war-sync-zl:` + kod | telefon WAR | WAR Sync — **Navigator jej nie czyta** (WAR Sync usuwa z niej wszystko, co odczyta) |
 
@@ -236,6 +237,10 @@ nie rozsyła — Navigatory wymieniają się przez serwer same.
   Pozycje starsze niż 15 min i pokrycia starsze niż 7 dni nie wracają. Najczęściej co 3 s na maszynę (`maszyna` w adresie
   rozróżnia kilka tabletów za jednym hotspotem), inaczej `429`. Zalecane: co 5 s w pracy, co 30 s na postoju.
 - Własne paczki (ta sama `maszyna`) też wracają — pomijać.
+- Odpowiedź zawiera też `lokalizatory` (gdy konto ma WAR Track): `[{"id": "trk-…", "nazwa", "lat", "lon", "kmh", "kurs", "zaplon", "ts"}]` —
+  maszyny bez Navigatora, jawnie (jak na mapie w WAR), za każdym razem wszystkie z ostatnich 15 min.
+- Zlecenie (`zlecenie`) może mieć `"przyjal": {"komputer", "kto", "t"}` — przyjęte na innej maszynie (Navigator albo WAR Sync);
+  pozostałe go nie pokazują, żeby nikt nie zrobił tej samej pracy drugi raz.
 - `kolor` (opcjonalnie, „#RRGGBB”, w `pozycja_floty` i `pokrycie_floty`): kolor śladu maszyny z Navigatora (Ustawienia →
   Pojazd → Kolor śladu) — inne Navigatory rysują nim jej trójkąt i obrobione pasy. Brak = domyślny niebieski.
 

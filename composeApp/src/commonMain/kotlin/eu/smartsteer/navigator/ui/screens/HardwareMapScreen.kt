@@ -1047,6 +1047,12 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                     close()
                 }
                 val mc = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: Ss.Info
+                if (m.tracker) {                                          // lokalizator WAR Track: kółko z kreską kierunku
+                    drawCircle(Ss.Warning, 1.6f, o(mp))
+                    drawCircle(Ss.Text, 1.6f, o(mp), style = Stroke(width = 2f * px))
+                    if (m.kmh >= 1) drawLine(Ss.Text, o(mp), o(mp + f * 3.0), 2f * px)
+                    continue
+                }
                 drawPath(tri, mc)
                 drawPath(tri, Ss.Text, style = Stroke(width = 2f * px))
                 if (m.width > 0.5) {
@@ -1117,7 +1123,7 @@ private fun FleetChip(hw: HardwareController, modifier: Modifier) {
         for (m in fleet.take(4)) {
             val dist = if (me != null && plane != null) plane.toLocal(m.lat, m.lon).distanceTo(me) else null
             Text(
-                "${m.tractor}${if (m.tool.isNotEmpty()) " · ${m.tool}" else ""}",
+                "${if (m.tracker) "📡 " else ""}${m.tractor}${if (m.tool.isNotEmpty()) " · ${m.tool}" else ""}",
                 color = Ss.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
             )
             Text(
