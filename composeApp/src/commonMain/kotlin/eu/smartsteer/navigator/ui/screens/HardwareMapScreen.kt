@@ -125,6 +125,7 @@ fun HardwareMapScreen(hw: HardwareController) {
         KTurnBanner(hw, Modifier.align(Alignment.Center).padding(bottom = 160.dp))
         RatePill(hw, Modifier.align(Alignment.TopCenter).padding(top = 215.dp))
         WeatherChip(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 12.dp))
+        FleetChip(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 112.dp))
         TunePendingCard(hw, Modifier.align(Alignment.TopStart).padding(start = 76.dp, top = 60.dp).width(380.dp))
 
         // prawa kolumna: linia, zawrót, sekcje
@@ -1031,6 +1032,27 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 drawPath(quad, Ss.OnAccent, style = Stroke(width = 1.5f * px))
             }
 
+            // inne maszyny gospodarstwa (flota WAR §3.10): niebieski trójkąt w kierunku jazdy
+            val plane = s.plane
+            if (plane != null) for (m in hw.war.fleet.values) {
+                val mp = plane.toLocal(m.lat, m.lon)
+                val h = m.courseDeg * kotlin.math.PI / 180
+                val f = Vec2.forward(h)
+                val r = Vec2.right(h)
+                val tri = Path().apply {
+                    moveTo(o(mp + f * 3.2).x, o(mp + f * 3.2).y)
+                    lineTo(o(mp + r * 1.1 - f * 0.6).x, o(mp + r * 1.1 - f * 0.6).y)
+                    lineTo(o(mp - r * 1.1 - f * 0.6).x, o(mp - r * 1.1 - f * 0.6).y)
+                    close()
+                }
+                drawPath(tri, Ss.Info)
+                drawPath(tri, Ss.Text, style = Stroke(width = 2f * px))
+                if (m.width > 0.5) {
+                    val half = m.width / 2
+                    drawLine(Ss.Info.copy(alpha = 0.8f), o(mp - r * half - f * 1.5), o(mp + r * half - f * 1.5), 3f * px)
+                }
+            }
+
             // ciągnik: prosty trójkąt w kolorze z projektu, czubek = przód
             val p = s.pivot
             if (p != null) {
@@ -1075,6 +1097,33 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 val layout = tm.measure(k.toString(), TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (active) Ss.OnWarning else Ss.Text))
                 drawText(layout, topLeft = Offset(c.x - layout.size.width / 2f, c.y - layout.size.height / 2f))
             }
+        }
+    }
+}
+
+
+/** Inne maszyny gospodarstwa (flota WAR): nazwa, narzędzie, prędkość, odległość — niebieskie trójkąty na mapie. */
+@Composable
+private fun FleetChip(hw: HardwareController, modifier: Modifier) {
+    val fleet = hw.war.fleet.values.sortedBy { it.tractor }
+    if (fleet.isEmpty()) return
+    val s = hw.session
+    val me = s.pivot
+    val plane = s.plane
+    Column(modifier.width(260.dp).hwOverlay().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("INNE MASZYNY", color = Ss.Info, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        for (m in fleet.take(4)) {
+            val dist = if (me != null && plane != null) plane.toLocal(m.lat, m.lon).distanceTo(me) else null
+            Text(
+                "${m.tractor}${if (m.tool.isNotEmpty()) " · ${m.tool}" else ""}",
+                color = Ss.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            )
+            Text(
+                "${if (m.working) "pracuje" else "stoi"} · ${m.kmh.pl(1)} km/h" +
+                    (dist?.let { " · " + if (it < 1000) "${it.toInt()} m" else "${(it / 1000).pl(1)} km" } ?: "") +
+                    (if (m.field.isNotEmpty()) " · ${m.field}" else ""),
+                color = Ss.TextMuted, fontSize = 11.sp, maxLines = 1,
+            )
         }
     }
 }

@@ -65,12 +65,12 @@ więc potrzebna jest **skrzynka floty** na serwerze, którą czytają wszystkie 
 
 ## Checklista — Navigator (zrobię po stronie Navigatora)
 
-- [ ] Odbiór paczki `flota` (klucz) ze skrzynki Navigatora, zapis klucza w ustawieniach WAR.
-- [ ] Wysyłka `pozycja_floty` co 5 s w pracy / 30 s na postoju (ten sam wyłącznik co „Pokazuj na mapie WAR”).
-- [ ] Wysyłka `pokrycie_floty` co minutę, gdy pole ma `war_id` i przybyło pokrycia (zamiast propozycji 3.9).
-- [ ] Odczyt skrzynki floty co 3–5 s: ikonki innych maszyn na Mapie (kolor, kierunek, nazwa, prędkość, „pracuje”),
+- [x] ~~Odbiór paczki `flota` (klucz)~~ — niepotrzebne: wspólny kod gospodarstwa ze skrzynki Navigatora, zapis klucza w ustawieniach WAR.
+- [x] Wysyłka `pozycja_floty` co 5 s w pracy / 30 s na postoju (ten sam wyłącznik co „Pokazuj na mapie WAR”).
+- [x] Wysyłka `pokrycie_floty` co minutę, gdy pole ma `war_id` i przybyło pokrycia (zamiast propozycji 3.9).
+- [x] Odczyt skrzynki floty co 3–5 s: ikonki innych maszyn na Mapie (kolor, kierunek, nazwa, prędkość, „pracuje”),
       znikają po 5 min ciszy; pokrycie innych na niebiesko + omijanie przez sekcje (logika już jest).
-- [ ] Testy: szyfrowanie kluczem floty, adres skrzynki floty (wektor testowy do uzgodnienia z WAR), pomijanie własnych paczek.
+- [x] Testy: szyfrowanie kluczem floty, adres skrzynki floty (wektor testowy do uzgodnienia z WAR), pomijanie własnych paczek.
 
 ## Do uzgodnienia między sesjami
 

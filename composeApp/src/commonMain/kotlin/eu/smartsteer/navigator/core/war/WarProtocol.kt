@@ -129,6 +129,48 @@ object WarProtocol {
         "kto" to c.operator, "komputer" to c.machineId, "t" to t,
     )
 
+    /** Skrzynka floty (§3.10): wspólna dla maszyn gospodarstwa z tym samym kodem. */
+    fun fleetMailboxText(code: String) = "war-flota:" + normalizeCode(code)
+
+    /** Pozycja dla innych maszyn gospodarstwa (§3.10, `pozycja_floty`). */
+    fun fleetPosition(
+        lat: Double, lon: Double, courseDeg: Double, kmh: Double, fix: Int, tool: String, width: Double,
+        warId: String?, field: String, working: Boolean, tractor: String, c: WarConfig, t: String,
+    ): String = Json.obj(
+        "typ" to "pozycja_floty", "v" to 1, "komputer" to c.machineId, "pojazd" to tractor, "narzedzie" to tool, "szer" to width,
+        "lat" to Json.Raw(r(lat, 7)), "lon" to Json.Raw(r(lon, 7)), "kurs" to Json.Raw(r(courseDeg, 1)), "kmh" to Json.Raw(r(kmh, 1)),
+        "fix" to fix, "pole" to Json.Raw(Json.obj("war_id" to warId, "nazwa" to field.ifEmpty { null })), "pracuje" to working,
+        "kto" to c.operator.ifEmpty { null }, "t" to t,
+    )
+
+    /** Pokrycie dla innych maszyn gospodarstwa (§3.10, `pokrycie_floty`). */
+    fun fleetCoverage(c: WarConfig, warId: String, tractor: String, g: CoverageGrid, t: String): String = Json.obj(
+        "typ" to "pokrycie_floty", "v" to 1, "komputer" to c.machineId, "pojazd" to tractor,
+        "pole" to Json.Raw(Json.obj("war_id" to warId)), "t" to t, "pokrycie" to Json.Raw(gridJson(g)),
+    )
+
+    /** Inna maszyna gospodarstwa z paczki `pozycja_floty`. */
+    data class FleetMachine(
+        val id: String, val tractor: String, val tool: String, val width: Double, val lat: Double, val lon: Double,
+        val courseDeg: Double, val kmh: Double, val working: Boolean, val warId: String?, val field: String, val who: String,
+        val receivedMs: Long,
+    )
+
+    fun parseFleetPosition(m: Map<*, *>, machine: String, receivedMs: Long): FleetMachine? {
+        if (m["typ"] != "pozycja_floty") return null
+        fun d(k: String) = (m[k] as? Number)?.toDouble()
+        val lat = d("lat") ?: return null
+        val lon = d("lon") ?: return null
+        val pole = m["pole"] as? Map<*, *>
+        return FleetMachine(
+            id = machine, tractor = (m["pojazd"] as? String).orEmpty().ifEmpty { (m["komputer"] as? String).orEmpty() },
+            tool = (m["narzedzie"] as? String).orEmpty(), width = d("szer") ?: 0.0, lat = lat, lon = lon,
+            courseDeg = d("kurs") ?: 0.0, kmh = d("kmh") ?: 0.0, working = m["pracuje"] == true,
+            warId = pole?.get("war_id") as? String, field = (pole?.get("nazwa") as? String).orEmpty(),
+            who = (m["kto"] as? String).orEmpty(), receivedMs = receivedMs,
+        )
+    }
+
     fun position(
         lat: Double, lon: Double, courseDeg: Double, kmh: Double, fix: Int, sats: Int,
         tool: String, width: Double, field: String, working: Boolean, c: WarConfig, t: String,
