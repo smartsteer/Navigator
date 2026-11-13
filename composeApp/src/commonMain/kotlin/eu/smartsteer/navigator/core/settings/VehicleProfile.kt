@@ -5,7 +5,7 @@ import eu.smartsteer.navigator.core.update.MiniJson
 enum class SteerAlgorithm(val label: String) { PURE_PURSUIT("Pure pursuit"), STANLEY("Stanley") }
 
 /** Skąd kurs przy jednej antenie (setGPS_headingFromWhichSource w AgOpenGPS): z kolejnych pozycji („Fix”) albo z VTG odbiornika. */
-enum class HeadingFrom(val label: String, val ago: String) { FIX("Z pozycji (Fix)", "Fix"), VTG("Z odbiornika (VTG)", "VTG") }
+enum class HeadingFrom(val label: String, val ago: String) { FIX("Z pozycji (Fix)", "Fix"), VTG("Z odbiornika (VTG)", "VTG"), DUAL("Dwie anteny", "Dual") }
 
 /** Sposób włączania autosteru na płytce (PGN 251, bity 5–6). */
 enum class SteerEnable(val label: String) { NONE("Brak"), SWITCH("Przełącznik"), BUTTON("Przycisk") }
@@ -122,6 +122,13 @@ data class VehicleProfile(
     /** Poprawka kursu o skręt kół przy jeździe do przodu / do tyłu (setGPS_forwardComp, setGPS_reverseComp). */
     val forwardComp: Double = 0.15,
     val reverseComp: Double = 0.3,
+    /** Dwie anteny: powyżej [autoSwitchDualFixSpeed] km/h kurs z pozycji, a kurs z dwóch anten służy jak IMU (setAutoSwitchDualFixOn). */
+    val autoSwitchDualFix: Boolean = false,
+    val autoSwitchDualFixSpeed: Double = 2.0,
+    /** Dwie anteny: kurs z dwóch anten jako IMU (setIMU_isDualAsIMU). */
+    val dualAsImu: Boolean = false,
+    /** Dwie anteny: co tyle metrów sprawdzane jest cofanie (setGPS_dualReverseDetectionDistance). */
+    val dualReverseDistM: Double = 0.25,
 
     // --- Moduł maszyny (PGN 238) ---
     val machineInvertRelays: Boolean = false,
@@ -286,6 +293,7 @@ data class VehicleProfile(
         "rollZero" to rollZero, "rollFilter" to rollFilter, "invertRoll" to invertRoll, "fusionWeight" to fusionWeight,
         "headingFrom" to headingFrom.name, "reverseDetect" to reverseDetect, "minStepM" to minStepM, "minHeadingStepM" to minHeadingStepM,
         "forwardComp" to forwardComp, "reverseComp" to reverseComp,
+        "autoSwitchDualFix" to autoSwitchDualFix, "autoSwitchDualFixSpeed" to autoSwitchDualFixSpeed, "dualAsImu" to dualAsImu, "dualReverseDistM" to dualReverseDistM,
         "gainP" to gainP, "highPwm" to highPwm, "lowPwm" to lowPwm, "minPwm" to minPwm,
         "countsPerDegree" to countsPerDegree, "wasOffset" to wasOffset, "ackerman" to ackerman,
         "invertWas" to invertWas, "invertRelays" to invertRelays, "invertMotor" to invertMotor,
@@ -377,6 +385,10 @@ data class VehicleProfile(
                 minHeadingStepM = num("minHeadingStepM", d.minHeadingStepM),
                 forwardComp = num("forwardComp", d.forwardComp),
                 reverseComp = num("reverseComp", d.reverseComp),
+                autoSwitchDualFix = bool("autoSwitchDualFix", d.autoSwitchDualFix),
+                autoSwitchDualFixSpeed = num("autoSwitchDualFixSpeed", d.autoSwitchDualFixSpeed),
+                dualAsImu = bool("dualAsImu", d.dualAsImu),
+                dualReverseDistM = num("dualReverseDistM", d.dualReverseDistM),
                 gainP = int("gainP", d.gainP),
                 highPwm = int("highPwm", d.highPwm),
                 lowPwm = int("lowPwm", d.lowPwm),

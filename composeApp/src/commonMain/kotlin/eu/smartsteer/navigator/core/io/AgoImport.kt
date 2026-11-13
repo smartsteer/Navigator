@@ -94,6 +94,10 @@ object AgoImport {
         d("setF_minHeadingStepDistance")?.let { p = p.copy(minHeadingStepM = it) }
         d("setGPS_forwardComp")?.let { p = p.copy(forwardComp = it) }
         d("setGPS_reverseComp")?.let { p = p.copy(reverseComp = it) }
+        b("setAutoSwitchDualFixOn")?.let { p = p.copy(autoSwitchDualFix = it) }
+        d("setAutoSwitchDualFixSpeed")?.let { p = p.copy(autoSwitchDualFixSpeed = it) }
+        b("setIMU_isDualAsIMU")?.let { p = p.copy(dualAsImu = it) }
+        d("setGPS_dualReverseDetectionDistance")?.let { p = p.copy(dualReverseDistM = it) }
         // moduł skrętu (PGN 252)
         i("setAS_Kp")?.let { p = p.copy(gainP = it) }
         i("setAS_highSteerPWM")?.let { p = p.copy(highPwm = it) }

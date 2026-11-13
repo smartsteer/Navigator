@@ -310,6 +310,11 @@ private fun ColumnScope.ImuTab(hw: HardwareController, p: VehicleProfile, set: (
         set(p.copy(headingFrom = eu.smartsteer.navigator.core.settings.HeadingFrom.entries[it])); hw.session.resetDirection()
     }
     Toggle("Wykrywanie jazdy do tyłu", p.reverseDetect) { set(p.copy(reverseDetect = it)) }
+    if (p.headingFrom == eu.smartsteer.navigator.core.settings.HeadingFrom.DUAL) {
+        Toggle("Dwie anteny jako IMU", p.dualAsImu) { set(p.copy(dualAsImu = it)) }
+        Toggle("Szybko: kurs z pozycji, dwie anteny jako IMU", p.autoSwitchDualFix) { set(p.copy(autoSwitchDualFix = it)) }
+        if (p.autoSwitchDualFix) Num("Prędkość przełączenia", "Powyżej — kurs z pozycji", p.autoSwitchDualFixSpeed, "km/h", 0.5, 0.5, 10.0, 1) { set(p.copy(autoSwitchDualFixSpeed = it)) }
+    }
     Num("Odległość pozycji do kursu", "Kurs z pozycji oddalonych co najmniej o tyle (AgOpenGPS: 0,5 m)", p.minHeadingStepM, "m", 0.1, 0.2, 3.0, 1) { set(p.copy(minHeadingStepM = it)) }
     Num("Korekta kursu IMU przez GPS", "Fuzja; 0 = kurs tylko z GPS", p.fusionWeight, "", 0.01, 0.0, 0.5, 2) { set(p.copy(fusionWeight = it)) }
     Num("Poprawka kursu z dwóch anten", "Gdy anteny nie stoją dokładnie w poprzek ciągnika", p.dualHeadingOffset, "°", 0.1, -180.0, 180.0, 1) { set(p.copy(dualHeadingOffset = it)) }

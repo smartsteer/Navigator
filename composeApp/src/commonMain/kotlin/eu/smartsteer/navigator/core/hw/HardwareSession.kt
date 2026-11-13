@@ -142,6 +142,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     /** Kasuje ustalony przód (punkty kursu, offset IMU, cofanie). */
     fun resetDirection() {
         stepFix.clear()
+        lastReverseFix = null
         firstHeadingSet = false
         reversing = false; reverseWithImu = false; changingDirection = false; filteredDelta = 0.0
         imu.resetAlignment()
@@ -278,15 +279,14 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     }
 
     private fun rawHeading(p: Vec2, nowS: Double) {
-        val dual = dualHeading
-        if (dual != null && nowS - dualTimeS < 1.0) {
-            rawHeadingRad = dual; headingSource = HeadingSource.DUAL
-            val v = vtgCourse
-            if (v != null && speedKmh >= MIN_HEADING_KMH && nowS - vtgTimeS < 1.0) reversing = angDiff(v, dual) > PI / 2
-            return
-        }
+        val dual = dualHeading?.takeIf { nowS - dualTimeS < 1.0 }
+        // dwie anteny jako IMU (AgOpenGPS: isDualAsIMU → ahrs.imuHeading = headingTrueDual)
+        val autoFix = dual != null && profile.autoSwitchDualFix && abs(speedKmh) > profile.autoSwitchDualFixSpeed
+        if (dual != null && (profile.dualAsImu || autoFix)) imu.onHeading(dual * 180 / PI, nowS)
+        // kurs z dwóch anten: ustawiony w profilu albo (bez wyboru) gdy odbiornik je podaje
+        if (dual != null && !autoFix && profile.headingFrom != HeadingFrom.VTG) { dualAntennaHeading(dual, p); return }
         when (profile.headingFrom) {
-            HeadingFrom.FIX -> fixHeading(p, nowS)
+            HeadingFrom.FIX, HeadingFrom.DUAL -> fixHeading(p, nowS)
             HeadingFrom.VTG -> vtgHeading(nowS)
         }
     }
@@ -374,6 +374,26 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             headingSource = HeadingSource.MOTION
         }
         pushStep(fix)
+    }
+
+    private var lastReverseFix: Vec2? = null
+
+    /** Źródło „Dual” (AgOpenGPS, case "Dual"): kurs z dwóch anten, cofanie z ruchu co [VehicleProfile.dualReverseDistM] m. */
+    private fun dualAntennaHeading(dual: Double, antenna: Vec2) {
+        firstHeadingSet = true
+        changingDirection = false
+        rawHeadingRad = norm(dual); gpsHeadingRad = rawHeadingRad
+        headingSource = HeadingSource.DUAL
+        val fix = antenna + Vec2.right(rawHeadingRad) * profile.antennaOffset
+        val last = lastReverseFix
+        if (last == null) lastReverseFix = fix
+        else if (last.distanceTo(fix) > profile.dualReverseDistM) {
+            val nh = norm(atan2(fix.x - last.x, fix.y - last.y))
+            val delta = abs(PI - abs(abs(nh - rawHeadingRad) - PI))
+            reversing = delta > 2
+            lastReverseFix = fix
+        }
+        pushStep(fix) // płynne przejście na kurs z pozycji (autoSwitchDualFix)
     }
 
     /** Źródło „VTG”: kurs z odbiornika przy prędkości > 1 km/h, z IMU korygowanym jak w AgOpenGPS (bez wykrywania cofania). */
