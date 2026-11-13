@@ -885,7 +885,7 @@ class HardwareController {
     var workKind by mutableStateOf(runCatching { files.read("praca.cfg")?.trim().orEmpty() }.getOrDefault(""))
         private set
 
-    fun setWorkKind(k: String) {
+    fun changeWorkKind(k: String) {
         if (k == workKind) return
         workKind = k
         try { files.write("praca.cfg", k) } catch (_: Exception) {}

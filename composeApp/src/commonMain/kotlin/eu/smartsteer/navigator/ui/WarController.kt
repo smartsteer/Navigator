@@ -583,7 +583,7 @@ class WarController(private val hw: HardwareController, private val files: TextF
         enqueue("st-${o.id}-${nowMillis()}", WarProtocol.orderStatus(o.id, "przyjete", config, nowIso()))
         activeOrderId = o.id
         // rodzaj pracy ze zlecenia — sekcje omijają tylko pracę innych maszyn przy tym samym rodzaju
-        if (WarProtocol.WORK_KINDS.any { it.first == o.kind && it.first.isNotEmpty() }) hw.setWorkKind(o.kind)
+        if (WarProtocol.WORK_KINDS.any { it.first == o.kind && it.first.isNotEmpty() }) hw.changeWorkKind(o.kind)
         val f = o.warField ?: return "Przyjęto: ${o.title}"
         val err = hw.openWarField(f)
         activeOrderId = o.id // otwarcie pola czyści przypisanie — przywracamy
