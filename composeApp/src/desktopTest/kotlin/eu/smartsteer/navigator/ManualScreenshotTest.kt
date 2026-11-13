@@ -46,6 +46,8 @@ class ManualScreenshotTest {
                 s.update(t)
             }
             feed()
+            s.newField("Za stodołą")
+            feed()
             s.restoreFieldForTest(listOf(Vec2(-60.0, -20.0), Vec2(60.0, -20.0), Vec2(60.0, 300.0), Vec2(-60.0, 300.0)))
             s.restoreLine(AbLine(Vec2(0.5, -20.0), Vec2(0.5, 300.0)))
             repeat(30) { sim.step(0.1, null); t += 0.1; feed() }
@@ -53,11 +55,12 @@ class ManualScreenshotTest {
             repeat(350) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t += 0.1; feed() }
 
             // połączenie z WAR (kod nawigacji gospodarstwa), dwie inne maszyny i lokalizator WAR Track, wiadomość od gospodarza
-            hw.war.update(hw.war.config.copy(code = "ABCD-EFGH-JKLM-NPQR", tractorName = "Renault 133.14", operator = "Marek"))
+            hw.war.update(hw.war.config.copy(code = "ABCDEFGHJKLMNPQR", tractorName = "Renault 133.14", operator = "Marek"))
             val pl = s.plane!!
             fun geo(x: Double, y: Double) = pl.toGeo(Vec2(x, y))
-            val (la1, lo1) = geo(-36.0, 120.0)
-            val (la2, lo2) = geo(30.0, 60.0)
+            val p0 = s.pivot!!
+            val (la1, lo1) = geo(p0.x - 9.0, p0.y + 22.0)
+            val (la2, lo2) = geo(p0.x + 12.0, p0.y - 6.0)
             val now = System.currentTimeMillis()
             hw.war.setFleetForScreenshots(listOf(
                 WarProtocol.FleetMachine("tab-zetor", "Zetor 12045", "Agregat 4 m", 4.0, la1, lo1, 0.0, 8.5, true, null, "Za stodołą", "Janek", now, "#FF8C1A"),
@@ -65,8 +68,17 @@ class ManualScreenshotTest {
             ))
             hw.war.addVoiceForScreenshots("Szef")
 
+            fun drive(n: Int) = repeat(n) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t = hw.now(); feed(); hw.sprayer.step(100, s.speedKmh) { true } }
+            // nawigacja + opryskiwacz
+            hw.updateProfile(hw.sprayer.applyTo(hw.profile))
+            hw.sprayer.setTank(0.0); hw.sprayer.fill(850.0)
+            hw.sprayer.toggleRun()
+            drive(80)
+            shot(dir, "12_mapa_oprysk") { App(hw, Screen.Map) }
+            shot(dir, "13_oprysk") { App(hw, Screen.Sprayer) }
             // tryb „tylko nawigacja” — mapa bez opryskiwacza
             hw.updateWorkMode(1)
+            drive(20)
             shot(dir, "01_mapa") { App(hw, Screen.Map) }
             shot(dir, "02_pola") { App(hw, Screen.Fields) }
             shot(dir, "03_sterowanie") { App(hw, Screen.Steer) }
@@ -75,14 +87,7 @@ class ManualScreenshotTest {
             for ((tab, name) in listOf(0 to "06_ust_ciagnik", 1 to "07_ust_maszyna", 2 to "08_ust_prowadzenie", 5 to "09_ust_nadzor", 7 to "10_ust_ntrip", 8 to "11_ust_war")) {
                 shot(dir, name, 4) { App(hw, Screen.Settings, tab) }
             }
-            // nawigacja + opryskiwacz
             hw.updateWorkMode(0)
-            hw.updateProfile(hw.sprayer.applyTo(hw.profile))
-            hw.sprayer.setTank(0.0); hw.sprayer.fill(850.0)
-            hw.sprayer.toggleRun()
-            repeat(80) { sim.step(0.1, if (s.engaged) s.steerSetDeg else null); t += 0.1; feed(); hw.sprayer.step(100, s.speedKmh) { true } }
-            shot(dir, "12_mapa_oprysk") { App(hw, Screen.Map) }
-            shot(dir, "13_oprysk") { App(hw, Screen.Sprayer) }
             hw.setHardwareMode(false)
         } catch (e: Throwable) {
             File(dir, "blad.txt").writeText(e.stackTraceToString())
