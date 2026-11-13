@@ -24,12 +24,71 @@ actual fun importFiles(): TextFiles = DirFiles(File(smartSteerDir(), "Import").a
 
 actual fun exportFiles(): TextFiles = DirFiles(File(smartSteerDir(), "Raporty").apply { mkdirs() })
 
+private val isWindows = System.getProperty("os.name").orEmpty().lowercase().contains("win")
+
+/** Wartość z rejestru Windows (reg query, wynik w UTF-8, żeby polskie litery w ścieżkach były dobre). */
+private fun regValue(key: String, name: String): String? = if (!isWindows) null else runCatching {
+    val p = ProcessBuilder("cmd", "/c", "chcp", "65001", ">nul", "&", "reg", "query", key, "/v", name).redirectErrorStream(true).start()
+    val out = p.inputStream.bufferedReader(Charsets.UTF_8).readText()
+    p.waitFor()
+    out.lineSequence().firstOrNull { it.trim().startsWith(name) }
+        ?.let { Regex("REG_(?:EXPAND_)?SZ\\s+(.*)$").find(it.trim())?.groupValues?.get(1)?.trim() }
+}.getOrNull()
+
+/** Rozwija %USERPROFILE% i inne zmienne środowiska. */
+private fun expandEnv(s: String): String = Regex("%([^%]+)%").replace(s) { System.getenv(it.groupValues[1]) ?: it.value }
+
+private val agoChoiceFile get() = File(smartSteerDir(), "folder_agopengps.txt")
+
+private fun looksLikeAgo(d: File) = listOf("VehicleProfiles", "Vehicles", "Fields", "ToolProfiles").any { File(d, it).isDirectory }
+
+/**
+ * Folder AgOpenGPS tak, jak szuka go AgOpenGPS: najpierw wskazany ręcznie w Navigatorze, potem „WorkingDirectory”
+ * z rejestru (HKCU\SOFTWARE\AgOpenGPS), potem prawdziwy folder Dokumenty z rejestru (często przeniesiony do OneDrive),
+ * na końcu typowe miejsca.
+ */
+@Volatile private var agoCached: File? = null
+
+@Volatile private var agoMissAt = 0L
+
+/** Wynik zapamiętany (rejestr pytamy rzadko — to osobny proces); gdy nie ma AgOpenGPS, ponowne szukanie co 30 s. */
 private fun agoBase(): File {
-    val home = System.getProperty("user.home") ?: "."
-    val docs = File(home, "Documents").takeIf { it.isDirectory } ?: File(home)
-    val main = File(docs, "AgOpenGPS")
-    return if (main.isDirectory) main else File(smartSteerDir(), "Import/AgOpenGPS")
+    agoCached?.takeIf { looksLikeAgo(it) }?.let { return it }
+    val fallback = File(smartSteerDir(), "Import/AgOpenGPS")
+    if (System.currentTimeMillis() - agoMissAt < 30_000) return fallback
+    val f = findAgoBase()
+    if (looksLikeAgo(f)) agoCached = f else agoMissAt = System.currentTimeMillis()
+    return f
 }
+
+private fun findAgoBase(): File {
+    val home = System.getProperty("user.home") ?: "."
+    val cands = mutableListOf<File>()
+    runCatching { agoChoiceFile.readText().trim() }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { cands += File(it) }
+    regValue("HKCU\\SOFTWARE\\AgOpenGPS", "WorkingDirectory")?.takeIf { it.isNotBlank() && it != "Default" }?.let { cands += File(expandEnv(it), "AgOpenGPS") }
+    regValue("HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders", "Personal")?.let { cands += File(expandEnv(it), "AgOpenGPS") }
+    regValue("HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders", "Personal")?.let { cands += File(it, "AgOpenGPS") }
+    for (d in listOf("Documents", "OneDrive/Documents", "OneDrive/Dokumenty", "Dokumenty")) cands += File(home, "$d/AgOpenGPS")
+    cands += File("C:/AgOpenGPS")
+    return cands.firstOrNull { looksLikeAgo(it) } ?: File(smartSteerDir(), "Import/AgOpenGPS")
+}
+
+actual fun chooseAgoFolder(): String? = runCatching {
+    val ch = javax.swing.JFileChooser().apply {
+        dialogTitle = "Wskaż folder AgOpenGPS (ten z VehicleProfiles, Fields…)"
+        fileSelectionMode = javax.swing.JFileChooser.DIRECTORIES_ONLY
+    }
+    if (ch.showOpenDialog(null) != javax.swing.JFileChooser.APPROVE_OPTION) return@runCatching null
+    var d = ch.selectedFile ?: return@runCatching null
+    // wskazany folder z profilem (np. VehicleProfiles) — bierzemy folder wyżej
+    if (!looksLikeAgo(d) && d.parentFile?.let { looksLikeAgo(it) } == true) d = d.parentFile
+    // wskazany folder nadrzędny (np. Dokumenty) — bierzemy AgOpenGPS w środku
+    if (!looksLikeAgo(d) && looksLikeAgo(File(d, "AgOpenGPS"))) d = File(d, "AgOpenGPS")
+    agoChoiceFile.parentFile?.mkdirs()
+    agoChoiceFile.writeText(d.absolutePath)
+    agoCached = null; agoMissAt = 0L
+    d.absolutePath
+}.getOrNull()
 
 actual fun agoFiles(sub: String): TextFiles? = File(agoBase(), sub).takeIf { it.isDirectory }?.let { DirFiles(it) }
 

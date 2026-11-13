@@ -858,8 +858,14 @@ private fun ColumnScope.ProfilesTab(hw: HardwareController) {
     var pickV by remember { mutableStateOf<String?>(null) }
     var pickT by remember { mutableStateOf<String?>(null) }
     if (vehicles.isEmpty() && tools.isEmpty()) {
-        Label("Nie znalazłem AgOpenGPS na tym komputerze (szukam w: ${hw.agoFolder}).", Ss.TextMuted, 13.sp)
+        Label("Nie znalazłem profili AgOpenGPS (szukam w: ${hw.agoFolder}). Wskaż folder AgOpenGPS — ten, w którym są VehicleProfiles albo Vehicles i Fields.", Ss.TextMuted, 13.sp)
     } else {
+        Label("Folder AgOpenGPS: ${hw.agoFolder}", Ss.TextMuted, 12.sp)
+    }
+    ActionButton(onClick = { eu.smartsteer.navigator.core.settings.chooseAgoFolder()?.let { msg = "Folder AgOpenGPS: $it"; hw.tick++ } }) {
+        ButtonText("Wskaż folder AgOpenGPS…", size = 13.sp)
+    }
+    if (vehicles.isNotEmpty() || tools.isNotEmpty()) {
         Label("Wybierz pojazd i (w nowszym AgOpenGPS) narzędzie — powstanie nowy profil ze wszystkimi ustawieniami: wymiary, antena, prowadzenie, moduł skrętu, płytka, IMU, sekcje, zawrót.", Ss.TextSoft, 13.sp)
         vehicles.forEach { v ->
             PickRow("Pojazd: " + v.substringAfter('/').removeSuffix(".xml"), v.substringBefore('/'), pickV == v) { pickV = if (pickV == v) null else v }

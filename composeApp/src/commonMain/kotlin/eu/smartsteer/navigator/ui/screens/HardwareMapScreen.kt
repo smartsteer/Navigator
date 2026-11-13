@@ -448,7 +448,7 @@ private fun KTurnBanner(hw: HardwareController, modifier: Modifier) {
         s.kPhase == 2 && !s.reversing -> "STOP — WSTECZNY" to true
         s.kPhase == 2 -> "COFAJ ↓" to false
         s.kPhase == 3 && s.reversing -> "STOP — NAPRZÓD" to true
-        s.reversing && !s.engaged -> "WSTECZ" to false
+        s.reversing && !s.engaged && s.speedKmh >= 0.5 -> "WSTECZ" to false
         else -> return
     }
     Text(

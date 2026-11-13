@@ -29,3 +29,6 @@ expect fun agoFiles(sub: String): TextFiles?
 
 /** Folder AgOpenGPS do pokazania rolnikowi. */
 expect fun agoLocation(): String
+
+/** Okno wyboru folderu AgOpenGPS (Windows); wybór jest zapamiętany. Null = anulowano albo brak takiej możliwości (Android). */
+expect fun chooseAgoFolder(): String?

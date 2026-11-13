@@ -27,6 +27,8 @@ actual fun agoFiles(sub: String): TextFiles? = File(agoBase(), sub).takeIf { it.
 
 actual fun agoLocation(): String = agoBase().absolutePath
 
+actual fun chooseAgoFolder(): String? = null
+
 actual fun warFiles(): TextFiles =
     DirFiles(File(AndroidStorage.filesDir ?: File("/data/local/tmp"), "WAR"))
 
