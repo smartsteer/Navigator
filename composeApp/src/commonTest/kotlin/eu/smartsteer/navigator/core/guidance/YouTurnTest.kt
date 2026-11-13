@@ -46,7 +46,8 @@ class YouTurnTest {
         val last = path.last()
         assertEquals(106.0, last.p.x, 1e-6)
         assertTrue(abs(last.heading - kotlin.math.PI) < 0.01, "kurs na południe")
-        assertTrue(path.maxOf { it.p.y } <= 198.0 + 1e-6)
+        // jak w AgOpenGPS (MoveTurnInsideTurnLine): zawrót dosuwany co 0,1 m, aż dotknie linii zawrotu
+        assertTrue(path.maxOf { it.p.y } <= 198.0 + 0.15)
         // za ciasno: zawrót o promieniu 150 m się nie zmieści
         assertNull(YouTurn.build(guide, from, turnLine, 150.0, 6.0, right = true))
     }
