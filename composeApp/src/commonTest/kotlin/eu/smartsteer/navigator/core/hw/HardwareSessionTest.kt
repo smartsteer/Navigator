@@ -270,4 +270,30 @@ class HardwareSessionTest {
         assertTrue(h.engaged)
         assertTrue(abs(h.xteCm) < 5.0, "odchyłka ${h.xteCm} cm")
     }
+
+    @Test
+    fun boardSwitchEngagesAndDisengagesLikeAgOpenGps() {
+        val sim = eu.smartsteer.navigator.core.sim.SimReceiver()
+        val h = HardwareSession(VehicleProfile(antennaPivot = 0.0))
+        var t = 0.0
+        var sw = 0x02 // bit 1 = przełącznik rozwarty (wyłączony)
+        fun feed() {
+            h.onNmea(sim.vtg(), t); h.onNmea(sim.gga(), t)
+            val f = AogFrame.build(Pgn.FROM_AUTOSTEER, byteArrayOf(0, 0, 0x0F, 0x27, 0xB8.toByte(), 0x22, sw.toByte(), 0), source = 0x7E)
+            h.onDatagram(f, f.size, t)
+            h.update(t)
+        }
+        feed()
+        h.restoreLine(AbLine(Vec2(1.0, 0.0), Vec2(1.0, 50.0)))
+        repeat(20) { sim.step(0.1, null); t += 0.1; feed() }
+        // przełącznik wyłączony: z ekranu nie da się włączyć
+        assertNotNull(h.setEngaged(true, t))
+        assertFalse(h.engaged)
+        // przełącznik włączony → autoster włącza się sam
+        sw = 0; sim.step(0.1, null); t += 0.1; feed()
+        assertTrue(h.engaged)
+        // przełącznik wyłączony → autoster wyłączony
+        sw = 0x02; sim.step(0.1, h.steerSetDeg); t += 0.1; feed()
+        assertFalse(h.engaged)
+    }
 }

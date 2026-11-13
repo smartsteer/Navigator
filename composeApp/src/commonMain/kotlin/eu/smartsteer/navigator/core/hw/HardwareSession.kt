@@ -161,7 +161,14 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         }
         val frame = AogFrame.parse(bytes, length) ?: return
         AutosteerStatus.from(frame)?.let {
+            val prevSwitch = autosteer?.steerSwitch
             autosteer = it
+            lastAutosteerTimeS = nowS
+            // jak w AgOpenGPS: przełącznik / przycisk na płytce włącza i wyłącza autoster (gdy ustawione „Przełącznik” albo „Przycisk”)
+            if (profile.steerEnable != SteerEnable.NONE && prevSwitch != null && prevSwitch != it.steerSwitch) {
+                if (it.steerSwitch) { if (!engaged && !freeDrive) setEngaged(true, nowS) }
+                else if (engaged) { engaged = false; fail("Autoster wyłączony przełącznikiem") }
+            }
             lastAutosteerTimeS = nowS
             it.headingDeg?.let { h -> imu.onHeading(h, nowS) }
             it.rollDeg?.let { r -> imu.onRoll(r, filtered = true, profile, nowS) }
@@ -632,6 +639,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             mode == GuidanceMode.CONTOUR && contour.guide.isEmpty() -> "Brak wcześniejszego przejazdu obok — kontur nie ma czego się trzymać"
             !gpsAlive(nowS) -> "Brak pozycji GPS"
             !autosteerAlive(nowS) -> "Brak odpowiedzi modułu autosterowania (PGN 253)"
+            profile.steerEnable == SteerEnable.SWITCH && autosteer?.steerSwitch == false -> "Włącz przełącznik autosteru — przy wyłączonym płytka nie da prądu na silnik"
             obstacleGuard.config.enabled && obstacleGuard.check(obstacleFrame, nowS, speedKmh, machineWidthM).level == 2 ->
                 obstacleGuard.check(obstacleFrame, nowS, speedKmh, machineWidthM).message ?: "Czujnik przeszkód"
             else -> null

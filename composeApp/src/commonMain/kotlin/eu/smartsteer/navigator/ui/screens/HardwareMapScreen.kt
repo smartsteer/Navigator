@@ -244,7 +244,8 @@ private fun SteerButton(hw: HardwareController, modifier: Modifier) {
         GuidanceMode.CURVE -> s.curveRef != null
         GuidanceMode.CONTOUR -> s.contour.guide.isNotEmpty()
     }
-    val ready = hasLine && s.gpsAlive(now) && s.autosteerAlive(now)
+    val switchOff = s.profile.steerEnable == eu.smartsteer.navigator.core.settings.SteerEnable.SWITCH && s.autosteer?.steerSwitch == false && s.autosteerAlive(now)
+    val ready = hasLine && s.gpsAlive(now) && s.autosteerAlive(now) && !switchOff
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(
             Modifier.size(96.dp).clip(CircleShape)
@@ -258,6 +259,7 @@ private fun SteerButton(hw: HardwareController, modifier: Modifier) {
                 s.engaged -> "AUTOSTER"
                 ready -> "gotowy"
                 !hasLine -> "brak linii"
+                switchOff -> "włącz przełącznik"
                 !s.gpsAlive(now) -> "brak GPS"
                 else -> "brak modułu"
             },
