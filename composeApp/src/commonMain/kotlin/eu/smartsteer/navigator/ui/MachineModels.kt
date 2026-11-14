@@ -6,11 +6,16 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import eu.smartsteer.navigator.core.geo.Vec2
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
- * Proste bryłowe modele innych maszyn gospodarstwa (kombajn, ciągnik z opryskiwaczem, siewnikiem albo inną maszyną).
- * Rysowane na pochylonej mapie: wysokość bryły przesuwa jej górę „w głąb” ekranu ([up] × wysokość × [k]), więc
- * w widoku 3D maszyna stoi, a z góry (k = 0) widać jej obrys. Własne kształty — żadnych cudzych grafik.
+ * Proste bryłowe modele maszyn gospodarstwa (kombajn, ciągnik z opryskiwaczem, siewnikiem albo inną maszyną) i własnego
+ * ciągnika w widoku 3D. Każda część to graniastosłup: profil z boku (y do przodu, z w górę) wyciągnięty na szerokość
+ * (oś x w prawo) — koła są walcami, maska ma pochylony przód, kabina słupki i dach z okapem. Ściany cieniowane od światła
+ * z góry. Własne kształty — żadnych cudzych grafik.
  */
 object MachineModels {
     enum class Kind { COMBINE, SPRAYER, SEEDER, TRACTOR }
@@ -38,136 +43,161 @@ object MachineModels {
         }
     }
 
-    /** Prostopadłościan w układzie maszyny (x w prawo, y do przodu, z w górę); [yaw] w stopniach — skręcone koła. */
-    private class Box(val cx: Double, val cy: Double, val w: Double, val l: Double, val z0: Double, val h: Double, val color: Color, val yaw: Double = 0.0)
-
-    private val TYRE = Color(0xFF24282A)
-    private val GLASS = Color(0xFF2A3843)
-    private val STEEL = Color(0xFF8A9096)
-
-    private fun shade(c: Color, f: Float) = c.copy(red = c.red * f, green = c.green * f, blue = c.blue * f)
-
     /**
-     * Własny ciągnik w 3D: rozstaw osi i kół z profilu, przednie koła skręcają o [steerDeg] (jak ikona z góry).
+     * Graniastosłup: [profile] — punkty (y, z) przeciwnie do zegara patrząc od prawej strony (+x), wypukły; wyciągnięty
+     * od cx − w/2 do cx + w/2. [yaw] (stopnie) obraca część wokół (cx, cy) — skręcone koła; y profilu liczone od cy.
      */
-    private fun ownTractor(body: Color, wheelbase: Double, track: Double, steerDeg: Double): List<Box> {
-        val wb = wheelbase.coerceIn(1.5, 5.0)
-        val tr = track.coerceIn(1.0, 3.2)
-        val dark = shade(body, 0.72f)
+    private class Part(val cx: Double, val cy: Double, val w: Double, val profile: List<Pair<Double, Double>>, val color: Color,
+                       val yaw: Double = 0.0, val edges: Boolean = true)
+
+    private val TYRE = Color(0xFF26292B)
+    private val RIM = Color(0xFFB9BEC2)
+    private val GLASS = Color(0xFF4E6A7C)
+    private val STEEL = Color(0xFF8A9096)
+    private val DARK = Color(0xFF3A3F3C)
+
+    private fun shade(c: Color, f: Float) = c.copy(red = (c.red * f).coerceIn(0f, 1f), green = (c.green * f).coerceIn(0f, 1f), blue = (c.blue * f).coerceIn(0f, 1f))
+
+    private fun box(cx: Double, cy: Double, w: Double, l: Double, z0: Double, h: Double, c: Color) =
+        Part(cx, 0.0, w, listOf(cy - l / 2 to z0, cy + l / 2 to z0, cy + l / 2 to z0 + h, cy - l / 2 to z0 + h), c)
+
+    /** Wielokąt „zaokrąglony” wokół (y0, z0) — zbiornik, rura. */
+    private fun round(cx: Double, y0: Double, z0: Double, ry: Double, rz: Double, w: Double, c: Color, n: Int = 12) =
+        Part(cx, 0.0, w, (0 until n).map { val a = 2 * PI * it / n; y0 + ry * cos(a) to z0 + rz * sin(a) }, c)
+
+    /** Koło: opona (walec) i felgi po obu stronach; [steer] — skręt w stopniach. */
+    private fun wheel(cx: Double, cy: Double, r: Double, w: Double, steer: Double = 0.0): List<Part> {
+        val n = 16
+        val tyre = (0 until n).map { val a = 2 * PI * (it + 0.5) / n; r * cos(a) to r + r * sin(a) }
+        val hub = (0 until 10).map { val a = 2 * PI * it / 10; r * 0.55 * cos(a) to r + r * 0.55 * sin(a) }
         return listOf(
-            Box(-tr / 2, 0.0, 0.6, 1.84, 0.0, 1.84, TYRE), Box(tr / 2, 0.0, 0.6, 1.84, 0.0, 1.84, TYRE),
-            Box(-tr / 2 + 0.1, wb, 0.44, 1.2, 0.0, 1.2, TYRE, steerDeg), Box(tr / 2 + -0.1, wb, 0.44, 1.2, 0.0, 1.2, TYRE, steerDeg),
-            Box(0.0, 0.0, tr - 0.9, 0.9, 0.5, 0.8, dark),                                        // tylny most
-            Box(0.0, (wb + 0.95) / 2 + 0.25, 1.0, wb + 0.45, 0.65, 1.15, body),                 // maska
-            Box(0.0, wb + 1.06, 1.1, 0.26, 0.4, 0.7, Color(0xFF4A504C)),                         // obciążnik
-            Box(0.0, 0.1, 1.6, 1.7, 0.9, 1.85, GLASS), Box(0.0, 0.1, 1.75, 1.85, 2.75, 0.14, shade(body, 0.9f)), // kabina z dachem
-            Box(0.35, 1.3, 0.12, 0.12, 1.8, 1.2, Color(0xFF3A3F3C)),                             // wydech
+            Part(cx - w / 2 - 0.02, cy, 0.04, hub, RIM, steer, false),
+            Part(cx, cy, w, tyre, TYRE, steer, false),
+            Part(cx + w / 2 + 0.02, cy, 0.04, hub, RIM, steer, false),
         )
     }
 
-    /** Strzałka 3D (gruby klin) — ikona „strzałka” w widoku 3D. */
-    private fun arrow(body: Color): List<List<Vec2>> = listOf(listOf(Vec2(0.0, 3.2), Vec2(-1.1, -0.6), Vec2(0.0, 0.1), Vec2(1.1, -0.6)))
-
-    private fun boxes(kind: Kind, body: Color, width: Double): List<Box> {
-        val roof = shade(body, 0.9f)
-        val tractor = listOf(
-            Box(-0.95, 0.0, 0.55, 1.7, 0.0, 1.7, TYRE), Box(0.95, 0.0, 0.55, 1.7, 0.0, 1.7, TYRE),
-            Box(-0.85, 2.5, 0.4, 1.1, 0.0, 1.1, TYRE), Box(0.85, 2.5, 0.4, 1.1, 0.0, 1.1, TYRE),
-            Box(0.0, 1.9, 0.9, 2.6, 0.6, 1.1, body),
-            Box(0.0, 0.1, 1.5, 1.6, 0.8, 1.9, GLASS), Box(0.0, 0.1, 1.6, 1.7, 2.7, 0.14, roof),
+    private fun tractor(body: Color, wb: Double = 2.5, tr: Double = 1.9, steer: Double = 0.0): List<Part> {
+        val roof = shade(body, 0.92f)
+        return wheel(-tr / 2, 0.0, 0.85, 0.55) + wheel(tr / 2, 0.0, 0.85, 0.55) +
+            wheel(-tr / 2 + 0.12, wb, 0.55, 0.4, steer) + wheel(tr / 2 - 0.12, wb, 0.55, 0.4, steer) + listOf(
+            box(0.0, 0.0, tr - 0.75, 1.1, 0.45, 0.85, shade(body, 0.7f)),                                       // tylny most
+            Part(0.0, 0.0, 0.95, listOf(0.55 to 0.6, wb + 0.9 to 0.6, wb + 1.08 to 1.0, wb + 0.9 to 1.5, 0.55 to 1.72), body), // maska
+            box(0.0, wb + 1.12, 1.0, 0.2, 0.45, 0.6, DARK),                                                   // obciążnik
+            Part(0.0, 0.0, 1.5, listOf(-0.75 to 1.05, 0.85 to 1.05, 1.0 to 2.6, -0.7 to 2.65), GLASS),           // kabina
+            Part(0.0, 0.0, 1.72, listOf(-0.88 to 2.62, 1.12 to 2.6, 1.08 to 2.82, -0.84 to 2.84), roof),         // dach z okapem
+            Part(-tr / 2, 0.0, 0.62, listOf(-0.75 to 1.55, 0.75 to 1.55, 0.55 to 1.82, -0.55 to 1.82), shade(body, 0.85f)), // błotniki
+            Part(tr / 2, 0.0, 0.62, listOf(-0.75 to 1.55, 0.75 to 1.55, 0.55 to 1.82, -0.55 to 1.82), shade(body, 0.85f)),
+            round(0.33, 1.35, 2.25, 0.07, 0.65, 0.12, DARK, 8),                                               // wydech
         )
+    }
+
+    private fun parts(kind: Kind, body: Color, width: Double): List<Part> {
         val w = if (width > 0.5) width else 3.0
         return when (kind) {
             Kind.COMBINE -> {
                 val hw = if (width > 0.5) width else 6.0
-                listOf(
-                    Box(-1.75, 2.0, 0.75, 1.8, 0.0, 1.8, TYRE), Box(1.75, 2.0, 0.75, 1.8, 0.0, 1.8, TYRE),
-                    Box(-1.4, -2.3, 0.5, 1.1, 0.0, 1.1, TYRE), Box(1.4, -2.3, 0.5, 1.1, 0.0, 1.1, TYRE),
-                    Box(0.0, 4.7, hw, 1.4, 0.3, 0.9, Color(0xFFD9A930)),          // heder
-                    Box(0.0, 3.5, 1.4, 1.6, 0.6, 1.2, shade(body, 0.85f)),         // przenośnik pochyły
-                    Box(0.0, 0.1, 3.0, 5.6, 0.9, 2.6, body),                        // korpus
-                    Box(0.0, 0.0, 2.6, 2.6, 3.5, 0.9, shade(body, 0.8f)),           // zbiornik ziarna
-                    Box(0.0, 2.5, 1.8, 1.6, 3.5, 1.4, GLASS), Box(0.0, 2.5, 1.9, 1.7, 4.9, 0.15, roof), // kabina
-                    Box(-2.9, 0.6, 3.4, 0.35, 3.7, 0.3, STEEL),                    // rura wyładowcza
+                val dark = shade(body, 0.82f)
+                wheel(-1.6, 2.0, 0.95, 0.75) + wheel(1.6, 2.0, 0.95, 0.75) + wheel(-1.35, -2.3, 0.6, 0.45) + wheel(1.35, -2.3, 0.6, 0.45) + listOf(
+                    Part(0.0, 0.0, hw, listOf(4.0 to 0.3, 5.4 to 0.3, 5.45 to 0.5, 4.35 to 1.25, 4.0 to 1.25), Color(0xFFD9A930)), // heder
+                    Part(0.0, 0.0, 1.3, listOf(2.9 to 0.75, 4.15 to 0.75, 4.15 to 1.45, 2.9 to 2.1), dark),           // przenośnik pochyły
+                    Part(0.0, 0.0, 2.9, listOf(-3.0 to 0.95, 2.8 to 0.95, 2.8 to 3.4, -2.3 to 3.4, -3.0 to 2.6), body), // korpus
+                    Part(0.0, 0.0, 2.6, listOf(-1.5 to 3.4, 1.2 to 3.4, 1.45 to 4.3, -1.75 to 4.3), dark),           // zbiornik ziarna
+                    Part(0.0, 0.0, 1.8, listOf(1.6 to 3.4, 3.25 to 3.4, 3.55 to 4.8, 1.6 to 4.9), GLASS),            // kabina
+                    Part(0.0, 0.0, 2.0, listOf(1.45 to 4.85, 3.7 to 4.78, 3.65 to 5.0, 1.45 to 5.06), shade(body, 0.92f)),
+                    round(-2.9, 0.6, 3.9, 0.17, 0.17, 3.4, STEEL, 8),                                                   // rura wyładowcza
                 )
             }
-            Kind.SPRAYER -> tractor + listOf(
-                Box(0.0, -3.4, 1.7, 2.4, 0.6, 1.6, Color(0xFFE6E8E6)),              // zbiornik
-                Box(0.0, -4.9, w, 0.25, 1.1, 0.15, STEEL),                          // belka
+            Kind.SPRAYER -> tractor(body) + listOf(
+                round(0.0, -3.4, 1.45, 1.15, 0.8, 1.7, Color(0xFFE6E8E6)),                                       // zbiornik
+                box(0.0, -3.4, 1.9, 2.5, 0.45, 0.25, DARK),                                                       // rama
+                box(0.0, -4.85, w, 0.18, 1.1, 0.16, STEEL),                                                       // belka
+                box(0.0, -4.85, 0.5, 0.5, 0.55, 0.8, DARK),
             )
-            Kind.SEEDER -> tractor + listOf(
-                Box(0.0, -3.0, w, 1.6, 0.3, 1.0, Color(0xFF3B6FA8)),
-                Box(0.0, -3.0, minOf(w, 2.6), 1.2, 1.3, 0.8, Color(0xFF2E5A8C)),   // skrzynia nasienna
+            Kind.SEEDER -> tractor(body) + listOf(
+                box(0.0, -3.0, w, 1.6, 0.25, 0.75, Color(0xFF3B6FA8)),
+                Part(0.0, 0.0, minOf(w, 2.6), listOf(-3.6 to 1.0, -2.4 to 1.0, -2.25 to 1.95, -3.75 to 1.95), Color(0xFF2E5A8C)), // skrzynia nasienna
             )
-            Kind.TRACTOR -> tractor + if (width > 0.5) listOf(Box(0.0, -2.6, width, 0.9, 0.2, 0.8, Color(0xFFB0662A))) else emptyList()
+            Kind.TRACTOR -> tractor(body) + if (width > 0.5) listOf(box(0.0, -2.6, width, 0.9, 0.2, 0.8, Color(0xFFB0662A))) else emptyList()
         }
     }
 
     /**
      * [proj] — punkt świata na wysokości z (m) na ekran razem z głębokością (dalej = więcej), null za kamerą.
-     * [tilt] — widok 3D: rysujemy też ściany brył (te zwrócone do kamery), od najdalszej bryły do najbliższej.
+     * [tilt] — widok 3D; z góry widać tylko wierzch brył.
      */
     fun DrawScope.drawMachine(
         proj: (Vec2, Double) -> Pair<Float, Offset>?, pos: Vec2, heading: Double, kind: Kind, body: Color, width: Double,
         tilt: Boolean, outline: Color,
-    ) = drawBoxes(proj, pos, heading, boxes(kind, body, width), tilt, outline)
+    ) = drawParts(proj, pos, heading, parts(kind, body, width), outline)
 
-    /** Własny ciągnik jako bryła (ikona „ciągnik” w 3D). */
+    /** Własny ciągnik jako bryła: rozstaw osi i kół z profilu, przednie koła skręcają o [steerDeg]. */
     fun DrawScope.drawOwnTractor(
         proj: (Vec2, Double) -> Pair<Float, Offset>?, pivot: Vec2, heading: Double, body: Color, wheelbase: Double, track: Double,
         steerDeg: Double, outline: Color,
-    ) = drawBoxes(proj, pivot, heading, ownTractor(body, wheelbase, track, steerDeg), true, outline)
+    ) = drawParts(proj, pivot, heading, tractor(body, wheelbase.coerceIn(1.5, 5.0), track.coerceIn(1.0, 3.2), steerDeg), outline)
 
     /** Ikona „strzałka” w 3D: klin grubości 0,5 m nad ziemią. */
     fun DrawScope.drawOwnArrow(proj: (Vec2, Double) -> Pair<Float, Offset>?, pivot: Vec2, heading: Double, body: Color, outline: Color) {
         val f = Vec2.forward(heading); val r = Vec2.right(heading)
-        for (poly in arrow(body)) {
-            val pts = poly.map { pivot + r * it.x + f * it.y }
-            val lo = pts.map { proj(it, 0.15)?.second ?: return }
-            val hi = pts.map { proj(it, 0.65)?.second ?: return }
-            // ściany od najdalszej
-            val sides = pts.indices.map { i -> val j = (i + 1) % pts.size; Triple(i, j, proj((pts[i] + pts[j]) * 0.5, 0.4)?.first ?: 0f) }.sortedByDescending { it.third }
-            for ((i, j, _) in sides) face(listOf(lo[i], lo[j], hi[j], hi[i]), shade(body, 0.6f + 0.15f * (i % 2)), outline, false)
-            face(hi, body, outline, true, reverse = false)
-        }
+        val pts = listOf(Vec2(0.0, 3.2), Vec2(-1.1, -0.6), Vec2(0.0, 0.1), Vec2(1.1, -0.6)).map { pivot + r * it.x + f * it.y }
+        val lo = pts.map { proj(it, 0.15)?.second ?: return }
+        val hi = pts.map { proj(it, 0.65)?.second ?: return }
+        val sides = pts.indices.map { i -> val j = (i + 1) % pts.size; Triple(i, j, proj((pts[i] + pts[j]) * 0.5, 0.4)?.first ?: 0f) }.sortedByDescending { it.third }
+        for ((i, j, _) in sides) face(listOf(lo[i], lo[j], hi[j], hi[i]), shade(body, 0.6f + 0.15f * (i % 2)), outline, false)
+        face(hi, body, outline, true)
     }
 
-    private fun DrawScope.face(pts: List<Offset>, c: Color, outline: Color, edge: Boolean, reverse: Boolean = false) {
-        // ściana widoczna, gdy na ekranie ma ten sam obieg co dach widziany z góry
+    /** Rysuje ścianę, gdy jest zwrócona do kamery (na ekranie ten sam obieg co dach widziany z góry). */
+    private fun DrawScope.face(pts: List<Offset>, c: Color, outline: Color, edge: Boolean): Boolean {
         var area = 0f
         for (i in pts.indices) { val p = pts[i]; val q = pts[(i + 1) % pts.size]; area += p.x * q.y - q.x * p.y }
-        if (if (reverse) area <= 0f else area >= 0f) return
+        if (area >= -0.5f) return false
         val path = Path().apply { moveTo(pts[0].x, pts[0].y); for (i in 1 until pts.size) lineTo(pts[i].x, pts[i].y); close() }
         drawPath(path, c)
-        if (edge) drawPath(path, outline.copy(alpha = 0.35f), style = Stroke(width = 1.2f))
+        if (edge) drawPath(path, outline.copy(alpha = 0.22f), style = Stroke(width = 1f))
+        return true
     }
 
-    private fun DrawScope.drawBoxes(
-        proj: (Vec2, Double) -> Pair<Float, Offset>?, pos: Vec2, heading: Double, boxes: List<Box>, tilt: Boolean, outline: Color,
-    ) {
-        val f = Vec2.forward(heading)
-        val r = Vec2.right(heading)
-        fun at(x: Double, y: Double) = pos + r * x + f * y
-        val list = boxes
-            .map { it to (proj(at(it.cx, it.cy), it.z0 + it.h / 2)?.first ?: Float.MAX_VALUE) }
-            .sortedByDescending { it.second }
-            .map { it.first }
-        for (b in list) {
-            val c = at(b.cx, b.cy)
-            val f2 = Vec2.forward(heading + b.yaw * kotlin.math.PI / 180); val r2 = Vec2.right(heading + b.yaw * kotlin.math.PI / 180)
-            val xs = doubleArrayOf(-b.w / 2, b.w / 2, b.w / 2, -b.w / 2)
-            val ys = doubleArrayOf(-b.l / 2, -b.l / 2, b.l / 2, b.l / 2)
-            val z1 = b.z0 + b.h
-            val corners = (0 until 4).map { c + r2 * xs[it] + f2 * ys[it] }
-            val lo = corners.map { proj(it, b.z0)?.second }
-            val hi = corners.map { proj(it, z1)?.second }
-            if (lo.any { it == null } || hi.any { it == null }) continue
-            val l = lo.map { it!! }; val u = hi.map { it!! }
-            if (tilt) for (i in 0 until 4) {
-                val j = (i + 1) % 4
-                face(listOf(l[i], l[j], u[j], u[i]), shade(b.color, 0.62f + 0.18f * (i % 2)), outline, false)
+    // światło z góry, trochę z lewej i z przodu ekranu — w układzie świata (x, y, z)
+    private val LIGHT = doubleArrayOf(-0.35, -0.3, 0.89)
+
+    private fun DrawScope.drawParts(proj: (Vec2, Double) -> Pair<Float, Offset>?, pos: Vec2, heading: Double, parts: List<Part>, outline: Color) {
+        val sorted = parts.map { p ->
+            val my = p.profile.sumOf { it.first } / p.profile.size
+            val mz = p.profile.sumOf { it.second } / p.profile.size
+            val h = heading + p.yaw * PI / 180
+            val c = pos + Vec2.right(heading) * p.cx + Vec2.forward(heading) * p.cy
+            p to (proj(c + Vec2.forward(h) * my, mz)?.first ?: Float.MAX_VALUE)
+        }.sortedByDescending { it.second }.map { it.first }
+        for (p in sorted) {
+            val h = heading + p.yaw * PI / 180
+            val f = Vec2.forward(h); val r = Vec2.right(h)
+            val c = pos + Vec2.right(heading) * p.cx + Vec2.forward(heading) * p.cy
+            val n = p.profile.size
+            fun world(side: Double, i: Int) = c + r * side + f * p.profile[i].first
+            val left = (0 until n).map { world(-p.w / 2, it) }
+            val right = (0 until n).map { world(p.w / 2, it) }
+            val lp = (0 until n).map { proj(left[it], p.profile[it].second)?.second }
+            val rp = (0 until n).map { proj(right[it], p.profile[it].second)?.second }
+            if (lp.any { it == null } || rp.any { it == null }) continue
+            val l = lp.map { it!! }; val rr = rp.map { it!! }
+            fun lit(nx: Double, ny: Double, nz: Double): Color {
+                val len = sqrt(nx * nx + ny * ny + nz * nz).coerceAtLeast(1e-9)
+                val d = (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / len
+                return shade(p.color, (0.58 + 0.42 * d.coerceAtLeast(0.0)).toFloat())
             }
-            face(u, b.color, outline, true)
+            // boki pasami (normalna na zewnątrz profilu), potem ściany boczne (±x)
+            for (i in 0 until n) {
+                val j = (i + 1) % n
+                val dy = p.profile[j].first - p.profile[i].first
+                val dz = p.profile[j].second - p.profile[i].second
+                // normalna w układzie części: (0, dz, −dy) → świat
+                val nw = f * dz
+                face(listOf(l[i], l[j], rr[j], rr[i]), lit(nw.x, nw.y, -dy), outline, false)
+            }
+            face(rr, lit(r.x, r.y, 0.0), outline, p.edges)
+            face(l.reversed(), lit(-r.x, -r.y, 0.0), outline, p.edges)
         }
     }
 }
