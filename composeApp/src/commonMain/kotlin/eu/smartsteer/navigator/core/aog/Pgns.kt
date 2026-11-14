@@ -25,17 +25,20 @@ data class SteerData(
     val steerAngleDeg: Double,
     val lineDistanceCm: Int,
     val sections: Int = 0, // bit 0 = sekcja 1 ... bit 15 = sekcja 16
+    /** Odległość od linii ważna (AgOpenGPS: 255 tylko przy wyłączonym przycisku autostera, 32020; przy cofaniu status 0, ale odległość idzie). */
+    val lineValid: Boolean = autosteerOn,
 ) {
     fun toFrame(): ByteArray {
-        val speed = (speedKmh * 10).roundToInt().coerceIn(0, 0xFFFF)
-        val angle = (steerAngleDeg * 100).roundToInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+        // jak w AgOpenGPS: (int)(|avgSpeed| × 10) i (short)(kąt × 100) — obcięcie, nie zaokrąglenie
+        val speed = (kotlin.math.abs(speedKmh) * 10).toInt().coerceIn(0, 0xFFFF)
+        val angle = (steerAngleDeg * 100).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
         val data = ByteArray(8)
         data[0] = (speed and 0xFF).toByte()
         data[1] = (speed shr 8).toByte()
         data[2] = if (autosteerOn) 1 else 0
         data[3] = (angle and 0xFF).toByte()
         data[4] = (angle shr 8).toByte()
-        data[5] = lineDistanceByte(autosteerOn, lineDistanceCm).toByte()
+        data[5] = lineDistanceByte(lineValid, lineDistanceCm).toByte()
         data[6] = (sections and 0xFF).toByte()
         data[7] = ((sections shr 8) and 0xFF).toByte()
         return AogFrame.build(Pgn.STEER_DATA, data)

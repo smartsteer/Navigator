@@ -1218,6 +1218,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             steerAngleDeg = if (engaged) deadZoned(steerSetDeg, steerStatus()) else 0.0,
             lineDistanceCm = xteCm.roundToInt(),
             sections = (sections.bits() and 0xFFFF).toInt(),
+            lineValid = engaged,
         ).toFrame()
     }
 
