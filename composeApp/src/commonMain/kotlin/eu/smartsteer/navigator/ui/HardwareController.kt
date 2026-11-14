@@ -197,12 +197,19 @@ class HardwareController {
      * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Settings/FormSteer.cs (btnZeroWAS_Click).
      */
     fun zeroWas(): String? {
-        val st = session.autosteer?.takeIf { session.autosteerAlive(now()) } ?: return "Brak danych z modułu skrętu"
+        val t = now()
+        // płytka musi najpierw dostać nowe zero i odesłać kąt już z nim — inaczej drugie naciśnięcie odjęłoby kąt drugi raz
+        if (t - wasZeroAt < WAS_ZERO_WAIT_S) return "Chwilę — płytka przyjmuje nowe zero, potem sprawdź kąt kół"
+        val st = session.autosteer?.takeIf { session.autosteerAlive(t) } ?: return "Brak danych z modułu skrętu"
         val offset = (profile.countsPerDegree * -st.actualAngleDeg + profile.wasOffset).toInt()
         if (kotlin.math.abs(offset) > 3900) return "Za duży kąt kół — nie można wyzerować"
         updateProfile(profile.copy(wasOffset = offset))
+        sendBoardConfig() // od razu, bez zwykłej zwłoki 1,5 s (AgOpenGPS wysyła PGN 252 od razu po zmianie)
+        wasZeroAt = t
         return null
     }
+    private var wasZeroAt = -1e9
+    private val WAS_ZERO_WAIT_S = 3.0
 
     /**
      * Zerowanie przechyłu: ciągnik stoi na płaskim, bieżący odczyt IMU staje się zerem.
