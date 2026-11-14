@@ -236,4 +236,34 @@ class ReverseAndKTurnTest {
         assertTrue(kotlin.math.abs(kotlin.math.abs(h.passIndex) - 1) == 0, "przejazd ${h.passIndex}")
         assertTrue(kotlin.math.abs(h.xteCm) < 15.0, "odchyłka ${h.xteCm}")
     }
+
+    /** Szeroki zawrót AgOpenGPS (CreateABWideTurn) z pominięciem 3 przejazdów, w pętli z symulatorem. */
+    @Test
+    fun aogWideTurnSkipsThreePasses() {
+        val sim = eu.smartsteer.navigator.core.sim.SimReceiver()
+        val h = HardwareSession(eu.smartsteer.navigator.core.settings.VehicleProfile(antennaPivot = 0.0, toolWidth = 6.0, youTurnSkip = 3, youTurnRadius = 6.0, supRtkLossS = 0.0))
+        val feed = feeder(h, sim)
+        var t = 0.0
+        sim.targetSpeedKmh = 7.0
+        feed(t)
+        h.restoreFieldForTest(listOf(Vec2(-80.0, -30.0), Vec2(80.0, -30.0), Vec2(80.0, 140.0), Vec2(-80.0, 140.0)))
+        h.restoreLine(AbLine(Vec2(0.0, 0.0), Vec2(0.0, 50.0)))
+        repeat(20) { sim.step(0.1, null); t += 0.1; feed(t) }
+        kotlin.test.assertNull(h.setEngaged(true, t))
+        h.autoUturn = true
+        var sawTurn = false
+        var steps = 0
+        while (steps < 4000) {
+            if (h.youTurnPath != null) sawTurn = true
+            sim.step(0.1, if (h.engaged) h.steerSetDeg else 0.0); t += 0.1; feed(t); steps++
+            if (sawTurn && h.youTurnPath == null) break
+            if (!h.engaged) break
+        }
+        assertTrue(sawTurn, "zawrót się nie zaczął: ${h.message}")
+        assertTrue(h.engaged, "autoster wyłączony: ${h.message}")
+        assertEquals(3, h.passIndex)
+        assertTrue(h.reversed)
+        repeat(200) { sim.step(0.1, h.steerSetDeg); t += 0.1; feed(t) }
+        assertTrue(kotlin.math.abs(h.xteCm) < 20.0, "odchyłka ${h.xteCm}")
+    }
 }
