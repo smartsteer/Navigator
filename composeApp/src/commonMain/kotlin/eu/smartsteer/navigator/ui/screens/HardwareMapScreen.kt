@@ -980,7 +980,8 @@ private fun HwCanvas(
             // 3D: ziemia aż po horyzont (1,5 km przed nami), żeby pole nie kończyło się krawędzią ekranu. Tylko przed kamerą —
             // punkty za kamerą w perspektywie przewracają się na drugą stronę ekranu
             val rightW = Vec2(upW.y, -upW.x)
-            val back = (size.height * 0.3f / sc).toDouble()
+            // do dolnej krawędzi ekranu (środek mapy to kamera, dół to 0,5 wysokości niżej) — inaczej zmrok i mgła kończą się poziomą krawędzią
+            val back = (size.height * 0.6f / sc).toDouble()
             val groundQuad = Path().apply {
                 val a = cam - upW * back - rightW * FAR_M.toDouble(); val b = cam - upW * back + rightW * FAR_M.toDouble()
                 val c = cam + upW * FAR_M.toDouble() + rightW * FAR_M.toDouble(); val d = cam + upW * FAR_M.toDouble() - rightW * FAR_M.toDouble()
