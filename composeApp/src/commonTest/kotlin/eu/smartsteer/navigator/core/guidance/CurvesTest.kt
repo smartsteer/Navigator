@@ -9,6 +9,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class CurvesTest {
@@ -69,11 +70,15 @@ class CurvesTest {
         c.record(Pose(Vec2(0.0, 60.0), 0.0), working = false)
         assertEquals(1, c.strips.size)
         // wracamy na południe, 3,2 m na wschód od pasa
-        val g = c.build(Vec2(3.2, 30.0), PI, toolWidth = 3.0, overlap = 0.0, hold = false)
+        val g = c.build(Vec2(3.2, 30.0), PI, toolWidth = 3.0, overlap = 0.0, autosteerOn = false)
         assertTrue(g.size >= 5)
         assertTrue(!c.sameWay)
         for (p in g) assertEquals(3.0, p.p.x, 1e-6)
-        assertTrue(abs(g.first().heading - PI) < 1e-6, "linia skierowana jak jazda")
+        assertTrue(abs(g.first().heading) < 1e-6, "jak ctList w AgOpenGPS: kierunek pasa odniesienia")
+        // prowadzenie: ciągnik 0,2 m na wschód od linii jadąc na południe → skręt w prawo (na zachód)
+        val prof = eu.smartsteer.navigator.core.settings.VehicleProfile()
+        val r = assertNotNull(c.follow(Vec2(3.2, 30.0), Vec2(3.2, 30.0), PI, 8.0, false, true, false, null, prof, AbSteering()))
+        assertTrue(r.steerAngleDeg > 0, "kąt ${r.steerAngleDeg}")
         // za daleko od pasa (ponad 3 szerokości) — brak konturu
         assertTrue(c.build(Vec2(12.0, 30.0), PI, 3.0, 0.0, false).isEmpty())
     }

@@ -114,6 +114,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     private var curveToolOffset = 0.0
     private var pathHint = -1
     val contour = Contour()
+    private var prevContourPos: Vec2? = null
     private var contourBuiltS = Double.NEGATIVE_INFINITY
 
     /** Ślad jazdy (co ok. 0,5 m) do rysowania na mapie. */
@@ -275,9 +276,26 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             trail.addLast(pv)
             while (trail.size > 4000) trail.removeFirst()
         }
-        recordingCurve?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= CURVE_STEP_M) r.add(pv) }
-        // kontur nagrywamy zawsze podczas jazdy (później: gdy pracują sekcje — etap 6)
-        contour.record(Pose(pv, headingRad), working = speedKmh >= CONTOUR_MIN_KMH)
+        // sectionTriggerStepDistance (Position.designer.cs): krótszy krok na zakręcie, 0,7–5 m, przy nagrywaniu krzywej połowa
+        val tw = profile.toolWidth
+        val twistRaw = if (sections.farLeftSpeed < sections.farRightSpeed) sections.farLeftSpeed * (tw / 50) / sections.farRightSpeed * (50 / tw)
+            else sections.farRightSpeed * (tw / 50) / sections.farLeftSpeed * (50 / tw)
+        val twist = (if (twistRaw.isNaN()) 1.0 else twistRaw).let { it * it }.coerceAtLeast(0.1)
+        var stepDist = (minOf(tw * 0.75, 5.0) * twist).coerceAtLeast(0.7)
+        if (recordingCurve != null) stepDist *= 0.5
+        // AddSectionOrPathPoints: punkt krzywej co krok
+        recordingCurve?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) > stepDist) r.add(pv) }
+        // AddContourPoints: co (szerokość − zakładka)/3 albo krok; nagrywanie tylko gdy maluje choć jedna sekcja
+        val contourWidth = (profile.toolWidth - profile.toolOverlap) / 3.0
+        val lastC = prevContourPos
+        if (lastC == null || lastC.distanceTo(pv) > contourWidth || lastC.distanceTo(pv) > stepDist) {
+            contour.record(Pose(pv, headingRad), working = sections.mapping.any { it }, toolOffset = profile.toolOffset)
+            if (mode == GuidanceMode.CONTOUR && nowS - contourBuiltS >= (if (contour.guide.isEmpty()) 0.3 else 2.0)) {
+                contour.build(pv, headingRad, profile.toolWidth, profile.toolOverlap, autosteerOn = engaged, toolOffset = profile.toolOffset)
+                contourBuiltS = nowS
+            }
+            prevContourPos = pv
+        }
         recordingBoundary?.let { r ->
             val q = pv + Vec2.right(headingRad) * (boundarySide * profile.toolWidth / 2)
             if (r.isEmpty() || r.last().distanceTo(q) >= 1.0) r.add(q)
@@ -872,14 +890,10 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             }
             GuidanceMode.CURVE -> if (p != null && curveRef != null) followPath(activeCurve(p), p, roll, endMessage = "Koniec krzywej — autoster wyłączony") else null
             GuidanceMode.CONTOUR -> if (p != null) {
-                if (nowS - contourBuiltS >= (if (contour.guide.isEmpty()) 0.3 else 1.0)) {
-                    val before = contour.guide
-                    contour.build(p, headingRad, profile.toolWidth, profile.toolOverlap, hold = engaged, toolOffset = profile.toolOffset)
-                    contourBuiltS = nowS
-                    if (contour.guide !== before) pathHint = -1
-                }
                 if (engaged && contour.guide.isEmpty()) trip("Kontur zgubiony — autoster wyłączony")
-                followPath(contour.guide, p, roll, endMessage = null)
+                // CContour.DistanceFromContourLine 1:1
+                contour.follow(p, antenna ?: p, headingRad, speedKmh, reversing, engaged, youTurnPath != null, roll, profile, steering)
+                    ?.let { AbSteering.Output(it.steerAngleDeg, it.distanceFromLine, contour.goal ?: p) }
             } else null
         }
         if (r == null) { xteCm = 0.0; steerSetDeg = 0.0; goal = null; return }
