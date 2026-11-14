@@ -49,6 +49,16 @@ object DisplayPrefs {
         private set
     fun updateTractorColor(hex: String) { tractorColor = if (TrailColors.valid(hex)) hex.uppercase() else ""; save() }
 
+    /** Widok 3D: niebo z pory dnia i pogody, mgła i noc nad polem. */
+    var sky3d by mutableStateOf(saved["niebo"] != "0")
+        private set
+    fun updateSky3d(on: Boolean) { sky3d = on; save() }
+
+    /** Inne maszyny gospodarstwa jako bryły (kombajn, ciągnik z maszyną) zamiast trójkątów. */
+    var machineModels by mutableStateOf(saved["modele"] != "0")
+        private set
+    fun updateMachineModels(on: Boolean) { machineModels = on; save() }
+
     /** Ustawia okno Windows (main.kt); na Androidzie pełny ekran jest zawsze. */
     var fullScreenSupported = false
 
@@ -57,7 +67,7 @@ object DisplayPrefs {
     fun toggleFullScreen() = updateFullScreen(!fullScreen)
 
     private fun save() {
-        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nkolor=$trailColor\nikona=$tractorIcon\nkolor_c=$tractorColor\n") }
+        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nkolor=$trailColor\nikona=$tractorIcon\nkolor_c=$tractorColor\nniebo=${if (sky3d) 1 else 0}\nmodele=${if (machineModels) 1 else 0}\n") }
     }
 }
 

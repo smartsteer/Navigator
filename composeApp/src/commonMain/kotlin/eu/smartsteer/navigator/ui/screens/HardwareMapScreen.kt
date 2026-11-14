@@ -83,6 +83,21 @@ import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 
+/** Niebo za pochyloną mapą (widok 3D): pora dnia ze słońca, chmury, mgła i opad z pogody. */
+@Composable
+private fun SkyLayer(hw: HardwareController, headingUp: Boolean, modifier: Modifier) {
+    androidx.compose.foundation.Canvas(modifier) {
+        hw.tick
+        val look = hw.skyLook()
+        val (_, az) = hw.sunNow()
+        val view = if (headingUp) hw.viewHeading * 180 / PI else 0.0
+        var rel = az - view
+        while (rel > 180) rel -= 360
+        while (rel < -180) rel += 360
+        with(eu.smartsteer.navigator.ui.Sky) { drawSky(look, rel, size.height * 0.34f, hw.now()) }
+    }
+}
+
 /** Ekran Mapa w trybie Sprzęt: prawdziwa pozycja, linia AB z przycisków A/B, autoster. */
 @Composable
 fun HardwareMapScreen(hw: HardwareController) {
@@ -92,6 +107,8 @@ fun HardwareMapScreen(hw: HardwareController) {
     var locked by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
+        // widok 3D: niebo z pory dnia i pogody za pochyloną mapą
+        if (tilt && DisplayPrefs.sky3d) SkyLayer(hw, headingUp, Modifier.fillMaxSize())
         HwCanvas(hw, zoom, headingUp, tilt, locked, Modifier.fillMaxSize())
 
         // lewa kolumna narzędzi mapy
@@ -878,11 +895,14 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
     val density = LocalDensity.current.density
     val tm = rememberTextMeasurer()
     Canvas(
-        modifier.clipToBounds().background(Ss.MapGround)
+        modifier.clipToBounds()
+            .then(if (tilt && DisplayPrefs.sky3d) Modifier else Modifier.background(Ss.MapGround))
             // „3D”: mapa pochylona jak widok z kabiny
             .graphicsLayer {
                 if (tilt) { rotationX = 48f; cameraDistance = 9f * density; transformOrigin = TransformOrigin(0.5f, 0.72f) }
             }
+            // w 3D z niebem tło mapy jest częścią pochylonej płaszczyzny — nad nią widać niebo
+            .then(if (tilt && DisplayPrefs.sky3d) Modifier.background(Ss.MapGround) else Modifier)
             .pointerInput(headingUp, locked) {
             if (locked) return@pointerInput
             // dotknięcie ciągnika zamienia przód z tyłem (jak w AgOpenGPS)
@@ -1108,9 +1128,11 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 drawPath(quad, Ss.OnAccent, style = Stroke(width = 1.5f * px))
             }
 
-            // inne maszyny gospodarstwa (flota WAR §3.10): niebieski trójkąt w kierunku jazdy
+            // inne maszyny gospodarstwa (flota WAR §3.10): bryły (kombajn, ciągnik z maszyną) albo trójkąt w kierunku jazdy
             val plane = s.plane
-            if (plane != null) for (m in hw.war.fleet.values) {
+            val upView = if (headingUp) viewFwd else Vec2(0.0, 1.0)
+            val fleetSorted = hw.war.fleet.values.sortedByDescending { m -> plane?.toLocal(m.lat, m.lon)?.let { it dot upView } ?: 0.0 }
+            if (plane != null) for (m in fleetSorted) {
                 val mp = plane.toLocal(m.lat, m.lon)
                 val h = m.courseDeg * kotlin.math.PI / 180
                 val f = Vec2.forward(h)
@@ -1128,6 +1150,12 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                     if (m.kmh >= 1) drawLine(Ss.Text, o(mp), o(mp + f * 3.0), 2f * px)
                     continue
                 }
+                if (DisplayPrefs.machineModels) {
+                    with(eu.smartsteer.navigator.ui.MachineModels) {
+                        drawMachine({ o(it) }, mp, h, kindOf(m.tractor, m.tool), mc, m.width, upView, if (tilt) 1.0 else 0.0, Ss.Text, px)
+                    }
+                    continue
+                }
                 drawPath(tri, mc)
                 drawPath(tri, Ss.Text, style = Stroke(width = 2f * px))
                 if (m.width > 0.5) {
@@ -1142,6 +1170,19 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 drawTractorIcon({ o(it) }, p, s.headingRad, s.profile, s.autosteer?.actualAngleDeg ?: 0.0, outline = Ss.Text, px = px)
                 if (DisplayPrefs.tractorIcon == 0) drawCircle(Ss.Text, 4f * px, o(p))
             }
+        }
+
+        // 3D: mgła nad dalszą częścią pola (łączy się z horyzontem nieba) i przyciemnienie nocą
+        if (tilt && DisplayPrefs.sky3d) {
+            val look = hw.skyLook()
+            if (look.night > 0f) drawRect(Color(0xFF050A18).copy(alpha = look.night))
+            drawRect(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0f to look.horizon.copy(alpha = (0.55f + 0.45f * look.fog).coerceAtMost(1f)),
+                    (0.12f + 0.3f * look.fog) to look.horizon.copy(alpha = 0.35f * look.fog),
+                    (0.2f + 0.4f * look.fog) to look.horizon.copy(alpha = 0f),
+                ),
+            )
         }
 
         // numery przejazdów u góry ekranu (jak w AgOpenGPS): aktywny na żółto

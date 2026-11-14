@@ -112,6 +112,8 @@ fun SettingsScreen(hw: HardwareController, startTab: Int = 0) {
                         if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }
                         Choice("Podkład mapy", eu.smartsteer.navigator.core.map.TileSource.entries.map { it.short }, DisplayPrefs.background) { DisplayPrefs.updateBackground(it) }
                         Label("ORTO = ortofotomapa Polski z Geoportalu, SAT = zdjęcia satelitarne Esri. Raz obejrzane kafelki zostają na dysku; całe pole pobierzesz na ekranie Pola.", Ss.TextMuted, 12.sp)
+                        Toggle("Widok 3D: niebo, pora dnia i pogoda", DisplayPrefs.sky3d) { DisplayPrefs.updateSky3d(it) }
+                        Toggle("Inne maszyny jako bryły (kombajn, ciągnik z maszyną)", DisplayPrefs.machineModels) { DisplayPrefs.updateMachineModels(it) }
                         Choice("Komunikaty głosowe (uwrocie, zawrót, RTK, dawka)", listOf("WYŁ.", "WŁ."), if (hw.voiceOn) 1 else 0) { hw.setVoice(it == 1) }
                         if (hw.voiceOn) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             val sp = eu.smartsteer.navigator.ui.voice.Speech

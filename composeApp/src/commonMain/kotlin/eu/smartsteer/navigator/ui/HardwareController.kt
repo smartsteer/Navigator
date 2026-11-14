@@ -1006,6 +1006,25 @@ class HardwareController {
     private var weatherTryS = -1e9
     private var windWarnS = -1e9
 
+    /** Słońce (wysokość, azymut) w miejscu ciągnika teraz; bez GPS — środek Polski. */
+    fun sunNow(): Pair<Double, Double> {
+        val g = session.lastGga
+        val lat = g?.latitude ?: 52.0
+        val lon = g?.longitude ?: 19.0
+        return eu.smartsteer.navigator.core.weather.Sun.position(eu.smartsteer.navigator.core.war.nowMillis(), lat, lon)
+    }
+
+    private var skyCache: Pair<Long, eu.smartsteer.navigator.ui.SkyLook>? = null
+
+    /** Wygląd nieba w widoku 3D (pora dnia + pogoda), liczony raz na 10 s. */
+    fun skyLook(): eu.smartsteer.navigator.ui.SkyLook {
+        val key = eu.smartsteer.navigator.core.war.nowMillis() / 10_000
+        skyCache?.let { if (it.first == key) return it.second }
+        val l = eu.smartsteer.navigator.ui.Sky.look(sunNow().first, weather)
+        skyCache = key to l
+        return l
+    }
+
     private suspend fun weatherStep() {
         val t = now()
         val g = session.lastGga ?: return
