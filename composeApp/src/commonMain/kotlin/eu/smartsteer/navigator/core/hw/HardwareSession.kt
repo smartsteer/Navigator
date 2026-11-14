@@ -1396,16 +1396,47 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     }
 
     /** Bity ścieżek technologicznych dla bieżącego przejazdu (AB albo krzywa). */
+    /** Ręczne włączenie śladu lewego / prawego (tram.isLeftManualOn / isRightManualOn). */
+    var tramManualLeft = false
+    var tramManualRight = false
+    private var tramKey: Any? = null
+    private var tramCache = eu.smartsteer.navigator.core.field.Tramlines.EMPTY
+
+    /** Ślady technologiczne dla bieżącej linii/krzywej i granicy — budowane od nowa po każdej zmianie (FormTramLine, CTram). */
+    fun tramSet(): eu.smartsteer.navigator.core.field.Tramlines.Set {
+        val p = profile
+        val T = eu.smartsteer.navigator.core.field.Tramlines
+        if (p.tramWidth <= 0 || p.tramMode == 0) return T.EMPTY
+        val fence = boundary?.takeIf { it.size >= 3 }
+        val ref: Any? = when (mode) { GuidanceMode.AB -> line; GuidanceMode.CURVE -> curveRef; GuidanceMode.CONTOUR -> null }
+        val key = listOf(ref, fence, p.tramWidth, p.tramTrack, p.tramPasses, p.tramStartPass, p.tramFlip, p.tramMode)
+        if (key == tramKey) return tramCache
+        val half = p.tramTrack * 0.5
+        val (outer, inner) = if (fence != null && T.usesBoundary(p.tramMode)) T.boundaryTracks(fence, p.tramWidth, half) else (emptyList<Vec2>() to emptyList())
+        // ile przejazdów: z ustawienia albo tyle, żeby przykryć pole (maxFieldDistance)
+        val maxField = fence?.let { f -> val c = f.reduce { a, b -> a + b } * (1.0 / f.size); f.maxOf { it.distanceTo(c) } * 2 + 50 } ?: 1000.0
+        val passes = if (p.tramPasses > 0) p.tramPasses else (maxField / p.tramWidth).toInt() + 2
+        val lines = if (!T.usesLines(p.tramMode)) emptyList() else when (mode) {
+            GuidanceMode.AB -> line?.let { l -> T.abLines(l.a, atan2(l.b.x - l.a.x, l.b.y - l.a.y), p.tramWidth, half, passes, p.tramStartPass, p.tramFlip, fence, maxField) }
+            GuidanceMode.CURVE -> curveRef?.let { c -> T.curveLines(c, p.tramWidth, half, passes, p.tramStartPass, p.tramFlip, fence) }
+            GuidanceMode.CONTOUR -> null
+        }.orEmpty()
+        tramCache = T.Set(outer, inner, lines)
+        tramKey = key
+        return tramCache
+    }
+
+    /** Bajt „tram” w PGN 239 — tram.controlByte z AgOpenGPS. */
     fun tramBits(): Int {
         val p = profile
-        if (p.tramEvery <= 0) return 0
-        return when (mode) {
-            GuidanceMode.AB -> if (line == null) 0 else
-                eu.smartsteer.navigator.core.field.Tramlines.bits(passIndex, p.passSpacing, p.tramEvery, p.tramTrack, p.tramWheel, p.tramShift, reversed)
-            GuidanceMode.CURVE -> if (curveRef == null) 0 else
-                eu.smartsteer.navigator.core.field.Tramlines.bits(curvePassIndex, p.passSpacing, p.tramEvery, p.tramTrack, p.tramWheel, p.tramShift, curveReversed)
-            GuidanceMode.CONTOUR -> 0
-        }
+        if (p.tramWidth <= 0 || p.tramMode == 0) return 0
+        val n = p.sectionWidthsEffective.size.coerceAtMost(Sections.MAX)
+        val left = sections.edges(0, p)?.first ?: return 0
+        val right = sections.edges(n - 1, p)?.second ?: return 0
+        val T = eu.smartsteer.navigator.core.field.Tramlines
+        val w = p.sectionWidthsEffective.take(n).sum()
+        return T.controlByte(tramSet(), p.tramMode, left, right, w, p.tramTrack, p.tramTrack * 0.5,
+            T.isOuter(p.tramWidth, w, p.tramOuterInverted), tramManualLeft, tramManualRight)
     }
 
     /** Przełącznik roboczy z PGN 253 (bit 0); aktywny stan wg ustawień. Bez modułu = wyłączony. */

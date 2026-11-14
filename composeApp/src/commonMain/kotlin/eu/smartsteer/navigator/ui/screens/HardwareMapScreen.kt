@@ -1042,16 +1042,19 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                         (if (active) 4f else 1.5f) * px,
                     )
                 }
-                // ścieżki technologiczne (ślady kół opryskiwacza)
-                if (s.profile.tramEvery > 0) {
-                    val tw = maxOf(s.profile.tramWheel.toFloat(), 2f * px)
-                    for (t in eu.smartsteer.navigator.core.field.Tramlines.tracksNear(s.passIndex, w, s.profile.tramEvery, s.profile.tramTrack, s.profile.tramShift)) {
-                        val base = l.a + right * t + dir * along
-                        drawLine(Ss.Warning.copy(alpha = 0.55f), o(base - dir * r.toDouble()), o(base + dir * r.toDouble()), tw)
-                    }
-                }
                 drawCircle(Ss.MapLine, 6f * px, o(l.a))
                 drawCircle(Ss.MapLine, 6f * px, o(l.b))
+            }
+            // ścieżki technologiczne (ślady kół opryskiwacza) — jak w AgOpenGPS: wzdłuż linii i wokół granicy
+            val trams = s.tramSet()
+            if (!trams.isEmpty) {
+                val tc = Ss.Warning.copy(alpha = 0.6f)
+                fun poly(pts: List<eu.smartsteer.navigator.core.geo.Vec2>, closed: Boolean) {
+                    for (i in 0 until pts.size - 1) drawLine(tc, o(pts[i]), o(pts[i + 1]), 3f * px)
+                    if (closed && pts.size > 2) drawLine(tc, o(pts.last()), o(pts.first()), 3f * px)
+                }
+                trams.lines.forEach { poly(it, false) }
+                poly(trams.outer, true); poly(trams.inner, true)
             }
             s.pointA?.let { if (l == null && s.mode == GuidanceMode.AB) drawCircle(Ss.Warning, 8f * px, o(it)) }
             s.goal?.let { drawCircle(Ss.Accent, 5f * px, o(it)) }

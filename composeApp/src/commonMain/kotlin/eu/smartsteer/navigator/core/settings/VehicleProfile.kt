@@ -184,6 +184,18 @@ data class VehicleProfile(
     val tramWheel: Double = 0.5,
     /** Przesunięcie układu ścieżek o tyle przejazdów siewnika. */
     val tramShift: Int = 0,
+    /** Ścieżki jak w AgOpenGPS: szerokość opryskiwacza, m (setTram_tramWidth); 0 = wyłączone. */
+    val tramWidth: Double = 0.0,
+    /** Ile przejazdów opryskiwacza ze śladami (passes); 0 = na całe pole. */
+    val tramPasses: Int = 0,
+    /** Od którego przejazdu opryskiwacza zaczynają się ślady (startPass; przy śladzie wokół granicy zwykle 1). */
+    val tramStartPass: Int = 1,
+    /** Ślady po lewej stronie linii zamiast po prawej. */
+    val tramFlip: Boolean = false,
+    /** 0 wył., 1 wszystko, 2 tylko wzdłuż linii, 3 tylko wokół granicy (tram.displayMode). */
+    val tramMode: Int = 1,
+    /** Odwróć ślad przy krawędzi / przy środku maszyny (setTool_isTramOuterInverted). */
+    val tramOuterInverted: Boolean = false,
     /** Automatyczny podnośnik na uwrociu (gdy włączony podnośnik w module maszyny). */
     val hydAuto: Boolean = true,
     /** Wyprzedzenie podnoszenia na uwrociu, s (setVehicle_hydraulicLiftLookAhead). */
@@ -310,7 +322,8 @@ data class VehicleProfile(
         "machineInvertRelays" to machineInvertRelays, "hydEnabled" to hydEnabled, "hydRaiseTime" to hydRaiseTime,
         "hydLowerTime" to hydLowerTime, "machineUser1" to machineUser1, "machineUser2" to machineUser2,
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
-        "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "hydAuto" to hydAuto,
+        "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "tramWidth" to tramWidth, "tramPasses" to tramPasses, "tramStartPass" to tramStartPass,
+        "tramFlip" to tramFlip, "tramMode" to tramMode, "tramOuterInverted" to tramOuterInverted, "hydAuto" to hydAuto,
         "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed, "rateHintMode" to rateHintMode, "rateStepPct" to rateStepPct,
         "youTurnStyle" to youTurnStyle, "uTurnCompensation" to uTurnCompensation, "youTurnExtension" to youTurnExtension,
         "uTurnSmoothing" to uTurnSmoothing, "functionSpeedLimit" to functionSpeedLimit, "steerInReverse" to steerInReverse,
@@ -378,6 +391,14 @@ data class VehicleProfile(
                 tramTrack = num("tramTrack", d.tramTrack),
                 tramWheel = num("tramWheel", d.tramWheel),
                 tramShift = int("tramShift", d.tramShift),
+                // stare profile: „co ile przejazdów” → szerokość opryskiwacza
+                tramWidth = if (m.containsKey("tramWidth")) num("tramWidth", d.tramWidth)
+                    else int("tramEvery", 0).let { e -> if (e > 0) e * (num("toolWidth", d.toolWidth) - num("toolOverlap", d.toolOverlap)) else 0.0 },
+                tramPasses = int("tramPasses", d.tramPasses),
+                tramStartPass = int("tramStartPass", d.tramStartPass),
+                tramFlip = bool("tramFlip", d.tramFlip),
+                tramMode = int("tramMode", d.tramMode),
+                tramOuterInverted = bool("tramOuterInverted", d.tramOuterInverted),
                 hydAuto = bool("hydAuto", d.hydAuto),
                 rateBase = num("rateBase", d.rateBase),
                 rateBaseSpeed = num("rateBaseSpeed", d.rateBaseSpeed),

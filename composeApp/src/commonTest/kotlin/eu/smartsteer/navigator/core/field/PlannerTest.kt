@@ -90,18 +90,18 @@ class PlannerTest {
 }
 
 class TramlinesTest {
+    /** Geometria i bajt sterujący jak w AgOpenGPS (BuildABTram, controlByte, IsTramOuterOrInner). */
     @Test
-    fun threeSeederPassesPerSprayer() {
-        // siewnik 6 m, opryskiwacz 18 m (co 3 przejazdy), rozstaw 1,8 m: ślady w przejeździe środkowym (1, 4, 7…)
-        val b = (0..5).map { Tramlines.bits(it, 6.0, 3, 1.8, 0.5, 0, reversed = false) }
-        assertEquals(listOf(0, 3, 0, 0, 3, 0), b)
-        // przesunięcie o 1 przejazd
-        assertEquals(3, Tramlines.bits(2, 6.0, 3, 1.8, 0.5, 1, reversed = false))
-        // 4 przejazdy na opryskiwacz: ślady wypadają na przejazdach 1 (prawy) i 2 (lewy)
-        assertEquals(1, Tramlines.bits(1, 6.0, 4, 1.8, 0.5, 0, reversed = false) and 1)
-        assertEquals(2, Tramlines.bits(2, 6.0, 4, 1.8, 0.5, 0, reversed = false))
-        // jazda w drugą stronę zamienia strony
-        assertEquals(1, Tramlines.bits(2, 6.0, 4, 1.8, 0.5, 0, reversed = true))
+    fun tramlinesLikeAgOpenGps() {
+        fun byteAt(x: Double, tram: Double): Int {
+            val lines = Tramlines.abLines(Vec2(0.0, 0.0), 0.0, tram, 0.9, 3, 0, false, null, 100.0)
+            val set = Tramlines.Set(emptyList(), emptyList(), lines)
+            return Tramlines.controlByte(set, 1, Vec2(x - 3, 50.0), Vec2(x + 3, 50.0), 6.0, 1.8, 0.9, Tramlines.isOuter(tram, 6.0, false))
+        }
+        // opryskiwacz 18 m, siewnik 6 m: 3 przejazdy (nieparzyście) — ślady przy środku maszyny w środkowym przejeździe
+        assertEquals(listOf(0, 3, 0, 0, 3), listOf(3.0, 9.0, 15.0, 21.0, 27.0).map { byteAt(it, 18.0) })
+        // opryskiwacz 24 m: 4 przejazdy (parzyście) — ślad przy krawędzi maszyny: prawy w przejeździe 2, lewy w 3
+        assertEquals(listOf(0, 1, 2, 0), listOf(3.0, 9.0, 15.0, 21.0).map { byteAt(it, 24.0) })
     }
 
     @Test

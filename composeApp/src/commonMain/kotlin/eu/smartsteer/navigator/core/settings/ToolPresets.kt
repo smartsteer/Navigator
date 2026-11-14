@@ -29,6 +29,11 @@ class ToolPresets(private val files: TextFiles) {
             machineUser1 = tool.machineUser1, machineUser2 = tool.machineUser2, machineUser3 = tool.machineUser3, machineUser4 = tool.machineUser4,
             rateBase = tool.rateBase, rateBaseSpeed = tool.rateBaseSpeed, rateHintMode = tool.rateHintMode, rateStepPct = tool.rateStepPct,
             isSprayer = tool.isSprayer, headlandSeq = tool.headlandSeq, tramEvery = tool.tramEvery, tramTrack = tool.tramTrack, tramWheel = tool.tramWheel, tramShift = tool.tramShift,
+            tramWidth = tool.tramWidth, tramPasses = tool.tramPasses, tramStartPass = tool.tramStartPass, tramFlip = tool.tramFlip,
+            tramMode = tool.tramMode, tramOuterInverted = tool.tramOuterInverted,
+            toolTbt = tool.toolTbt, tankHitchLength = tool.tankHitchLength, trailingToolToPivot = tool.trailingToolToPivot,
+            turnOffDelay = tool.turnOffDelay, minCoverage = tool.minCoverage, workSwitchManualSections = tool.workSwitchManualSections,
+            hydLiftLookAhead = tool.hydLiftLookAhead,
         )
     }
 }

@@ -108,8 +108,10 @@ object AgoImport {
         d("setGPS_ageAlarm")?.let { p = p.copy(supCorrAgeS = it) }
         b("setGPS_isRTK_KillAutoSteer")?.let { p = p.copy(supRtkLossS = if (it) (if (p.supRtkLossS > 0) p.supRtkLossS else 5.0) else 0.0) }
         // ścieżki technologiczne: szerokość opryskiwacza → co ile przejazdów
-        d("setTram_tramWidth")?.let { tw -> val w = p.passSpacing; if (w > 0.1 && tw > 0) p = p.copy(tramEvery = kotlin.math.round(tw / w).toInt().coerceAtLeast(1)) }
-        b("setTool_isDisplayTramControl")?.let { if (!it) p = p.copy(tramEvery = 0) }
+        d("setTram_tramWidth")?.let { p = p.copy(tramWidth = it) }
+        i("setTram_passes")?.let { p = p.copy(tramPasses = it.coerceAtLeast(0)) }
+        b("setTool_isTramOuterInverted")?.let { p = p.copy(tramOuterInverted = it) }
+        b("setTool_isDisplayTramControl")?.let { if (!it) p = p.copy(tramMode = 0) }
         // IMU
         d("setIMU_rollZero")?.let { p = p.copy(rollZero = it) }
         d("setIMU_rollFilter")?.let { p = p.copy(rollFilter = it) }
