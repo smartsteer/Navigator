@@ -247,7 +247,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         }
         recordingObstacle?.let { r -> if (r.isEmpty() || r.last().distanceTo(pv) >= 0.5) r.add(pv) }
         autosteer?.let { wasCal.sample(pv, headingRad, it.actualAngleDeg, speedKmh) }
-        sections.updateTool(pv, headingRad, profile)
+        sections.updateTool(pv, headingRad, profile, autosteer?.actualAngleDeg ?: 0.0)
         // słaby GPS (np. telefon w budynku, ±20 m): pozycja skacze, a mapa malowałaby obrobione „gwiazdy” — sekcje czekają
         gpsTooPoorForSections = (horizontalAccuracy(nowS)?.first ?: 0.0) > POOR_GPS_SECTIONS_M
         // dziennik powodów, dla których sekcje stoją (do pliku diagnostyki)

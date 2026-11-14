@@ -51,6 +51,13 @@ data class VehicleProfile(
     val toolTrailing: Boolean = true,
     /** Maszyna ciągniona: od zaczepu do osi maszyny, m; ujemna = za zaczepem. */
     val trailingHitchLength: Double = -2.5,
+    /** Wózek z beczką między ciągnikiem a maszyną (setTool_isToolTBT) i jego dyszel, m (setVehicle_tankTrailingHitchLength). */
+    val toolTbt: Boolean = false,
+    val tankHitchLength: Double = 3.0,
+    /** Odległość osi maszyny ciągnionej od jej środka roboczego, m (setTool_trailingToolToPivotLength). */
+    val trailingToolToPivot: Double = 0.0,
+    /** Ciągnik przegubowy (setVehicle_vehicleType = 2). */
+    val articulated: Boolean = false,
     /** Liczba sekcji (równe szerokości), 1–16. */
     val numSections: Int = 3,
     /** Wyprzedzenie włączania sekcji, s. */
@@ -281,6 +288,7 @@ data class VehicleProfile(
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
+        "toolTbt" to toolTbt, "tankHitchLength" to tankHitchLength, "trailingToolToPivot" to trailingToolToPivot, "articulated" to articulated,
         "numSections" to numSections, "lookAheadOn" to lookAheadOn, "lookAheadOff" to lookAheadOff,
         "slowSpeedCutoff" to slowSpeedCutoff, "sectionOffWhenOut" to sectionOffWhenOut,
         "sectionOffInHeadland" to sectionOffInHeadland, "useWorkSwitch" to useWorkSwitch,
@@ -355,6 +363,10 @@ data class VehicleProfile(
                 hitchLength = num("hitchLength", d.hitchLength),
                 toolTrailing = bool("toolTrailing", d.toolTrailing),
                 trailingHitchLength = num("trailingHitchLength", d.trailingHitchLength),
+                toolTbt = bool("toolTbt", d.toolTbt),
+                tankHitchLength = num("tankHitchLength", d.tankHitchLength),
+                trailingToolToPivot = num("trailingToolToPivot", d.trailingToolToPivot),
+                articulated = bool("articulated", d.articulated),
                 numSections = int("numSections", d.numSections).coerceIn(1, 64),
                 lookAheadOn = num("lookAheadOn", d.lookAheadOn),
                 lookAheadOff = num("lookAheadOff", d.lookAheadOff),

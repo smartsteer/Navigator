@@ -35,25 +35,57 @@ class Sections {
     var hitchPos: Vec2? = null; private set
     private var lastPivot: Vec2? = null
 
-    /** Krok położenia maszyny przy każdej nowej pozycji. */
-    fun updateTool(pivot: Vec2, heading: Double, p: VehicleProfile) {
-        val fwd = Vec2.forward(heading)
-        val hitch = pivot + fwd * p.hitchLength
+    private var tankPos: Vec2? = null
+    private var tankHeading = 0.0
+    private var toolPivot: Vec2? = null
+    private var startCounter = 0
+
+    /**
+     * Krok położenia maszyny przy każdej nowej pozycji — CalculatePositionHeading (Position.designer.cs) i CTool
+     * (GetHitchLengthFromVehiclePivot / GetHitchHeadingFromVehiclePivot): zaczep, wózek z beczką (TBT), maszyna ciągniona,
+     * „sprężynowanie” za ciągnik przy złożeniu i przez pierwsze 50 pozycji. [actualSteerDeg] — kąt przegubu dla przegubowych.
+     */
+    fun updateTool(pivot: Vec2, heading: Double, p: VehicleProfile, actualSteerDeg: Double = 0.0) {
+        startCounter++
+        var hitchLen = p.hitchLength
+        var hitchHeading = heading
+        if (p.articulated && abs(hitchLen) > 1e-9) {
+            val half = 0.5 * p.wheelbase
+            if (abs(half) > 1e-9) hitchLen += kotlin.math.sign(hitchLen) * half
+            val rear = 0.25 * actualSteerDeg * PI / 180
+            hitchHeading = if (hitchLen > 0) hitchHeading + rear else hitchHeading - rear
+        }
+        val hitch = pivot + Vec2.forward(hitchHeading) * hitchLen
         hitchPos = hitch
-        val moved = lastPivot?.let { it.distanceTo(pivot) > 0.01 } ?: false
+        val moved = lastPivot?.let { it.distanceTo(pivot) > 0.0 } ?: false
         lastPivot = pivot
-        val prev = toolPos
-        if (!p.toolTrailing || prev == null) {
-            toolHeading = heading
-            toolPos = if (p.toolTrailing) hitch + Vec2.forward(heading) * p.trailingHitchLength else hitch
+        if (!p.toolTrailing) {
+            toolHeading = hitchHeading; toolPos = hitch; toolPivot = hitch; tankPos = hitch; tankHeading = hitchHeading
             return
         }
-        // maszyna ciągniona: oś maszyny idzie za zaczepem
-        if (moved) toolHeading = atan2(hitch.x - prev.x, hitch.y - prev.y)
-        val over = abs(PI - abs(abs(toolHeading - heading) - PI))
-        if (over > 1.9) toolHeading = heading
-        toolPos = hitch + Vec2.forward(toolHeading) * p.trailingHitchLength
+        // wózek z beczką (TBT)
+        val tank: Vec2
+        if (p.toolTbt) {
+            val tp = tankPos
+            if (moved && tp != null) tankHeading = norm(atan2(hitch.x - tp.x, hitch.y - tp.y))
+            val over = abs(PI - abs(abs(tankHeading - hitchHeading) - PI))
+            if (over > 2.0 || startCounter < 51 || tp == null) tankHeading = hitchHeading
+            tank = hitch + Vec2.forward(tankHeading) * p.tankHitchLength
+        } else {
+            tankHeading = hitchHeading
+            tank = hitch
+        }
+        tankPos = tank
+        // maszyna ciągniona
+        val prev = toolPivot
+        if (moved && prev != null) toolHeading = norm(atan2(tank.x - prev.x, tank.y - prev.y))
+        val over = abs(PI - abs(abs(toolHeading - tankHeading) - PI))
+        if (over > 1.9 || startCounter < 51 || prev == null) toolHeading = tankHeading
+        toolPivot = tank + Vec2.forward(toolHeading) * p.trailingHitchLength
+        toolPos = tank + Vec2.forward(toolHeading) * (p.trailingHitchLength - p.trailingToolToPivot)
     }
+
+    private fun norm(h: Double): Double { var x = h; if (x < 0) x += 2 * PI; return x }
 
     /** Lewa i prawa krawędź sekcji [i] (od lewej; własne szerokości i przesunięcie maszyny w bok). */
     fun edges(i: Int, p: VehicleProfile): Pair<Vec2, Vec2>? {

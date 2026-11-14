@@ -63,6 +63,10 @@ object AgoImport {
         i("setArdMac_user4")?.let { p = p.copy(machineUser4 = it) }
         b("setTool_isToolTrailing")?.let { p = p.copy(toolTrailing = it) }
         d("setVehicle_toolTrailingHitchLength")?.let { p = p.copy(trailingHitchLength = it) }
+        b("setTool_isToolTBT")?.let { p = p.copy(toolTbt = it) }
+        d("setVehicle_tankTrailingHitchLength")?.let { p = p.copy(tankHitchLength = it) }
+        d("setTool_trailingToolToPivotLength")?.let { p = p.copy(trailingToolToPivot = it) }
+        d("setVehicle_vehicleType")?.let { p = p.copy(articulated = it.toInt() == 2) }
         i("setVehicle_numSections")?.let { p = p.copy(numSections = it.coerceIn(1, 16)) }
         d("setVehicle_toolLookAheadOn")?.let { p = p.copy(lookAheadOn = it) }
         d("setVehicle_toolLookAheadOff")?.let { p = p.copy(lookAheadOff = it) }
