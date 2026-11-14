@@ -911,8 +911,11 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             // linia horyzontu: bardzo daleki punkt płaszczyzny przeliczony przez prawdziwe przekształcenie warstwy
             .onGloballyPositioned { c ->
                 if (tilt) {
-                    val far = c.parentLayoutCoordinates?.localPositionOf(c, Offset(c.size.width / 2f, -1_000_000f))
+                    val par = c.parentLayoutCoordinates
+                    val far = par?.localPositionOf(c, Offset(c.size.width / 2f, -1_000_000f))
                     if (far != null && far.y.isFinite()) onHorizon(far.y)
+                    if (par != null) hw.debug3d = listOf(800f, 576f, 0f, -1000f, -2000f, -4000f, -8000f, -20000f, -80000f, -1_000_000f)
+                        .joinToString(" ") { y -> "${y.toInt()}→${par.localPositionOf(c, Offset(c.size.width / 2f, y)).y.toInt()}" }
                 }
             }
             .pointerInput(headingUp, locked) {

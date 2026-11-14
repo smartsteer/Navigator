@@ -1017,6 +1017,8 @@ class HardwareController {
     /** Tylko do zrzutów ekranu instrukcji: stała chwila dla nieba, pogoda i widok 3D. */
     var skyTimeForScreenshots: Long? = null
     var tiltForScreenshots: Boolean? = null
+    /** Tylko do zrzutów: jak warstwa 3D przelicza punkty (y płótna → y ekranu). */
+    var debug3d = ""
     fun setWeatherForScreenshots(w: eu.smartsteer.navigator.core.weather.Weather?) { weather = w; skyCache = null }
 
     private var skyCache: Pair<Long, eu.smartsteer.navigator.ui.SkyLook>? = null

@@ -113,6 +113,7 @@ class ManualScreenshotTest {
                     hw.setWeatherForScreenshots(w)
                     shot(dir, name) { App(hw, Screen.Map) }
                 }
+                File(dir, "3d_debug.txt").writeText(hw.debug3d)
                 hw.tiltForScreenshots = null; hw.skyTimeForScreenshots = null; hw.setWeatherForScreenshots(null)
             }
             hw.updateWorkMode(0)
