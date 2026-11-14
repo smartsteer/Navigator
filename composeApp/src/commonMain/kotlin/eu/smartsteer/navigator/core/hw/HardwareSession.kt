@@ -195,12 +195,15 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     private fun int16(d: ByteArray, i: Int) = ((d[i].toInt() and 0xFF) or ((d[i + 1].toInt() and 0xFF) shl 8)).toShort().toInt()
 
+    /** pn.AverageTheSpeed (AgOpenGPS, CNMEA.cs): avgSpeed = 0,75 × poprzednia + 0,25 × nowa. */
+    private fun averageSpeed(raw: Double) { speedKmh = speedKmh * 0.75 + raw * 0.25 }
+
     fun onNmea(sentence: String, nowS: Double) {
         if (sentence.length < 6) return
         val type = sentence.substring(3, 6)
         when {
             sentence.startsWith("\$PANDA") || sentence.startsWith("\$PAOGI") -> Nmea.parsePanda(sentence)?.let { p ->
-                speedKmh = p.speedKmh
+                averageSpeed(p.speedKmh)
                 if (p.dualAntenna && p.headingDeg != null) { dualHeading = (p.headingDeg + profile.dualHeadingOffset) * PI / 180; dualTimeS = nowS }
                 if (!p.dualAntenna) p.headingDeg?.let { imu.onHeading(it, nowS) }
                 p.rollDeg?.let { imu.onRoll(it, filtered = !p.dualAntenna, profile, nowS) }
@@ -208,7 +211,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             }
             type == "GGA" -> Nmea.parseGga(sentence)?.let { onPosition(it, nowS) }
             type == "VTG" -> Nmea.parseVtg(sentence)?.let { v ->
-                speedKmh = v.speedKmh
+                averageSpeed(v.speedKmh)
                 vtgCourse = v.courseDeg?.let { it * PI / 180 }
                 vtgTimeS = nowS
             }
@@ -792,7 +795,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         )?.let { trip(it) }
         obstacleStep(nowS)
         steerBlockedReason?.let { if (engaged) trip("$it — autoster wyłączony") }
-        if (engaged && reversing && kPhase != 2 && kPhase != 3) trip("Jazda do tyłu — autoster wyłączony")
+        // jak w AgOpenGPS (isSteerInReverse = false): przy cofaniu autoster zostaje włączony, ale płytka dostaje status 0
         if (engaged && !gpsAlive(nowS)) trip("Utracono GPS — autoster wyłączony")
         if (engaged && !autosteerAlive(nowS)) trip("Moduł autosterowania nie odpowiada — autoster wyłączony")
         checkSpeedLimits()
@@ -1160,6 +1163,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     }
 
     private var updateTimeS = 0.0
+    private val steerFrameTimeS get() = updateTimeS
     private var lastSectionWhy = ""
     /** Ostatnie zmiany stanu sekcji z powodem (plik diagnostyki). */
     val sectionLog = ArrayDeque<String>()
@@ -1201,7 +1205,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     } else {
         SteerData(
             speedKmh = speedKmh,
-            autosteerOn = engaged,
+            // AgOpenGPS: status 0 przy cofaniu (poza cofaniem w zawrocie K) i przy zmianie kierunku bez IMU
+            autosteerOn = engaged && !(reversing && kPhase != 2 && kPhase != 3) && !(changingDirection && !imu.headingAlive(steerFrameTimeS)),
             steerAngleDeg = if (engaged) deadZoned(steerSetDeg) else 0.0,
             lineDistanceCm = xteCm.roundToInt(),
             sections = (sections.bits() and 0xFFFF).toInt(),
