@@ -103,7 +103,7 @@ private fun SkyLayer(hw: HardwareController, headingUp: Boolean, modifier: Modif
 fun HardwareMapScreen(hw: HardwareController) {
     var zoom by remember { mutableStateOf(20f) }
     var headingUp by remember { mutableStateOf(true) }
-    var tilt by remember { mutableStateOf(false) }
+    var tilt by remember { mutableStateOf(hw.tiltForScreenshots ?: false) }
     var locked by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {

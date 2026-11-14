@@ -1011,14 +1011,19 @@ class HardwareController {
         val g = session.lastGga
         val lat = g?.latitude ?: 52.0
         val lon = g?.longitude ?: 19.0
-        return eu.smartsteer.navigator.core.weather.Sun.position(eu.smartsteer.navigator.core.war.nowMillis(), lat, lon)
+        return eu.smartsteer.navigator.core.weather.Sun.position(skyTimeForScreenshots ?: eu.smartsteer.navigator.core.war.nowMillis(), lat, lon)
     }
+
+    /** Tylko do zrzutów ekranu instrukcji: stała chwila dla nieba, pogoda i widok 3D. */
+    var skyTimeForScreenshots: Long? = null
+    var tiltForScreenshots: Boolean? = null
+    fun setWeatherForScreenshots(w: eu.smartsteer.navigator.core.weather.Weather?) { weather = w; skyCache = null }
 
     private var skyCache: Pair<Long, eu.smartsteer.navigator.ui.SkyLook>? = null
 
     /** Wygląd nieba w widoku 3D (pora dnia + pogoda), liczony raz na 10 s. */
     fun skyLook(): eu.smartsteer.navigator.ui.SkyLook {
-        val key = eu.smartsteer.navigator.core.war.nowMillis() / 10_000
+        val key = (skyTimeForScreenshots ?: eu.smartsteer.navigator.core.war.nowMillis()) / 10_000 + (weather?.hashCode()?.toLong() ?: 0L)
         skyCache?.let { if (it.first == key) return it.second }
         val l = eu.smartsteer.navigator.ui.Sky.look(sunNow().first, weather)
         skyCache = key to l

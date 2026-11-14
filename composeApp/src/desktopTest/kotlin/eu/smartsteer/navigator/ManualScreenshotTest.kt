@@ -91,6 +91,30 @@ class ManualScreenshotTest {
                 shot(dir, name, 4) { App(hw, Screen.Settings, tab) }
             }
             shot(dir, "14_start") { eu.smartsteer.navigator.ui.SplashScreen("Uruchamiam…") }
+            // widok 3D: niebo z pory dnia i pogody, kombajn jako bryła
+            run {
+                val pp = s.pivot!!
+                val (lc1, lc2) = geo(pp.x + 12.0, pp.y + 45.0)
+                val (lz1, lz2) = geo(pp.x - 9.0, pp.y + 22.0)
+                hw.war.setFleetForScreenshots(listOf(
+                    WarProtocol.FleetMachine("tab-claas", "Claas Lexion", "Kombajn heder 7,5 m", 7.5, lc1, lc2, 200.0, 5.0, true, null, "Za stodołą", "Piotr", now, "#2E8B3E"),
+                    WarProtocol.FleetMachine("tab-zetor", "Zetor 12045", "Opryskiwacz 18 m", 18.0, lz1, lz2, 0.0, 8.5, true, null, "Za stodołą", "Janek", now, "#FF8C1A"),
+                ))
+                hw.tiltForScreenshots = true
+                val cases = listOf(
+                    Triple("15_3d_dzien", 1781517600000L, eu.smartsteer.navigator.core.weather.Weather(22.0, 50.0, 2.0, 4.0, 270.0, 0.0, 25.0, 1)),
+                    Triple("16_3d_deszcz", 1781517600000L, eu.smartsteer.navigator.core.weather.Weather(14.0, 95.0, 5.0, 9.0, 250.0, 1.2, 100.0, 63)),
+                    Triple("17_3d_zmierzch", 1781550000000L, eu.smartsteer.navigator.core.weather.Weather(18.0, 70.0, 1.0, 2.0, 90.0, 0.0, 30.0, 2)),
+                    Triple("18_3d_noc", 1781560800000L, eu.smartsteer.navigator.core.weather.Weather(12.0, 80.0, 1.0, 2.0, 90.0, 0.0, 10.0, 0)),
+                    Triple("19_3d_mgla", 1781492400000L, eu.smartsteer.navigator.core.weather.Weather(9.0, 100.0, 0.5, 1.0, 90.0, 0.0, 100.0, 45)),
+                )
+                for ((name, ms, w) in cases) {
+                    hw.skyTimeForScreenshots = ms
+                    hw.setWeatherForScreenshots(w)
+                    shot(dir, name) { App(hw, Screen.Map) }
+                }
+                hw.tiltForScreenshots = null; hw.skyTimeForScreenshots = null; hw.setWeatherForScreenshots(null)
+            }
             hw.updateWorkMode(0)
             hw.setHardwareMode(false)
             hw.timeForScreenshots = null
