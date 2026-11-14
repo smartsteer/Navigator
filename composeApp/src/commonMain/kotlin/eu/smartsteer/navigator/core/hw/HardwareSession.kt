@@ -767,6 +767,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     /** Krok prowadzenia (np. 10 razy na sekundę). */
     fun update(nowS: Double) {
+        updateTimeS = nowS
         supervisor.check(
             Supervisor.Input(
                 nowS = nowS, engaged = engaged, inTurn = youTurnPath != null, fix = fix,
@@ -985,6 +986,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         pathHint = -1
         steering.reset()
         if (flip) uTurnRight = !uTurnRight
+        passRecheck = true // jak isABValid = false po zawrocie w AgOpenGPS: przejazd wybierany od nowa
         ok(msg)
     }
 
@@ -1061,17 +1063,21 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     private fun activeCurve(p: Vec2): List<Pose> {
         val ref = curveRef ?: return emptyList()
         val w = profile.passSpacing
-        val i = Curves.nearestIndex(ref, p)
-        val r = ref[i]
-        val right = Vec2.right(r.heading)
-        val exact = ((p - r.p) dot right) / w
         var changed = curvePath.isEmpty()
-        if (abs(exact - curvePassIndex) > 0.6) { curvePassIndex = kotlin.math.round(exact).toInt(); changed = true }
-        var diff = headingRad - r.heading
-        while (diff > PI) diff -= 2 * PI
-        while (diff < -PI) diff += 2 * PI
-        val rev = if (!curveReversed && abs(diff) > 0.6 * PI) true else if (curveReversed && abs(diff) < 0.4 * PI) false else curveReversed
-        if (rev != curveReversed) { curveReversed = rev; changed = true }
+        // jak w AgOpenGPS (CABCurve.BuildCurveCurrentList): co 0,66 s, tylko przy wyłączonym autosterze, z punktu przed ciągnikiem
+        if (changed || passCheckAllowed()) {
+            val look = guidanceLookPos(p)
+            val r = ref[Curves.nearestIndex(ref, look)]
+            var diff = headingRad - r.heading
+            while (diff > PI) diff -= 2 * PI
+            while (diff < -PI) diff += 2 * PI
+            val rev = abs(diff) >= PI / 2
+            if (rev != curveReversed) { curveReversed = rev; changed = true }
+            val sign = if (rev) -1.0 else 1.0
+            val refDist = (((look - r.p) dot Vec2.right(r.heading)) + sign * (profile.toolOffset - lineShiftCm / 100.0)) / w
+            val k = if (refDist < 0) (refDist - 0.5).toInt() else (refDist + 0.5).toInt()
+            if (k != curvePassIndex) { curvePassIndex = k; changed = true }
+        }
         if (lineShiftCm != curveShiftCm || w != curveSpacing || profile.toolOffset != curveToolOffset) changed = true
         if (changed) {
             curveShiftCm = lineShiftCm
@@ -1115,17 +1121,20 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     internal fun activeSegment(l: AbLine, p: Vec2): Pair<Vec2, Vec2> {
         val w = profile.passSpacing
         val right = Vec2.right(l.heading)
-        val offset = (p - l.a) dot right
-        val exact = offset / w
         val oldPass = passIndex
         val oldRev = reversed
-        if (abs(exact - passIndex) > 0.6) passIndex = kotlin.math.round(exact).toInt()
-        var diff = headingRad - l.heading
-        while (diff > PI) diff -= 2 * PI
-        while (diff < -PI) diff += 2 * PI
-        // histereza kierunku: zmiana dopiero przy wyraźnie przeciwnym kursie
-        if (!reversed && abs(diff) > 0.6 * PI) reversed = true
-        else if (reversed && abs(diff) < 0.4 * PI) reversed = false
+        // jak w AgOpenGPS (CABLine.BuildCurrentABLineList): przejazd i kierunek wybierane co 0,66 s i tylko przy
+        // wyłączonym autosterze, z punktu przed ciągnikiem (guidanceLookPos) — ciągnik od razu „łapie” przejazd, w który wjeżdża
+        if (passCheckAllowed()) {
+            var diff = headingRad - l.heading
+            while (diff > PI) diff -= 2 * PI
+            while (diff < -PI) diff += 2 * PI
+            reversed = abs(diff) >= PI / 2
+            val look = guidanceLookPos(p)
+            val sign = if (reversed) -1.0 else 1.0
+            val refDist = (((look - l.a) dot right) + sign * (profile.toolOffset - lineShiftCm / 100.0)) / w
+            passIndex = if (refDist < 0) (refDist - 0.5).toInt() else (refDist + 0.5).toInt()
+        }
         if (oldPass != passIndex || oldRev != reversed) steering.reset()
         val dir = Vec2.forward(l.heading) * (if (reversed) -1.0 else 1.0)
         // przesunięcie linii w prawo względem kierunku jazdy
@@ -1135,6 +1144,24 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         // krótki odcinek wokół ciągnika: liczby zostają małe, a linia i tak jest prosta
         return Pair(base + dir * (along - SEGMENT_M), base + dir * (along + SEGMENT_M))
     }
+
+    private var updateTimeS = 0.0
+    private var lastPassCheckS = -1e9
+
+    /** Wybór przejazdu: co 0,66 s i tylko gdy autoster wyłączony (albo przełącznik na płytce wyłączony) — jak w AgOpenGPS. */
+    private var passRecheck = false
+
+    private fun passCheckAllowed(): Boolean {
+        if (passRecheck) { passRecheck = false; lastPassCheckS = updateTimeS; return true }
+        if (engaged && autosteer?.steerSwitch != false) return false
+        if (updateTimeS - lastPassCheckS < 0.66) return false
+        lastPassCheckS = updateTimeS
+        return true
+    }
+
+    /** guidanceLookPos (AgOpenGPS): punkt przed tylną osią o max(pół szerokości maszyny, prędkość × 1,5 s). */
+    private fun guidanceLookPos(pivot: Vec2): Vec2 =
+        pivot + Vec2.forward(headingRad) * kotlin.math.max(profile.toolWidth * 0.5, abs(speedKmh) / 3.6 * GUIDANCE_LOOK_AHEAD_S)
 
     /** Ramka PGN 252 (ustawienia modułu skrętu) z profilu. */
     fun steerSettingsFrame(): ByteArray = with(profile) {
@@ -1422,6 +1449,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         const val GPS_TIMEOUT_S = 1.0
         /** Liczba zapamiętanych pozycji do kursu (totalFixSteps w AgOpenGPS). */
         const val TOTAL_FIX_STEPS = 10
+        /** setAS_guidanceLookAheadTime w AgOpenGPS, s. */
+        const val GUIDANCE_LOOK_AHEAD_S = 1.5
         /** Poniżej tej prędkości nie liczymy kursu z ruchu (szum RTK), km/h. */
         const val MIN_HEADING_KMH = 1.0
     }
