@@ -119,22 +119,20 @@ fun HardwareMapScreen(hw: HardwareController) {
         // pochylenie tak, żeby horyzont był ok. 1/5 wysokości od góry, i liczymy go ze wzoru
         // camK = ile pikseli odległości kamery daje jednostka cameraDistance (Windows ok. 72, Android zależy od gęstości ekranu);
         // potem ustawiamy kamerę na 0,85 wysokości mapy — ta sama perspektywa na każdym ekranie
-        var camK by remember { mutableStateOf(0f) }
+        // stała geometria: domyślna kamera warstwy (na Windows i Androidzie ok. 0,85 wysokości mapy) i pochylenie 58° —
+        // horyzont wypada ok. 1/5 od góry. Pomiar przez warstwę na Androidzie nie uwzględnia perspektywy, więc używamy go
+        // tylko, gdy wynik jest wiarygodny
         var boxH by remember { mutableStateOf(0f) }
+        var measured by remember { mutableStateOf(-1f) }
         val sky = tilt && DisplayPrefs.sky3d
-        val origin = boxH * 0.72f
-        val dEff = boxH * 0.85f
-        val ready = sky && camK > 0f && boxH > 0f
-        val tiltDeg = if (ready) (kotlin.math.atan(dEff / (origin - boxH * 0.2f)) * 180 / PI).toFloat() else 48f
-        val camDist = if (ready) dEff / camK else -1f
-        val horizonY = if (ready) boxH * 0.2f else -1f
+        val tiltDeg = if (sky) 58f else 48f
+        val camDist = -1f
+        val formula = boxH * (0.72f - 0.85f / kotlin.math.tan(58.0 * PI / 180).toFloat())
+        val horizonY = if (boxH <= 0f) -1f else if (measured in (boxH * 0.05f)..(boxH * 0.45f)) measured else formula
         if (sky) SkyLayer(hw, headingUp, horizonY, Modifier.fillMaxSize())
-        HwCanvas(hw, zoom, headingUp, tilt, locked, Modifier.fillMaxSize(), tiltDeg, camDist) { yh, h, cd ->
-            if (camK == 0f && kotlin.math.abs(tiltDeg - 48f) < 0.01f) {
-                boxH = h
-                val d = (h * 0.72f - yh) * kotlin.math.tan(48.0 * PI / 180).toFloat()
-                if (d > 0f && cd > 0f) camK = d / cd
-            }
+        HwCanvas(hw, zoom, headingUp, tilt, locked, Modifier.fillMaxSize(), tiltDeg, camDist) { yh, h, _ ->
+            boxH = h
+            if (kotlin.math.abs(tiltDeg - 58f) < 0.01f) measured = yh
         }
 
         // lewa kolumna narzędzi mapy
@@ -1196,13 +1194,8 @@ private fun HwCanvas(
                     lineTo(o(mp - r * 1.1 - f * 0.6).x, o(mp - r * 1.1 - f * 0.6).y)
                     close()
                 }
-                val mc = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: Ss.Info
-                if (m.tracker) {                                          // lokalizator WAR Track: kółko z kreską kierunku
-                    drawCircle(Ss.Warning, 1.6f, o(mp))
-                    drawCircle(Ss.Text, 1.6f, o(mp), style = Stroke(width = 2f * px))
-                    if (m.kmh >= 1) drawLine(Ss.Text, o(mp), o(mp + f * 3.0), 2f * px)
-                    continue
-                }
+                // lokalizator WAR Track rysujemy tak samo jak maszynę z Navigatorem (rodzaj z nazwy), domyślnie pomarańczowy
+                val mc = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: if (m.tracker) Ss.Warning else Ss.Info
                 if (DisplayPrefs.machineModels) {
                     with(eu.smartsteer.navigator.ui.MachineModels) {
                         drawMachine({ o(it) }, mp, h, kindOf(m.tractor, m.tool), mc, m.width, upView, if (tilt) 1.0 else 0.0, Ss.Text, px)
