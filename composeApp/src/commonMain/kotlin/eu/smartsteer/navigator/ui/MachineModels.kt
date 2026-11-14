@@ -65,31 +65,87 @@ object MachineModels {
     private fun round(cx: Double, y0: Double, z0: Double, ry: Double, rz: Double, w: Double, c: Color, n: Int = 12) =
         Part(cx, 0.0, w, (0 until n).map { val a = 2 * PI * it / n; y0 + ry * cos(a) to z0 + rz * sin(a) }, c)
 
-    /** Koło: opona (walec) i felgi po obu stronach; [steer] — skręt w stopniach. */
-    private fun wheel(cx: Double, cy: Double, r: Double, w: Double, steer: Double = 0.0): List<Part> {
-        val n = 16
-        val tyre = (0 until n).map { val a = 2 * PI * (it + 0.5) / n; r * cos(a) to r + r * sin(a) }
-        val hub = (0 until 10).map { val a = 2 * PI * it / 10; r * 0.55 * cos(a) to r + r * 0.55 * sin(a) }
+    /** Łuk (błotnik) nad kołem o promieniu [r] i środku (0, [zc]) od kąta [a0] do [a1] (stopnie, 0 = do przodu), grubość [t]. */
+    private fun arc(r: Double, zc: Double, t: Double, a0: Double, a1: Double, n: Int = 8): List<Pair<Double, Double>> {
+        val outer = (0..n).map { val a = (a0 + (a1 - a0) * it / n) * PI / 180; (r + t) * cos(a) to zc + (r + t) * sin(a) }
+        val inner = (0..n).map { val a = (a1 - (a1 - a0) * it / n) * PI / 180; r * cos(a) to zc + r * sin(a) }
+        return outer + inner
+    }
+
+    /**
+     * Koło: opona z bieżnikiem (co drugi występ odrobinę niżej), felga w [rim] i ciemna piasta po obu stronach;
+     * [steer] — skręt w stopniach.
+     */
+    private fun wheel(cx: Double, cy: Double, r: Double, w: Double, steer: Double = 0.0, rim: Color = RIM): List<Part> {
+        val n = 28
+        val tyre = (0 until n).map { val a = 2 * PI * (it + 0.5) / n; val rr = if (it % 2 == 0) r else r * 0.955; rr * cos(a) to r + rr * sin(a) }
+        fun disc(k: Double, m: Int) = (0 until m).map { val a = 2 * PI * it / m; r * k * cos(a) to r + r * k * sin(a) }
         return listOf(
-            Part(cx - w / 2 - 0.02, cy, 0.04, hub, RIM, steer, false),
+            Part(cx - w / 2 - 0.03, cy, 0.03, disc(0.2, 8), DARK, steer, false),
+            Part(cx - w / 2 - 0.01, cy, 0.02, disc(0.62, 14), rim, steer, false),
             Part(cx, cy, w, tyre, TYRE, steer, false),
-            Part(cx + w / 2 + 0.02, cy, 0.04, hub, RIM, steer, false),
+            Part(cx + w / 2 + 0.01, cy, 0.02, disc(0.62, 14), rim, steer, false),
+            Part(cx + w / 2 + 0.03, cy, 0.03, disc(0.2, 8), DARK, steer, false),
         )
     }
 
+    private val LAMP = Color(0xFFF2F4F0)
+    private val BEACON = Color(0xFFFF9A1F)
+    private val STRIPE = Color(0xFFD8B04A)
+
+    /**
+     * Ciągnik: duże tylne koła i niewiele mniejsze przednie z felgami w kolorze maszyny, maska z czarną atrapą, światłami
+     * i paskiem, obciążnik z przodu, kabina z czarnymi słupkami, dach w kolorze maszyny z kogutami i lampami, lusterka,
+     * wydech przy prawym słupku, błotniki nad kołami.
+     */
     private fun tractor(body: Color, wb: Double = 2.5, tr: Double = 1.9, steer: Double = 0.0): List<Part> {
-        val roof = shade(body, 0.92f)
-        return wheel(-tr / 2, 0.0, 0.85, 0.55) + wheel(tr / 2, 0.0, 0.85, 0.55) +
-            wheel(-tr / 2 + 0.12, wb, 0.55, 0.4, steer) + wheel(tr / 2 - 0.12, wb, 0.55, 0.4, steer) + listOf(
-            box(0.0, 0.0, tr - 0.75, 1.1, 0.45, 0.85, shade(body, 0.7f)),                                       // tylny most
-            Part(0.0, 0.0, 0.95, listOf(0.55 to 0.6, wb + 0.9 to 0.6, wb + 1.08 to 1.0, wb + 0.9 to 1.5, 0.55 to 1.72), body), // maska
-            box(0.0, wb + 1.12, 1.0, 0.2, 0.45, 0.6, DARK),                                                   // obciążnik
-            Part(0.0, 0.0, 1.5, listOf(-0.75 to 1.05, 0.85 to 1.05, 1.0 to 2.6, -0.7 to 2.65), GLASS),           // kabina
-            Part(0.0, 0.0, 1.72, listOf(-0.88 to 2.62, 1.12 to 2.6, 1.08 to 2.82, -0.84 to 2.84), roof),         // dach z okapem
-            Part(-tr / 2, 0.0, 0.62, listOf(-0.75 to 1.55, 0.75 to 1.55, 0.55 to 1.82, -0.55 to 1.82), shade(body, 0.85f)), // błotniki
-            Part(tr / 2, 0.0, 0.62, listOf(-0.75 to 1.55, 0.75 to 1.55, 0.55 to 1.82, -0.55 to 1.82), shade(body, 0.85f)),
-            round(0.33, 1.35, 2.25, 0.07, 0.65, 0.12, DARK, 8),                                               // wydech
+        val rr = 0.95                       // promień tylnego koła
+        val fr = 0.7                        // przedniego
+        val fx = tr / 2 - 0.05              // rozstaw przednich kół
+        val dark = shade(body, 0.7f)
+        val roofY0 = -0.85; val roofY1 = 1.15
+        val list = ArrayList<Part>()
+        list += wheel(-tr / 2, 0.0, rr, 0.62, 0.0, body) + wheel(tr / 2, 0.0, rr, 0.62, 0.0, body)
+        list += wheel(-fx, wb, fr, 0.5, steer, body) + wheel(fx, wb, fr, 0.5, steer, body)
+        // błotniki: tylne stałe, przednie skręcają z kołem
+        for (sx in listOf(-1.0, 1.0)) {
+            list += Part(sx * tr / 2, 0.0, 0.7, arc(rr + 0.06, rr, 0.07, 15.0, 160.0), body, 0.0, true)
+            list += Part(sx * fx, wb, 0.56, arc(fr + 0.06, fr, 0.06, 20.0, 150.0, 6), body, steer, true)
+        }
+        list += listOf(
+            box(0.0, 0.2, tr - 0.8, 1.6, 0.5, 0.75, DARK),                                                     // skrzynia i most
+            box(0.0, wb * 0.55, 0.7, wb * 0.9, 0.55, 0.45, DARK),                                               // rama pod maską
+            // maska: od kabiny do przodu, przód zaokrąglony w dół
+            Part(0.0, 0.0, 1.02, listOf(0.7 to 0.95, wb + 0.75 to 0.95, wb + 0.98 to 1.15, wb + 0.95 to 1.5, wb + 0.7 to 1.68, 0.7 to 1.82), body),
+            Part(0.0, 0.0, 1.05, listOf(0.75 to 1.5, wb + 0.85 to 1.42, wb + 0.85 to 1.47, 0.75 to 1.55), STRIPE, edges = false), // pasek
+            // czarna atrapa z przodu i światła po bokach atrapy
+            Part(0.0, 0.0, 0.86, listOf(wb + 0.72 to 0.75, wb + 1.0 to 0.75, wb + 1.03 to 1.12, wb + 1.0 to 1.4, wb + 0.72 to 1.4), Color(0xFF15181A)),
+            box(-0.4, wb + 1.0, 0.16, 0.06, 1.28, 0.1, LAMP), box(0.4, wb + 1.0, 0.16, 0.06, 1.28, 0.1, LAMP),
+            // obciążnik
+            Part(0.0, 0.0, 1.05, listOf(wb + 0.95 to 0.45, wb + 1.55 to 0.45, wb + 1.6 to 0.6, wb + 1.55 to 1.0, wb + 0.95 to 1.0), Color(0xFF2B2F31)),
+            // kabina: szyby i czarne słupki w narożnikach
+            Part(0.0, 0.0, 1.55, listOf(-0.75 to 1.15, 0.95 to 1.15, 1.08 to 2.7, -0.72 to 2.72), GLASS.copy(alpha = 0.82f), edges = false),
         )
+        for (sx in listOf(-1.0, 1.0)) for ((y0, y1) in listOf(-0.78 to -0.66, 0.94 to 1.1)) {
+            list += Part(sx * 0.76, 0.0, 0.09, listOf(y0 to 1.1, y1 to 1.1, y1 + (if (y0 > 0) 0.13 else 0.0) to 2.72, y0 + (if (y0 > 0) 0.13 else 0.0) to 2.72), Color(0xFF111416))
+        }
+        list += listOf(
+            box(0.0, 0.1, 1.62, 1.8, 1.1, 0.12, Color(0xFF111416)),                                            // listwa pod szybami
+            // dach w kolorze maszyny z okapem, czarny pas lamp z przodu
+            Part(0.0, 0.0, 1.78, listOf(roofY0 to 2.7, roofY1 to 2.68, roofY1 + 0.08 to 2.82, roofY1 to 2.95, roofY0 + 0.05 to 2.98), body),
+            box(0.0, roofY1 + 0.02, 1.5, 0.1, 2.72, 0.09, Color(0xFF111416)),
+            box(-0.55, roofY1 + 0.06, 0.12, 0.04, 2.74, 0.06, LAMP), box(0.55, roofY1 + 0.06, 0.12, 0.04, 2.74, 0.06, LAMP),
+            round(-0.62, 0.9, 3.05, 0.07, 0.08, 0.12, BEACON, 8), round(0.62, 0.9, 3.05, 0.07, 0.08, 0.12, BEACON, 8),        // koguty
+            // lusterka na wysięgnikach
+            box(-0.98, 1.0, 0.42, 0.05, 2.35, 0.04, Color(0xFF111416)), box(0.98, 1.0, 0.42, 0.05, 2.35, 0.04, Color(0xFF111416)),
+            box(-1.22, 1.0, 0.06, 0.16, 2.1, 0.32, Color(0xFF111416)), box(1.22, 1.0, 0.06, 0.16, 2.1, 0.32, Color(0xFF111416)),
+            // wydech przy prawym przednim słupku
+            round(0.62, 1.32, 2.25, 0.07, 0.75, 0.13, Color(0xFF1C1F21), 8),
+            // stopnie do kabiny
+            box(-0.82, 0.35, 0.18, 0.5, 0.45, 0.6, DARK),
+            box(0.0, -0.95, 0.5, 0.25, 0.55, 0.4, dark),                                                         // tylny TUZ
+        )
+        return list
     }
 
     private fun parts(kind: Kind, body: Color, width: Double): List<Part> {
