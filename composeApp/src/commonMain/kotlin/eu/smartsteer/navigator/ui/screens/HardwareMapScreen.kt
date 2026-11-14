@@ -134,6 +134,9 @@ fun HardwareMapScreen(hw: HardwareController) {
             boxH = h
             if (kotlin.math.abs(tiltDeg - 58f) < 0.01f) measured = yh
         }
+        // odległość kamery warstwy 3D w pikselach — z tego samego horyzontu, który widać (niebo i ziemia się zgadzają)
+        val camPx = if (sky && horizonY > 0f && boxH > 0f) ((boxH * 0.72f - horizonY) * kotlin.math.tan(tiltDeg * PI / 180).toFloat()).coerceAtLeast(boxH * 0.3f) else boxH * 0.85f
+        FleetOverlay(hw, zoom, headingUp, tilt, tiltDeg, camPx, Modifier.fillMaxSize())
 
         // lewa kolumna narzędzi mapy
         Column(
@@ -1192,36 +1195,7 @@ private fun HwCanvas(
                 drawPath(quad, Ss.OnAccent, style = Stroke(width = 1.5f * px))
             }
 
-            // inne maszyny gospodarstwa (flota WAR §3.10): bryły (kombajn, ciągnik z maszyną) albo trójkąt w kierunku jazdy
-            val plane = s.plane
-            val upView = if (headingUp) viewFwd else Vec2(0.0, 1.0)
-            val fleetSorted = hw.war.fleet.values.sortedByDescending { m -> plane?.toLocal(m.lat, m.lon)?.let { it dot upView } ?: 0.0 }
-            if (plane != null) for (m in fleetSorted) {
-                val mp = plane.toLocal(m.lat, m.lon)
-                val h = m.courseDeg * kotlin.math.PI / 180
-                val f = Vec2.forward(h)
-                val r = Vec2.right(h)
-                val tri = Path().apply {
-                    moveTo(o(mp + f * 3.2).x, o(mp + f * 3.2).y)
-                    lineTo(o(mp + r * 1.1 - f * 0.6).x, o(mp + r * 1.1 - f * 0.6).y)
-                    lineTo(o(mp - r * 1.1 - f * 0.6).x, o(mp - r * 1.1 - f * 0.6).y)
-                    close()
-                }
-                // lokalizator WAR Track rysujemy tak samo jak maszynę z Navigatorem (rodzaj z Parku maszyn WAR, bez niego z nazwy), domyślnie pomarańczowy
-                val mc = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: if (m.tracker) Ss.Warning else Ss.Info
-                if (DisplayPrefs.machineModels) {
-                    with(eu.smartsteer.navigator.ui.MachineModels) {
-                        drawMachine({ o(it) }, mp, h, kindOfType(m.type) ?: kindOf(m.tractor, m.tool), mc, m.width, upView, if (tilt) 1.0 else 0.0, Ss.Text, px)
-                    }
-                    continue
-                }
-                drawPath(tri, mc)
-                drawPath(tri, Ss.Text, style = Stroke(width = 2f * px))
-                if (m.width > 0.5) {
-                    val half = m.width / 2
-                    drawLine(mc.copy(alpha = 0.8f), o(mp - r * half - f * 1.5), o(mp + r * half - f * 1.5), 3f * px)
-                }
-            }
+            // inne maszyny gospodarstwa (flota WAR §3.10) — osobna warstwa FleetOverlay (w 3D stoją pionowo, nazwy w dymkach)
 
             // 3D: noc przyciemnia pole, mgła gęstnieje z odległością i na horyzoncie ma kolor nieba (szew niewidoczny)
             if (sky3d) {
@@ -1244,38 +1218,6 @@ private fun HwCanvas(
             if (p != null) {
                 drawTractorIcon({ o(it) }, p, s.headingRad, s.profile, s.autosteer?.actualAngleDeg ?: 0.0, outline = Ss.Text, px = px)
                 if (DisplayPrefs.tractorIcon == 0) drawCircle(Ss.Text, 4f * px, o(p))
-            }
-        }
-
-        // nazwy innych maszyn nad nimi (jak na mapie WAR); w 3D napis rozciągnięty w pionie, żeby na pochylonej mapie stał prosto
-        val plane = s.plane
-        if (DisplayPrefs.machineLabels && plane != null && hw.war.fleet.isNotEmpty()) {
-            val th = if (headingUp) -hw.viewHeading else 0.0
-            val cosT = kotlin.math.cos(th).toFloat()
-            val sinT = kotlin.math.sin(th).toFloat()
-            val pos0 = s.pivot ?: Vec2.ZERO
-            val camL = if (headingUp) pos0 + Vec2.forward(hw.viewHeading) * (size.height * 0.18f / (zoom * density)).toDouble() else pos0
-            val scL = zoom * density
-            val upL = if (headingUp) Vec2.forward(hw.viewHeading) else Vec2(0.0, 1.0)
-            val stretch = if (tilt) (1.0 / kotlin.math.cos(tiltDeg * PI / 180)).toFloat().coerceAtMost(3f) else 1f
-            for (m in hw.war.fleet.values) {
-                val name = m.tractor.ifBlank { m.tool }.take(28)
-                if (name.isBlank()) continue
-                // nad bryłą: w 3D góra maszyny przesuwa się w głąb, z góry — tuż przed nią
-                val mp = plane.toLocal(m.lat, m.lon) + upL * (if (tilt) 6.0 else 0.0)
-                val vx = ((mp.x - camL.x) * scL).toFloat()
-                val vy = (-(mp.y - camL.y) * scL).toFloat()
-                val c = Offset(size.width / 2 + vx * cosT - vy * sinT, size.height / 2 + vx * sinT + vy * cosT)
-                if (c.x < -200f || c.x > size.width + 200f || c.y < -200f || c.y > size.height + 200f) continue
-                val layout = tm.measure(name, TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ss.Text))
-                val w = layout.size.width + 14f * density
-                val h = layout.size.height + 6f * density
-                val gap = if (tilt) 4f * density else 22f * density
-                withTransform({ scale(1f, stretch, Offset(c.x, c.y)) }) {
-                    val tl = Offset(c.x - w / 2, c.y - gap - h)
-                    drawRoundRect(Ss.Bar.copy(alpha = 0.85f), tl, androidx.compose.ui.geometry.Size(w, h), androidx.compose.ui.geometry.CornerRadius(h / 2))
-                    drawText(layout, topLeft = Offset(c.x - layout.size.width / 2f, tl.y + 3f * density))
-                }
             }
         }
 
@@ -1311,6 +1253,92 @@ private fun HwCanvas(
     }
 }
 
+
+/**
+ * Inne maszyny gospodarstwa (flota WAR §3.10) nad mapą, w tej samej perspektywie co pochylona mapa, ale rysowane
+ * na płaskiej warstwie: bryły stoją pionowo zamiast leżeć na polu, a nazwa wisi nad maszyną w dymku (jak na mapie WAR).
+ * Rzut: obrót warstwy o [tiltDeg] wokół osi X przez (0,5·W; 0,72·H) i kamera w odległości [camPx] — tak jak graphicsLayer.
+ */
+@Composable
+private fun FleetOverlay(hw: HardwareController, zoom: Float, headingUp: Boolean, tilt: Boolean, tiltDeg: Float, camPx: Float, modifier: Modifier) {
+    val density = LocalDensity.current.density
+    val tm = rememberTextMeasurer()
+    Canvas(modifier) {
+        hw.tick
+        val s = hw.session
+        val plane = s.plane ?: return@Canvas
+        val fleet = hw.war.fleet.values
+        if (fleet.isEmpty()) return@Canvas
+        val sc = zoom * density
+        val pos = s.pivot ?: Vec2.ZERO
+        val viewFwd = Vec2.forward(hw.viewHeading)
+        val cam = if (headingUp) pos + viewFwd * (size.height * 0.18f / sc).toDouble() else pos
+        val th = if (headingUp) -hw.viewHeading else 0.0
+        val cosT = kotlin.math.cos(th).toFloat(); val sinT = kotlin.math.sin(th).toFloat()
+        val tr = (tiltDeg * PI / 180).toFloat()
+        val sn = kotlin.math.sin(tr); val cs = kotlin.math.cos(tr)
+        val ox = size.width * 0.5f; val oy = size.height * 0.72f
+        val d = camPx.coerceAtLeast(1f)
+        /** Głębokość (dalej = więcej) i punkt na ekranie; null — za kamerą. */
+        fun project(p: Vec2, zM: Double): Pair<Float, Offset>? {
+            val vx = ((p.x - cam.x) * sc).toFloat(); val vy = (-(p.y - cam.y) * sc).toFloat()
+            val x = size.width / 2 + vx * cosT - vy * sinT
+            val y = size.height / 2 + vx * sinT + vy * cosT
+            if (!tilt) return 0f to Offset(x, y)
+            val u = x - ox; val v = y - oy; val h = (zM * sc).toFloat()
+            val py = v * cs - h * sn
+            val pz = -v * sn - h * cs
+            val den = d + pz
+            if (den < d * 0.08f) return null
+            return pz to Offset(ox + u * d / den, oy + py * d / den)
+        }
+        val items = fleet.mapNotNull { m -> val mp = plane.toLocal(m.lat, m.lon); project(mp, 0.0)?.let { Triple(m, mp, it.first) } }
+            .sortedByDescending { it.third }
+        for ((m, mp, _) in items) {
+            val h = m.courseDeg * PI / 180
+            val mc = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: if (m.tracker) Ss.Warning else Ss.Info
+            val kind = eu.smartsteer.navigator.ui.MachineModels.kindOfType(m.type) ?: eu.smartsteer.navigator.ui.MachineModels.kindOf(m.tractor, m.tool)
+            if (DisplayPrefs.machineModels) {
+                with(eu.smartsteer.navigator.ui.MachineModels) { drawMachine({ p, z -> project(p, z) }, mp, h, kind, mc, m.width, tilt, Ss.Text) }
+            } else {
+                val f = Vec2.forward(h); val r = Vec2.right(h)
+                val pts = listOf(mp + f * 3.2, mp + r * 1.1 - f * 0.6, mp - r * 1.1 - f * 0.6).map { project(it, 0.0)?.second ?: return@map null }
+                if (pts.all { it != null }) {
+                    val tri = Path().apply { moveTo(pts[0]!!.x, pts[0]!!.y); lineTo(pts[1]!!.x, pts[1]!!.y); lineTo(pts[2]!!.x, pts[2]!!.y); close() }
+                    drawPath(tri, mc); drawPath(tri, Ss.Text, style = Stroke(width = 2f))
+                }
+            }
+            if (!DisplayPrefs.machineLabels) continue
+            val name = m.tractor.ifBlank { m.tool }.take(28)
+            if (name.isBlank()) continue
+            // dymek nad dachem maszyny; w 3D trochę mniejszy dla dalekich maszyn, ale zawsze czytelny
+            val top = (if (kind == eu.smartsteer.navigator.ui.MachineModels.Kind.COMBINE) 5.4 else 3.2) + 1.0
+            val (pz, anchor) = project(mp, if (tilt) top else 0.0) ?: continue
+            if (anchor.x < -300f || anchor.x > size.width + 300f || anchor.y < -300f || anchor.y > size.height + 300f) continue
+            val k = if (tilt) (d / (d + pz)).coerceIn(0.75f, 1.15f) else 1f
+            val layout = tm.measure(name, TextStyle(fontSize = (14 * k).sp, fontWeight = FontWeight.Bold, color = Ss.Text))
+            val dot = 8f * density * k
+            val padX = 10f * density * k; val padY = 5f * density * k
+            val w = layout.size.width + padX * 2 + dot + 6f * density * k
+            val bh = layout.size.height + padY * 2
+            val tail = 7f * density * k
+            val gap = if (tilt) 2f * density else 20f * density
+            val bottom = anchor.y - gap - tail
+            val tl = Offset(anchor.x - w / 2, bottom - bh)
+            val bubble = Path().apply {
+                addRoundRect(androidx.compose.ui.geometry.RoundRect(tl.x, tl.y, tl.x + w, bottom, androidx.compose.ui.geometry.CornerRadius(bh / 2)))
+                moveTo(anchor.x - tail * 0.8f, bottom - 1f); lineTo(anchor.x, bottom + tail); lineTo(anchor.x + tail * 0.8f, bottom - 1f); close()
+            }
+            // cień pod dymkiem, sam dymek, kolorowa kropka maszyny i nazwa
+            drawPath(bubble, Color.Black.copy(alpha = 0.25f), style = Stroke(width = 4f * density * k))
+            drawPath(bubble, Ss.Bar.copy(alpha = 0.92f))
+            drawPath(bubble, mc.copy(alpha = 0.9f), style = Stroke(width = 1.5f * density))
+            drawCircle(mc, dot / 2, Offset(tl.x + padX + dot / 2, tl.y + bh / 2))
+            drawText(layout, topLeft = Offset(tl.x + padX + dot + 6f * density * k, tl.y + padY))
+            if (tilt) drawCircle(mc.copy(alpha = 0.6f), 2.5f * density, anchor.copy(y = bottom + tail))
+        }
+    }
+}
 
 /** Wiadomość głosowa do gospodarza (WAR na telefonie): stuknij — nagrywa, stuknij drugi raz — wysyła; ▶ ostatnia odebrana. */
 @Composable

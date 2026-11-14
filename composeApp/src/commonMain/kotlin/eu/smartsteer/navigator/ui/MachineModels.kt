@@ -82,47 +82,42 @@ object MachineModels {
     }
 
     /**
-     * [o] — punkt świata na ekran, [pos] — położenie maszyny, [heading] w radianach, [up] — kierunek „w głąb” ekranu
-     * w układzie świata, [k] — jak mocno wysokość przesuwa w głąb (0 = widok z góry).
+     * [proj] — punkt świata na wysokości z (m) na ekran razem z głębokością (dalej = więcej), null za kamerą.
+     * [tilt] — widok 3D: rysujemy też ściany brył (te zwrócone do kamery), od najdalszej bryły do najbliższej.
      */
     fun DrawScope.drawMachine(
-        o: (Vec2) -> Offset, pos: Vec2, heading: Double, kind: Kind, body: Color, width: Double,
-        up: Vec2, k: Double, outline: Color, px: Float,
+        proj: (Vec2, Double) -> Pair<Float, Offset>?, pos: Vec2, heading: Double, kind: Kind, body: Color, width: Double,
+        tilt: Boolean, outline: Color,
     ) {
         val f = Vec2.forward(heading)
         val r = Vec2.right(heading)
-        fun w(x: Double, y: Double, z: Double) = pos + r * x + f * y + up * (z * k)
-        val list = boxes(kind, body, width).sortedWith(compareByDescending<Box> { ((pos + r * it.cx + f * it.cy) dot up) }.thenBy { it.z0 })
+        fun at(x: Double, y: Double) = pos + r * x + f * y
+        val list = boxes(kind, body, width)
+            .map { it to (proj(at(it.cx, it.cy), it.z0 + it.h / 2)?.first ?: Float.MAX_VALUE) }
+            .sortedByDescending { it.second }
+            .map { it.first }
         for (b in list) {
             val xs = doubleArrayOf(b.cx - b.w / 2, b.cx + b.w / 2, b.cx + b.w / 2, b.cx - b.w / 2)
             val ys = doubleArrayOf(b.cy - b.l / 2, b.cy - b.l / 2, b.cy + b.l / 2, b.cy + b.l / 2)
             val z1 = b.z0 + b.h
-            if (k > 0) {
-                for (i in 0 until 4) {
-                    val j = (i + 1) % 4
-                    val a = pos + r * xs[i] + f * ys[i]
-                    val c = pos + r * xs[j] + f * ys[j]
-                    val e = c - a
-                    // normalna na zewnątrz (wierzchołki idą przeciwnie do zegara patrząc z góry na układ maszyny)
-                    val n = Vec2(e.y, -e.x)
-                    val towardCam = -(n dot up)
-                    if (towardCam <= 0) continue
-                    val side = Path().apply {
-                        val p0 = o(w(xs[i], ys[i], b.z0)); moveTo(p0.x, p0.y)
-                        val p1 = o(w(xs[j], ys[j], b.z0)); lineTo(p1.x, p1.y)
-                        val p2 = o(w(xs[j], ys[j], z1)); lineTo(p2.x, p2.y)
-                        val p3 = o(w(xs[i], ys[i], z1)); lineTo(p3.x, p3.y)
-                        close()
-                    }
-                    drawPath(side, shade(b.color, 0.62f + 0.18f * (i % 2)))
-                }
+            val lo = (0 until 4).map { proj(at(xs[it], ys[it]), b.z0)?.second }
+            val hi = (0 until 4).map { proj(at(xs[it], ys[it]), z1)?.second }
+            if (lo.any { it == null } || hi.any { it == null }) continue
+            val l = lo.map { it!! }; val u = hi.map { it!! }
+            fun face(pts: List<Offset>, c: Color, edge: Boolean) {
+                // ściana widoczna, gdy na ekranie ma ten sam obieg co dach widziany z góry
+                var area = 0f
+                for (i in pts.indices) { val p = pts[i]; val q = pts[(i + 1) % pts.size]; area += p.x * q.y - q.x * p.y }
+                if (area >= 0f) return
+                val path = Path().apply { moveTo(pts[0].x, pts[0].y); for (i in 1 until pts.size) lineTo(pts[i].x, pts[i].y); close() }
+                drawPath(path, c)
+                if (edge) drawPath(path, outline.copy(alpha = 0.3f), style = Stroke(width = 1f))
             }
-            val top = Path().apply {
-                for (i in 0 until 4) { val p = o(w(xs[i], ys[i], z1)); if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
-                close()
+            if (tilt) for (i in 0 until 4) {
+                val j = (i + 1) % 4
+                face(listOf(l[i], l[j], u[j], u[i]), shade(b.color, 0.62f + 0.18f * (i % 2)), false)
             }
-            drawPath(top, b.color)
-            drawPath(top, outline.copy(alpha = 0.35f), style = Stroke(width = 1f * px))
+            face(u, b.color, true)
         }
     }
 }
