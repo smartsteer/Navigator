@@ -213,6 +213,7 @@ private fun NetworkPanel(hw: HardwareController) {
     val s = hw.subnet
     Panel(Modifier.fillMaxWidth()) {
         SectionTitle("Sieć płytki")
+        hw.noRxHint()?.let { Label(it, Ss.Danger, 14.sp) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Sieć modułów", color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             TextInput(

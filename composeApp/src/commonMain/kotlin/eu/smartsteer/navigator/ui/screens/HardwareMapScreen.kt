@@ -538,7 +538,7 @@ private fun HeadlandHint(hw: HardwareController, modifier: Modifier) {
 @Composable
 private fun HwMessage(hw: HardwareController, modifier: Modifier) {
     hw.tick
-    val m = hw.mapNote ?: hw.session.message ?: return
+    val m = hw.mapNote ?: hw.session.message ?: hw.noRxHint() ?: return
     Text(m, modifier.hwOverlay().padding(horizontal = 16.dp, vertical = 12.dp), color = Ss.Text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
 }
 

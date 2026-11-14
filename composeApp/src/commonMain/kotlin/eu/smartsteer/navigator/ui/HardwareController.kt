@@ -443,6 +443,18 @@ class HardwareController {
             " · ostatnio wysłane ${configSentAt?.let { "${(now() - it).toInt()} s temu" } ?: "jeszcze nie"}"
     }
 
+    /** Wysyłamy, a z płytek nic nie przychodzi — najczęstsze przyczyny po kolei. */
+    fun noRxHint(): String? {
+        if (!hardware || simulating || txCount < 50 || rxCount > 0) return null
+        val addrs = runCatching { eu.smartsteer.navigator.core.net.localAddresses() }.getOrDefault(emptyList())
+        val inNet = addrs.any { it.inSubnet(subnet[0], subnet[1], subnet[2]) }
+        return when {
+            linkError != null -> "Nie da się otworzyć portu 9999 ($linkError) — zamknij AgIO / AgOpenGPS i uruchom Navigator ponownie"
+            !inNet -> "Komputer nie ma adresu w sieci $subnetText.x — kabel / Wi-Fi płytki niepodłączone albo zły adres karty (Połączenia → Sieć płytki)"
+            else -> "Wysyłam do płytek, ale nic nie wraca: sprawdź zasilanie płytki, zamknij AgIO / AgOpenGPS (zajmują port 9999) i zezwól Navigatorowi w Zaporze Windows (sieć prywatna i publiczna)"
+        }
+    }
+
     fun saveDiagnostics(): String {
         val n = now()
         val s = session
@@ -451,6 +463,9 @@ class HardwareController {
             appendLine("Wersja: ${runCatching { platformUpdater().currentVersion }.getOrDefault("?")}")
             appendLine("Tryb: ${if (hardware) "SPRZĘT" else "SYMULATOR"}${if (simulating) " (symulacja jazdy)" else ""}${if (wifiMode) " · Wi-Fi" else ""}")
             appendLine("Sieć modułów: $subnetText.x · odebrano $rxCount · wysłano $txCount · błąd wysyłki: ${sendError ?: "—"}")
+            val addrs = runCatching { eu.smartsteer.navigator.core.net.localAddresses() }.getOrDefault(emptyList())
+            appendLine("Karty sieciowe: ${addrs.joinToString { "${it.address} (${it.name})" }.ifEmpty { "brak" }} · w sieci $subnetText.x: ${if (addrs.any { it.inSubnet(subnet[0], subnet[1], subnet[2]) }) "tak" else "NIE"} · start łącza: ${linkError ?: "OK"}")
+            noRxHint()?.let { appendLine("UWAGA: $it") }
             appendLine("Moduły: ${foundModules.joinToString { "${it.source}@${it.ip}" }.ifEmpty { "—" }} · adresy: ${moduleSeen.keys.joinToString()}")
             appendLine("Łącze z modułem skrętu: straty ${linkLossPct ?: "—"}% · najdłuższa przerwa ${linkMaxGapMs ?: "—"} ms")
             appendLine("GPS: ${s.fix.label} · żywy ${s.gpsAlive(n)} · sat ${s.lastGga?.satellites ?: "—"} · HDOP ${s.lastGga?.hdop ?: "—"} · wiek poprawek ${s.lastGga?.correctionAge ?: "—"} · kurs z ${s.headingSource.label}")
