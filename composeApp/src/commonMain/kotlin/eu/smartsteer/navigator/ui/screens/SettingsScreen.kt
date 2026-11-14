@@ -244,9 +244,15 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
         }
     }
     SectionTitle("Przełącznik roboczy")
-    Toggle("Sekcje tylko przy włączonym przełączniku", p.useWorkSwitch) { set(p.copy(useWorkSwitch = it)) }
+    Label("Jak w AgOpenGPS: przełączenie włącza sekcje (automat albo ręcznie), wyłączenie gasi wszystkie. Między przełączeniami działają przyciski na ekranie.", Ss.TextMuted, 12.sp)
+    Toggle("Przełącznik roboczy steruje sekcjami", p.useWorkSwitch) { set(p.copy(useWorkSwitch = it)) }
     if (p.useWorkSwitch) {
         Choice("Włączony, gdy styk", listOf("Zwarty (niski)", "Rozwarty (wysoki)"), if (p.workSwitchActiveLow) 0 else 1) { set(p.copy(workSwitchActiveLow = it == 0)) }
+        Choice("Włącza sekcje", listOf("Automat", "Ręcznie (wszystkie)"), if (p.workSwitchManualSections) 1 else 0) { set(p.copy(workSwitchManualSections = it == 1)) }
+    }
+    Toggle("Przełącznik autostera też steruje sekcjami", p.steerWorkSwitch) { set(p.copy(steerWorkSwitch = it)) }
+    if (p.steerWorkSwitch) {
+        Choice("Włącza sekcje", listOf("Automat", "Ręcznie (wszystkie)"), if (p.steerWorkSwitchManualSections) 1 else 0) { set(p.copy(steerWorkSwitchManualSections = it == 1)) }
     }
 }
 

@@ -155,7 +155,7 @@ class Sections {
      * sekcja potrzebna, gdy nieobrobionych jest więcej niż (100 − minCoverage)% punktów.
      * Do modułu idzie [on] (isSectionOn), mapa maluje się według [mapping] (isMappingOn).
      * @param boundary granica pola (null = brak), [inner] = wnętrze bez uwrocia
-     * @param workOn przełącznik roboczy pozwala pracować
+     * @param workOn stan przełącznika roboczego (nieużywany — przełącznik przestawia [mode] przy zmianie stanu, jak w AgOpenGPS)
      * @param speedKmh średnia prędkość (avgSpeed)
      * @param gpsHz częstotliwość pozycji (gpsHz) — timery sekcji liczą się w pozycjach
      */
@@ -193,8 +193,8 @@ class Sections {
             val xs = x0
             x0 += w
             val (a, b) = edges(j, p) ?: continue
-            // stan przycisku sekcji: przycisk główny WYŁ., brak pracy przełącznika lub słaby GPS = Off
-            val blocked = !gpsOk || (p.useWorkSwitch && !workOn)
+            // stan przycisku sekcji: przycisk główny WYŁ. lub słaby GPS = Off (przełącznik roboczy przestawia przycisk główny — w sesji)
+            val blocked = !gpsOk
             val btnOff = blocked || mode == SectionMode.OFF || (mode == SectionMode.MANUAL && !manual[j])
             val btnOn = !blocked && mode == SectionMode.MANUAL && manual[j]
             // wyłączona, za wolno albo do tyłu — chyba że ręcznie włączona

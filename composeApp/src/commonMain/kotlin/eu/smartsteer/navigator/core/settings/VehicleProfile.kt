@@ -74,10 +74,16 @@ data class VehicleProfile(
     val sectionOffWhenOut: Boolean = true,
     /** Sekcje wyłączają się na uwrociu. */
     val sectionOffInHeadland: Boolean = true,
-    /** Sekcje działają tylko przy włączonym przełączniku roboczym (PGN 253). */
+    /** Przełącznik roboczy (PGN 253) włącza i wyłącza sekcje — przy zmianie stanu, jak w AgOpenGPS (setF_isWorkSwitchEnabled). */
     val useWorkSwitch: Boolean = false,
     /** Przełącznik roboczy aktywny przy stanie niskim (zwarty do masy). */
     val workSwitchActiveLow: Boolean = true,
+    /** Przełącznik roboczy włącza sekcje ręcznie (wszystkie), a nie automat (setF_isWorkSwitchManualSections). */
+    val workSwitchManualSections: Boolean = false,
+    /** Przełącznik autostera też włącza i wyłącza sekcje (setF_isSteerWorkSwitchEnabled). */
+    val steerWorkSwitch: Boolean = false,
+    /** …i włącza je ręcznie, a nie automat (setF_isSteerWorkSwitchManualSections). */
+    val steerWorkSwitchManualSections: Boolean = false,
 
     // --- Auto-zawrót (CYouTurn; set_youTurnRadius, set_youSkipWidth) ---
     /** Promień zawrotu, m. */
@@ -296,7 +302,8 @@ data class VehicleProfile(
         "numSections" to numSections, "lookAheadOn" to lookAheadOn, "lookAheadOff" to lookAheadOff, "turnOffDelay" to turnOffDelay, "minCoverage" to minCoverage,
         "slowSpeedCutoff" to slowSpeedCutoff, "sectionOffWhenOut" to sectionOffWhenOut,
         "sectionOffInHeadland" to sectionOffInHeadland, "useWorkSwitch" to useWorkSwitch,
-        "workSwitchActiveLow" to workSwitchActiveLow,
+        "workSwitchActiveLow" to workSwitchActiveLow, "workSwitchManualSections" to workSwitchManualSections,
+        "steerWorkSwitch" to steerWorkSwitch, "steerWorkSwitchManualSections" to steerWorkSwitchManualSections,
         "youTurnRadius" to youTurnRadius, "youTurnSkip" to youTurnSkip, "youTurnFromBoundary" to youTurnFromBoundary,
         "algorithm" to algorithm.name, "lookAheadHold" to lookAheadHold, "lookAheadMult" to lookAheadMult,
         "acquireFactor" to acquireFactor, "purePursuitIntegral" to purePursuitIntegral,
@@ -381,6 +388,9 @@ data class VehicleProfile(
                 sectionOffInHeadland = bool("sectionOffInHeadland", d.sectionOffInHeadland),
                 useWorkSwitch = bool("useWorkSwitch", d.useWorkSwitch),
                 workSwitchActiveLow = bool("workSwitchActiveLow", d.workSwitchActiveLow),
+                workSwitchManualSections = bool("workSwitchManualSections", d.workSwitchManualSections),
+                steerWorkSwitch = bool("steerWorkSwitch", d.steerWorkSwitch),
+                steerWorkSwitchManualSections = bool("steerWorkSwitchManualSections", d.steerWorkSwitchManualSections),
                 youTurnRadius = num("youTurnRadius", d.youTurnRadius),
                 youTurnSkip = int("youTurnSkip", d.youTurnSkip).coerceIn(1, 20),
                 youTurnFromBoundary = num("youTurnFromBoundary", d.youTurnFromBoundary),

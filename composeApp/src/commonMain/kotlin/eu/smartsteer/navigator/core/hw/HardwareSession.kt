@@ -19,6 +19,7 @@ import eu.smartsteer.navigator.core.field.FieldPlanner
 import eu.smartsteer.navigator.core.field.Flag
 import eu.smartsteer.navigator.core.field.Track
 import eu.smartsteer.navigator.core.field.Polygon
+import eu.smartsteer.navigator.core.field.SectionMode
 import eu.smartsteer.navigator.core.field.Sections
 import eu.smartsteer.navigator.core.guidance.AbSteering
 import eu.smartsteer.navigator.core.guidance.Contour
@@ -170,12 +171,21 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val frame = AogFrame.parse(bytes, length) ?: return
         AutosteerStatus.from(frame)?.let {
             val prevSwitch = autosteer?.steerSwitch
+            val prevWork = autosteer?.workSwitch ?: false     // oldWorkSwitchHigh = false na starcie
             autosteer = it
             lastAutosteerTimeS = nowS
             // jak w AgOpenGPS: przełącznik / przycisk na płytce włącza i wyłącza autoster (gdy ustawione „Przełącznik” albo „Przycisk”)
             if (profile.steerEnable != SteerEnable.NONE && prevSwitch != null && prevSwitch != it.steerSwitch) {
                 if (it.steerSwitch) { if (!engaged && !freeDrive) setEngaged(true, nowS) }
                 else if (engaged) { engaged = false; fail("Autoster wyłączony przełącznikiem") }
+            }
+            // CModuleComm.CheckWorkAndSteerSwitch: przełącznik roboczy i przełącznik autostera sterują przyciskami sekcji przy zmianie stanu
+            if (profile.useWorkSwitch && prevWork != it.workSwitch) {
+                sectionMasterFromSwitch(it.workSwitch != profile.workSwitchActiveLow, profile.workSwitchManualSections)
+            }
+            if (profile.steerWorkSwitch && prevSwitch != null && prevSwitch != it.steerSwitch) {
+                val auto = profile.steerEnable != SteerEnable.NONE
+                sectionMasterFromSwitch((engaged && auto) || (!auto && it.steerSwitch), profile.steerWorkSwitchManualSections)
             }
             lastAutosteerTimeS = nowS
             it.headingDeg?.let { h -> imu.onHeading(h, nowS) }
@@ -260,8 +270,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             sections.mode == eu.smartsteer.navigator.core.field.SectionMode.OFF -> "sekcje WYŁ."
             gpsTooPoorForSections -> "słaby GPS"
             speedKmh < profile.slowSpeedCutoff -> "prędkość ${(speedKmh * 10).roundToInt() / 10.0} < ${profile.slowSpeedCutoff} km/h"
-            reversing -> "cofanie"
-            !workSwitchOn(nowS) -> "przełącznik roboczy"
+            reversing -> "cofanie (sekcje gasną, gdy jadą do tyłu)"
+            sections.mode == SectionMode.MANUAL -> "sekcje ręcznie"
             else -> "pracują"
         }
         if (why != lastSectionWhy) {
@@ -1338,6 +1348,12 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     }
 
     /** Przełącznik roboczy z PGN 253 (bit 0); aktywny stan wg ustawień. Bez modułu = wyłączony. */
+    /** Przycisk główny sekcji z przełącznika: włączenie = automat albo wszystkie ręcznie, wyłączenie = WYŁ. */
+    private fun sectionMasterFromSwitch(on: Boolean, manual: Boolean) {
+        if (!on) { sections.mode = SectionMode.OFF; return }
+        if (manual) { sections.manual.fill(true); sections.mode = SectionMode.MANUAL } else sections.mode = SectionMode.AUTO
+    }
+
     fun workSwitchOn(nowS: Double): Boolean {
         val st = autosteer ?: return false
         if (!autosteerAlive(nowS)) return false

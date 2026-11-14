@@ -323,6 +323,25 @@ class HardwareSessionTest {
         assertFalse(h.engaged)
     }
 
+    /** CheckWorkAndSteerSwitch: przełącznik roboczy przestawia przycisk główny sekcji przy zmianie stanu, potem działa ekran. */
+    @Test
+    fun workSwitchTogglesSectionMasterOnEdgesLikeAgOpenGps() {
+        val h = HardwareSession(VehicleProfile(useWorkSwitch = true, workSwitchActiveLow = true))
+        fun feed(sw: Int) {
+            val f = AogFrame.build(Pgn.FROM_AUTOSTEER, byteArrayOf(0, 0, 0x0F, 0x27, 0xB8.toByte(), 0x22, sw.toByte(), 0), source = 0x7E)
+            h.onDatagram(f, f.size, 0.0)
+        }
+        feed(0x01 or 0x02)                     // styk rozwarty (wysoki) przy aktywnym niskim = wyłączony
+        assertEquals(eu.smartsteer.navigator.core.field.SectionMode.OFF, h.sections.mode)
+        h.sections.mode = eu.smartsteer.navigator.core.field.SectionMode.AUTO   // rolnik włącza z ekranu — zostaje
+        feed(0x01 or 0x02)
+        assertEquals(eu.smartsteer.navigator.core.field.SectionMode.AUTO, h.sections.mode)
+        feed(0x02); feed(0x02)                 // zwarty → automat
+        assertEquals(eu.smartsteer.navigator.core.field.SectionMode.AUTO, h.sections.mode)
+        feed(0x01 or 0x02)                     // rozwarty → WYŁ.
+        assertEquals(eu.smartsteer.navigator.core.field.SectionMode.OFF, h.sections.mode)
+    }
+
     /** Wspólna praca: sekcje omijają tylko pracę innych maszyn tego samego rodzaju (siew ≠ oprysk doglebowy). */
     @Test
     fun othersCoverageOnlyForSameWork() {

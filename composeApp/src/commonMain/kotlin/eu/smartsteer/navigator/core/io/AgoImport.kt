@@ -76,6 +76,9 @@ object AgoImport {
         b("setTool_isSectionOffWhenOut")?.let { p = p.copy(sectionOffWhenOut = it) }
         b("setF_isWorkSwitchEnabled")?.let { p = p.copy(useWorkSwitch = it) }
         b("setF_isWorkSwitchActiveLow")?.let { p = p.copy(workSwitchActiveLow = it) }
+        b("setF_isWorkSwitchManualSections")?.let { p = p.copy(workSwitchManualSections = it) }
+        b("setF_isSteerWorkSwitchEnabled")?.let { p = p.copy(steerWorkSwitch = it) }
+        b("setF_isSteerWorkSwitchManualSections")?.let { p = p.copy(steerWorkSwitchManualSections = it) }
         // prowadzenie
         b("setVehicle_isStanleyUsed")?.let { p = p.copy(algorithm = if (it) SteerAlgorithm.STANLEY else SteerAlgorithm.PURE_PURSUIT) }
         d("setVehicle_goalPointLookAheadHold")?.let { p = p.copy(lookAheadHold = it) }
