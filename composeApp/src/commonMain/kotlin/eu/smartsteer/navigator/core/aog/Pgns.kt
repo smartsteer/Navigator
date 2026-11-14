@@ -80,6 +80,8 @@ data class SteerSettings(
  */
 data class SteerConfig(
     val setting0: Int, val maxPulseCounts: Int, val minSteerSpeedKmh: Double, val setting1: Int,
+    /** setAS_isConstantContourOn → bajt angVel = 1. */
+    val constantContour: Boolean = false,
 ) {
     fun toFrame(): ByteArray {
         val d = ByteArray(8)
@@ -87,7 +89,7 @@ data class SteerConfig(
         d[1] = maxPulseCounts.coerceIn(0, 255).toByte()
         d[2] = (minSteerSpeedKmh * 10).toInt().coerceIn(0, 255).toByte()
         d[3] = setting1.toByte()
-        d[4] = 0 // prędkość kątowa (stały kontur) — wyłączone
+        d[4] = if (constantContour) 1 else 0 // prędkość kątowa (stały kontur)
         return AogFrame.build(Pgn.STEER_CONFIG, d)
     }
 }

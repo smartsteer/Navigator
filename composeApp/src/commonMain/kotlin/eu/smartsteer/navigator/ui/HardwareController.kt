@@ -381,6 +381,14 @@ class HardwareController {
         if (vehicle == null && tool == null) return "Wybierz profil pojazdu albo narzędzia"
         var p = VehicleProfile()
         var count = 0
+        // AgOpenGPS trzyma część ustawień (przełącznik roboczy, zdalny autoster, wyprzedzenie prowadzenia, alarmy RTK, zawrót)
+        // w Environment/environment.xml (albo DefaultEnvironment.xml) — najpierw ten plik, potem pojazd i narzędzie
+        val env = listOf("environment.xml", "DefaultEnvironment.xml").firstNotNullOfOrNull { agoFiles("Environment")?.read(it) }
+        if (env != null) {
+            val (np, n) = AgoImport.applySettings(p, AgoImport.parseSettings(env))
+            p = np
+            count += n
+        }
         for (path in listOfNotNull(vehicle, tool)) {
             val text = readAgo(path) ?: return "Nie można odczytać $path"
             val (np, n) = AgoImport.applySettings(p, AgoImport.parseSettings(text))

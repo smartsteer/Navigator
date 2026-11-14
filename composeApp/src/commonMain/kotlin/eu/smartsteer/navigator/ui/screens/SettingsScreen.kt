@@ -263,6 +263,7 @@ private fun ColumnScope.GuidanceTab(p: VehicleProfile, set: (VehicleProfile) -> 
     Num("Zawracaj na przejazd", "1 = sąsiedni, 2 = co drugi…", p.youTurnSkip.toDouble(), "", 1.0, 1.0, 10.0, 0) { set(p.copy(youTurnSkip = it.toInt())) }
     Num("Odstęp od granicy", "Zawrót nie podejdzie bliżej granicy pola", p.youTurnFromBoundary, "m", 0.5, 0.0, 20.0, 1) { set(p.copy(youTurnFromBoundary = it)) }
     Choice("Kształt zawrotu", listOf("U / omega", "K z cofaniem"), p.youTurnStyle) { set(p.copy(youTurnStyle = it)) }
+    Num("Kompensacja skrętu na zawrocie", "Mnożnik kąta kół na zawrocie (AgOpenGPS: UTurn compensation)", p.uTurnCompensation, "×", 0.05, 0.1, 3.0, 2) { set(p.copy(uTurnCompensation = it)) }
     if (p.youTurnStyle == 1) Label(
         "K: łuk naprzód, STOP i wsteczny (program skręca koła do cofania), STOP i naprzód na następny przejazd. " +
             "Biegi zmieniasz sam — program wykrywa jazdę do tyłu z GPS. Działa, gdy przejazd jest węższy niż 2 promienie zawrotu; inaczej robi zwykłe U.",
@@ -372,6 +373,11 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
     WasCalibrationPanel(hw, p, set)
     SmartWasPanel(hw, p, set)
     Num("Ackermann", "Korekta różnicy skrętu w lewo i w prawo", p.ackerman.toDouble(), "%", 1.0, 1.0, 200.0, 0) { set(p.copy(ackerman = it.toInt())) }
+    SectionTitle("Zachowanie autostera")
+    Toggle("Przełącznik / przycisk na płytce włącza autoster", p.remoteAutoSteer) { set(p.copy(remoteAutoSteer = it)) }
+    Toggle("Prowadź także przy cofaniu", p.steerInReverse) { set(p.copy(steerInReverse = it)) }
+    Num("Wyprzedzenie wyboru przejazdu", "Z jakiego punktu przed ciągnikiem wybierany jest najbliższy przejazd", p.guidanceLookAheadS, "s", 0.1, 0.0, 5.0, 1) { set(p.copy(guidanceLookAheadS = it)) }
+    Toggle("Stały kontur (prędkość kątowa do płytki)", p.constantContour) { set(p.copy(constantContour = it)) }
     SectionTitle("Martwa strefa")
     Num("Martwa strefa kąta", "Poniżej tej różnicy kąta silnik nie poprawia", p.deadZoneDeg, "°", 0.05, 0.0, 2.0, 2) { set(p.copy(deadZoneDeg = it)) }
     Num("Opóźnienie martwej strefy", "Po tylu sekundach w strefie kąt przestaje się zmieniać", p.deadZoneDelay.toDouble(), "s", 1.0, 0.0, 50.0, 0) { set(p.copy(deadZoneDelay = it.toInt())) }
@@ -619,7 +625,8 @@ private fun ColumnScope.BoardTab(hw: HardwareController, p: VehicleProfile, set:
         Num("Czas podnoszenia", null, p.hydRaiseTime.toDouble(), "s", 1.0, 0.0, 255.0, 0) { set(p.copy(hydRaiseTime = it.toInt())) }
         Num("Czas opuszczania", null, p.hydLowerTime.toDouble(), "s", 1.0, 0.0, 255.0, 0) { set(p.copy(hydLowerTime = it.toInt())) }
         Toggle("Podnoś sam na uwrociu", p.hydAuto) { set(p.copy(hydAuto = it)) }
-        Label("Działa przy wyznaczonym uwrociu i włączonym przycisku „Podnośnik” na mapie. Wyprzedzenie = czas włączania sekcji.", Ss.TextMuted, 12.sp)
+        Num("Wyprzedzenie podnoszenia", "Jak w AgOpenGPS: patrzy tyle sekund do przodu na linię uwrocia", p.hydLiftLookAhead, "s", 0.1, 0.0, 20.0, 1) { set(p.copy(hydLiftLookAhead = it)) }
+        Label("Działa przy wyznaczonym uwrociu i włączonym przycisku „Podnośnik” na mapie. Maszyna podnosi się, gdy obie krawędzie są na uwrociu i przed nią nie ma linii uwrocia.", Ss.TextMuted, 12.sp)
     }
     Num("Użytkownik 1", "Wartości dla własnego programu modułu", p.machineUser1.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(machineUser1 = it.toInt())) }
     Num("Użytkownik 2", null, p.machineUser2.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(machineUser2 = it.toInt())) }

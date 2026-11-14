@@ -92,6 +92,14 @@ data class VehicleProfile(
     val youTurnSkip: Int = 1,
     /** Odstęp zawrotu od granicy pola, m. */
     val youTurnFromBoundary: Double = 2.0,
+    /** Mnożnik kąta skrętu na zawrocie (setAS_uTurnCompensation). */
+    val uTurnCompensation: Double = 1.0,
+    /** Długość prostych na wjeździe/wyjeździe zawrotu, m (set_youTurnExtensionLength). */
+    val youTurnExtension: Double = 20.0,
+    /** Wygładzanie ścieżki zawrotu (setAS_uTurnSmoothing). */
+    val uTurnSmoothing: Int = 14,
+    /** Ręczny zawrót i przesunięcie w bok tylko poniżej tej prędkości, km/h (setAS_functionSpeedLimit). */
+    val functionSpeedLimit: Double = 12.0,
 
     // --- Prowadzenie ---
     val algorithm: SteerAlgorithm = SteerAlgorithm.PURE_PURSUIT,
@@ -116,6 +124,14 @@ data class VehicleProfile(
     val deadZoneDeg: Double = 0.1,
     /** Martwa strefa: po ilu sekundach zaczyna działać (setAS_deadZoneDelay; w AgOpenGPS licznik rośnie raz na sekundę). */
     val deadZoneDelay: Int = 5,
+    /** Autoster pracuje także przy cofaniu (setAS_isSteerInReverse; w AgOpenGPS domyślnie nie — status 0 przy cofaniu). */
+    val steerInReverse: Boolean = false,
+    /** Wyprzedzenie wyboru przejazdu, s (setAS_guidanceLookAheadTime). */
+    val guidanceLookAheadS: Double = 1.5,
+    /** Przełącznik/przycisk na płytce włącza i wyłącza autoster (setAS_isAutoSteerAutoOn — „zdalny autoster”). */
+    val remoteAutoSteer: Boolean = true,
+    /** Stały kontur — bajt prędkości kątowej w PGN 251 (setAS_isConstantContourOn). */
+    val constantContour: Boolean = false,
 
     // --- IMU (żyroskop) ---
     /** Przechył odczytany na płaskim terenie, ° (odejmowany od odczytu). */
@@ -170,6 +186,8 @@ data class VehicleProfile(
     val tramShift: Int = 0,
     /** Automatyczny podnośnik na uwrociu (gdy włączony podnośnik w module maszyny). */
     val hydAuto: Boolean = true,
+    /** Wyprzedzenie podnoszenia na uwrociu, s (setVehicle_hydraulicLiftLookAhead). */
+    val hydLiftLookAhead: Double = 2.0,
 
     // --- Zmienne dawkowanie bez sterownika (rozsiewacz z dawką zależną od prędkości) ---
     /** Dawka ustawiona na rozsiewaczu przy prędkości [rateBaseSpeed]; 0 = sterownik dawki (PGN 224), bez podpowiedzi. */
@@ -294,7 +312,10 @@ data class VehicleProfile(
         "machineUser3" to machineUser3, "machineUser4" to machineUser4,
         "tramEvery" to tramEvery, "tramTrack" to tramTrack, "tramWheel" to tramWheel, "tramShift" to tramShift, "hydAuto" to hydAuto,
         "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed, "rateHintMode" to rateHintMode, "rateStepPct" to rateStepPct,
-        "youTurnStyle" to youTurnStyle, "isSprayer" to isSprayer, "headlandSeq" to headlandSeq,
+        "youTurnStyle" to youTurnStyle, "uTurnCompensation" to uTurnCompensation, "youTurnExtension" to youTurnExtension,
+        "uTurnSmoothing" to uTurnSmoothing, "functionSpeedLimit" to functionSpeedLimit, "steerInReverse" to steerInReverse,
+        "guidanceLookAheadS" to guidanceLookAheadS, "remoteAutoSteer" to remoteAutoSteer, "constantContour" to constantContour,
+        "hydLiftLookAhead" to hydLiftLookAhead, "isSprayer" to isSprayer, "headlandSeq" to headlandSeq,
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
@@ -363,6 +384,15 @@ data class VehicleProfile(
                 rateHintMode = int("rateHintMode", d.rateHintMode),
                 rateStepPct = num("rateStepPct", d.rateStepPct),
                 youTurnStyle = int("youTurnStyle", d.youTurnStyle),
+                uTurnCompensation = num("uTurnCompensation", d.uTurnCompensation),
+                youTurnExtension = num("youTurnExtension", d.youTurnExtension),
+                uTurnSmoothing = int("uTurnSmoothing", d.uTurnSmoothing),
+                functionSpeedLimit = num("functionSpeedLimit", d.functionSpeedLimit),
+                steerInReverse = bool("steerInReverse", d.steerInReverse),
+                guidanceLookAheadS = num("guidanceLookAheadS", d.guidanceLookAheadS),
+                remoteAutoSteer = bool("remoteAutoSteer", d.remoteAutoSteer),
+                constantContour = bool("constantContour", d.constantContour),
+                hydLiftLookAhead = num("hydLiftLookAhead", d.hydLiftLookAhead),
                 isSprayer = bool("isSprayer", d.isSprayer),
                 headlandSeq = (m["headlandSeq"] as? String) ?: d.headlandSeq,
                 supRtkLossS = num("supRtkLossS", d.supRtkLossS),

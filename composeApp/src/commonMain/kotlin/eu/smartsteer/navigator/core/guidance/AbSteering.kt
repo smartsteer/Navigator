@@ -40,7 +40,7 @@ class AbSteering {
     private var pivotDerivative = 0.0
     private var counter2 = 0
     /** Ostatnia odchyłka (modeActualXTE) — wpływa na wyprzedzenie. */
-    private var modeActualXte = 0.0
+    internal var modeActualXte = 0.0
 
     // --- stan Stanleya ---
     private var stInty = 0.0

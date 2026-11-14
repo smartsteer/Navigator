@@ -78,4 +78,23 @@ class AgoImportTest {
         assertEquals(0.25, p.toolOffset); assertEquals(0.2, p.deadZoneDeg)
         assertEquals(true, p.hydEnabled); assertEquals(false, p.machineInvertRelays)
     }
+
+    /** Ustawienia z Environment/environment.xml i reszta pól, które wcześniej nie były przenoszone. */
+    @Test
+    fun environmentAndRemainingSettings() {
+        fun st(k: String, v: String) = "<setting name=\"$k\" serializeAs=\"String\"><value>$v</value></setting>\n"
+        val xml = st("setAS_isSteerInReverse", "True") + st("setAS_guidanceLookAheadTime", "2.5") + st("setAS_isAutoSteerAutoOn", "False") +
+            st("setAS_uTurnCompensation", "1.2") + st("set_uTurnStyle", "1") + st("setHeadland_isSectionControlled", "False") +
+            st("setVehicle_hydraulicLiftLookAhead", "3") + st("setAS_isConstantContourOn", "True") + st("setGPS_ageAlarm", "15") +
+            st("setF_isWorkSwitchEnabled", "True")
+        val (p, n) = AgoImport.applySettings(VehicleProfile(), AgoImport.parseSettings(xml))
+        assertEquals(10, n)
+        assertTrue(p.steerInReverse); assertEquals(2.5, p.guidanceLookAheadS); assertEquals(false, p.remoteAutoSteer)
+        assertEquals(1.2, p.uTurnCompensation); assertEquals(1, p.youTurnStyle); assertEquals(false, p.sectionOffInHeadland)
+        assertEquals(3.0, p.hydLiftLookAhead); assertTrue(p.constantContour); assertEquals(15.0, p.supCorrAgeS); assertTrue(p.useWorkSwitch)
+        // tryb stref: 24 sekcje po 0,5 m
+        val z = st("setTool_isSectionsNotZones", "False") + st("setTool_numSectionsMulti", "24") + st("setTool_sectionWidthMulti", "0.5")
+        val (pz, _) = AgoImport.applySettings(VehicleProfile(), AgoImport.parseSettings(z))
+        assertEquals(24, pz.numSections); assertEquals(12.0, pz.toolWidth)
+    }
 }

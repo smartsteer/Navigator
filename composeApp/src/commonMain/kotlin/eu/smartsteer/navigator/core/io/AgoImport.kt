@@ -39,7 +39,7 @@ object AgoImport {
         fun b(k: String): Boolean? = s[k]?.trim()?.lowercase()?.let { if (it == "true") true else if (it == "false") false else null }?.also { n++ }
         var p = base
         d("setVehicle_wheelbase")?.let { p = p.copy(wheelbase = it) }
-        d("setVehicle_trackWidth")?.let { p = p.copy(trackWidth = it) }
+        d("setVehicle_trackWidth")?.let { p = p.copy(trackWidth = it, tramTrack = it) }   // AgOpenGPS: ślady = rozstaw kół ciągnika
         d("setVehicle_antennaHeight")?.let { p = p.copy(antennaHeight = it) }
         d("setVehicle_antennaPivot")?.let { p = p.copy(antennaPivot = it) }
         d("setVehicle_antennaOffset")?.let { p = p.copy(antennaOffset = it) }
@@ -92,6 +92,24 @@ object AgoImport {
         d("set_youTurnRadius")?.let { p = p.copy(youTurnRadius = it) }
         i("set_youSkipWidth")?.let { p = p.copy(youTurnSkip = it.coerceIn(1, 20)) }
         d("set_youTurnDistanceFromBoundary")?.let { p = p.copy(youTurnFromBoundary = it) }
+        i("set_uTurnStyle")?.let { p = p.copy(youTurnStyle = if (it == 1) 1 else 0) }
+        d("setAS_uTurnCompensation")?.let { p = p.copy(uTurnCompensation = it) }
+        d("set_youTurnExtensionLength")?.let { p = p.copy(youTurnExtension = it) }
+        d("setAS_uTurnSmoothing")?.let { p = p.copy(uTurnSmoothing = it.toInt()) }
+        d("setAS_functionSpeedLimit")?.let { p = p.copy(functionSpeedLimit = it) }
+        b("setAS_isSteerInReverse")?.let { p = p.copy(steerInReverse = it) }
+        d("setAS_guidanceLookAheadTime")?.let { p = p.copy(guidanceLookAheadS = it) }
+        b("setAS_isAutoSteerAutoOn")?.let { p = p.copy(remoteAutoSteer = it) }
+        b("setAS_isConstantContourOn")?.let { p = p.copy(constantContour = it) }
+        b("setHeadland_isSectionControlled")?.let { p = p.copy(sectionOffInHeadland = it) }
+        d("setVehicle_hydraulicLiftLookAhead")?.let { p = p.copy(hydLiftLookAhead = it) }
+        s["setArdMac_isHydEnabled"]?.trim()?.let { v -> (v.toIntOrNull()?.let { it != 0 } ?: v.equals("true", true)).let { n++; p = p.copy(hydEnabled = it) } }
+        // alarmy GPS → nadzór autostera
+        d("setGPS_ageAlarm")?.let { p = p.copy(supCorrAgeS = it) }
+        b("setGPS_isRTK_KillAutoSteer")?.let { p = p.copy(supRtkLossS = if (it) (if (p.supRtkLossS > 0) p.supRtkLossS else 5.0) else 0.0) }
+        // ścieżki technologiczne: szerokość opryskiwacza → co ile przejazdów
+        d("setTram_tramWidth")?.let { tw -> val w = p.passSpacing; if (w > 0.1 && tw > 0) p = p.copy(tramEvery = kotlin.math.round(tw / w).toInt().coerceAtLeast(1)) }
+        b("setTool_isDisplayTramControl")?.let { if (!it) p = p.copy(tramEvery = 0) }
         // IMU
         d("setIMU_rollZero")?.let { p = p.copy(rollZero = it) }
         d("setIMU_rollFilter")?.let { p = p.copy(rollFilter = it) }
@@ -128,6 +146,14 @@ object AgoImport {
             p = p.copy(danfoss = v and 1 != 0, pressureSensor = v and 2 != 0, currentSensor = v and 4 != 0, axisY = v and 8 != 0)
         }
         i("setArdSteer_maxPulseCounts")?.let { p = p.copy(maxPulseCounts = it) }
+        // tryb stref (setTool_isSectionsNotZones = false): do 64 równych sekcji setTool_sectionWidthMulti
+        if (b("setTool_isSectionsNotZones") == false) {
+            val nm = i("setTool_numSectionsMulti")
+            val wm = d("setTool_sectionWidthMulti")
+            if (nm != null && wm != null && nm in 1..64 && wm > 0.01) {
+                return p.copy(numSections = nm, sectionWidths = emptyList(), toolWidth = nm * wm) to n
+            }
+        }
         // szerokości sekcji z pozycji krawędzi (setSection_position1…17, od lewej)
         val pos = (1..17).mapNotNull { k -> s["setSection_position$k"]?.replace(',', '.')?.toDoubleOrNull() }
         val ns = p.numSections.coerceIn(1, 64)

@@ -197,7 +197,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             autosteer = it
             lastAutosteerTimeS = nowS
             // jak w AgOpenGPS: przełącznik / przycisk na płytce włącza i wyłącza autoster (gdy ustawione „Przełącznik” albo „Przycisk”)
-            if (profile.steerEnable != SteerEnable.NONE && prevSwitch != null && prevSwitch != it.steerSwitch) {
+            if (profile.remoteAutoSteer && profile.steerEnable != SteerEnable.NONE && prevSwitch != null && prevSwitch != it.steerSwitch) {
                 if (it.steerSwitch) { if (!engaged && !freeDrive) setEngaged(true, nowS) }
                 else if (engaged) { engaged = false; fail("Autoster wyłączony przełącznikiem") }
             }
@@ -206,7 +206,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
                 sectionMasterFromSwitch(it.workSwitch != profile.workSwitchActiveLow, profile.workSwitchManualSections)
             }
             if (profile.steerWorkSwitch && prevSwitch != null && prevSwitch != it.steerSwitch) {
-                val auto = profile.steerEnable != SteerEnable.NONE
+                val auto = profile.remoteAutoSteer && profile.steerEnable != SteerEnable.NONE
                 sectionMasterFromSwitch((engaged && auto) || (!auto && it.steerSwitch), profile.steerWorkSwitchManualSections)
             }
             lastAutosteerTimeS = nowS
@@ -302,6 +302,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             while (sectionLog.size > 60) sectionLog.removeFirst()
         }
         sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS), obstacles, othersSameWork.takeIf { it.cellCount > 0 }, gpsOk = !gpsTooPoorForSections, gpsHz = gpsHz)
+        hydStep()
         // mapa wykonania: szerokość pracujących sekcji i dawka z mapy
         if (sections.anyOn()) {
             val w = profile.sectionWidthsEffective.withIndex().sumOf { (i, sw) -> if (i < Sections.MAX && sections.on[i]) sw else 0.0 }
@@ -848,17 +849,19 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         if (kPhase != 0 && p != null && kTurnStep(p, roll)) return
         val turn = youTurnPath
         if (turn != null && p != null) {
-            val res = if (engaged) steering.computePath(turn, turnHint, p, headingRad, speedKmh, false, profile, roll) else null
-            if (res == null) {
+            // CYouTurn.DistanceFromYouTurnLine 1:1 (YouTurnFollow); null = zawrót zakończony (CompleteYouTurn)
+            if (!engaged) {
                 finishTurn("Zawrót przerwany", flip = false)
-            } else if (res.pastEnd) {
-                finishTurn("Zawrót zakończony", flip = true)
             } else {
-                turnHint = res.index
-                xteCm = res.out.distanceFromLine * 100
-                steerSetDeg = res.out.steerAngleDeg
-                goal = res.out.goal
-                return
+                val res = youTurnFollow.step(turn, p, headingRad, speedKmh, reversing, profile, steering)
+                if (res == null) {
+                    finishTurn("Zawrót zakończony", flip = true)
+                } else {
+                    xteCm = res.distanceFromLine * 100
+                    steerSetDeg = res.steerAngleDeg
+                    goal = res.goal
+                    return
+                }
             }
         }
         val r: AbSteering.Output? = when (mode) {
@@ -894,6 +897,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     var uTurnRight = true
     /** Ścieżka trwającego zawrotu (null = jedziemy po linii). */
     var youTurnPath: List<Pose>? = null; private set
+    private val youTurnFollow = eu.smartsteer.navigator.core.guidance.YouTurnFollow()
     /** Podgląd najbliższego zawrotu (rysowany na mapie przed jego rozpoczęciem). */
     private var turnHint = -1
     private var lastTurnTryS = Double.NEGATIVE_INFINITY
@@ -951,6 +955,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         }
         youTurnPath = path
         turnHint = -1
+        youTurnFollow.reset()
         steering.reset()
         ok("Zawracam ${if (uTurnRight) "w prawo" else "w lewo"}")
     }
@@ -1222,7 +1227,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     /** guidanceLookPos (AgOpenGPS): punkt przed tylną osią o max(pół szerokości maszyny, prędkość × 1,5 s). */
     private fun guidanceLookPos(pivot: Vec2): Vec2 =
-        pivot + Vec2.forward(headingRad) * kotlin.math.max(profile.toolWidth * 0.5, abs(speedKmh) / 3.6 * GUIDANCE_LOOK_AHEAD_S)
+        pivot + Vec2.forward(headingRad) * kotlin.math.max(profile.toolWidth * 0.5, abs(speedKmh) / 3.6 * profile.guidanceLookAheadS)
 
     /** Ramka PGN 252 (ustawienia modułu skrętu) z profilu. */
     fun steerSettingsFrame(): ByteArray = with(profile) {
@@ -1231,11 +1236,11 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     /** Ramka PGN 251 (konfiguracja płytki) z profilu. */
     fun steerConfigFrame(): ByteArray = with(profile) {
-        SteerConfig(setting0, maxPulseCounts, minSteerSpeed, setting1).toFrame()
+        SteerConfig(setting0, maxPulseCounts, minSteerSpeed, setting1, constantContour).toFrame()
     }
 
     /** Status w PGN 254 — AgOpenGPS: status 0 przy cofaniu (poza cofaniem w zawrocie K) i przy zmianie kierunku bez IMU. */
-    private fun steerStatus() = engaged && !(reversing && kPhase != 2 && kPhase != 3) && !(changingDirection && !imu.headingAlive(steerFrameTimeS))
+    private fun steerStatus() = engaged && !(reversing && !profile.steerInReverse && kPhase != 2 && kPhase != 3) && !(changingDirection && !imu.headingAlive(steerFrameTimeS))
 
     /** Ramka PGN 254 do modułu skrętu. */
     fun steerFrame(): ByteArray = if (freeDrive) {
@@ -1322,13 +1327,47 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     fun hydLiftState(): Int {
         if (profile.hydEnabled && hydOverride != 0) return hydOverride
-        if (!profile.hydEnabled || !profile.hydAuto || !hydLiftOn) return 0
-        val inner = headland ?: return 0
-        if (youTurnPath != null) return 2
-        val tp = sections.toolPos ?: return 0
-        val look = (speedKmh / 3.6 * profile.lookAheadOn).coerceAtLeast(0.5)
-        val q = tp + Vec2.forward(sections.toolHeading) * look
-        return if (Polygon.contains(inner, q)) 1 else 2
+        if (!profile.hydEnabled || !profile.hydAuto) return 0
+        return hydLift
+    }
+
+    /** Stan podnośnika wysyłany w PGN 239 (p_239.hydLift): 0 nieustawiony, 1 opuść, 2 podnieś — trzymany do następnej zmiany. */
+    private var hydLift = 0
+
+    /**
+     * Podnośnik na uwrociu 1:1 z AgOpenGPS (OpenGL.Designer.cs „determine if in or out of headland”, CHead.WhereAreToolCorners,
+     * SetHydPosition): maszyna jest na uwrociu, gdy obie skrajne krawędzie są poza polem roboczym, a w pasie przed nią
+     * (prędkość krawędzi × setVehicle_hydraulicLiftLookAhead, najwyżej 20 m) nie ma linii uwrocia. Zmiana tylko przy
+     * włączonym podnośniku, prędkości > 0,2 km/h i jeździe naprzód.
+     */
+    private fun hydStep() {
+        val inner = headland ?: return
+        if (inner.size < 3 || boundary == null) return
+        val p = profile
+        val n = p.sectionWidthsEffective.size.coerceAtMost(Sections.MAX)
+        val left = sections.edges(0, p)?.first ?: return
+        val right = sections.edges(n - 1, p)?.second ?: return
+        val outerIn = !Polygon.contains(inner, left) && !Polygon.contains(inner, right)
+        val dL = (sections.farLeftSpeed * p.hydLiftLookAhead).coerceAtMost(20.0)
+        val dR = (sections.farRightSpeed * p.hydLiftLookAhead).coerceAtMost(20.0)
+        val fwd = Vec2.forward(sections.toolHeading)
+        var anyIn = false
+        var anyOut = false
+        val cols = 40
+        for (c in 0 until cols) {
+            val f = (c + 0.5) / cols
+            val base = left + (right - left) * f
+            val rows = ((dL + (dR - dL) * f) * 10).toInt() - 1
+            var r = 0
+            val step = maxOf(1, rows / 60)
+            while (r < rows) {
+                if (Polygon.contains(inner, base + fwd * ((r + 0.5) * 0.1))) anyIn = true else anyOut = true
+                r += step
+            }
+        }
+        val headlandClose = anyIn && anyOut
+        val toolInHeadland = outerIn && !headlandClose
+        if (hydLiftOn && speedKmh > 0.2 && !reversing) hydLift = if (toolInHeadland) 2 else 1
     }
 
     /**
