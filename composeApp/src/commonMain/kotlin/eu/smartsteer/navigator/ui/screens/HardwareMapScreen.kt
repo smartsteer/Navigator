@@ -110,21 +110,20 @@ fun HardwareMapScreen(hw: HardwareController) {
     var sheet by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         // widok 3D: niebo z pory dnia i pogody za pochyloną mapą
-        var horizonY by remember { mutableStateOf(-1f) }
-        // pochylenie dobierane tak, żeby horyzont był ok. 1/5 wysokości od góry (kamera warstwy różni się między Windows i Androidem)
-        var tiltDeg by remember { mutableStateOf(48f) }
+        // kamera warstwy 3D różni się między Windows i Androidem: raz mierzymy jej odległość (przy 48°), potem dobieramy
+        // pochylenie tak, żeby horyzont był ok. 1/5 wysokości od góry, i liczymy go ze wzoru
+        var camD by remember { mutableStateOf(0f) }
+        var boxH by remember { mutableStateOf(0f) }
         val sky = tilt && DisplayPrefs.sky3d
+        val origin = boxH * 0.72f
+        val tiltDeg = if (sky && camD > 0f && boxH > 0f) (kotlin.math.atan(camD / (origin - boxH * 0.2f)) * 180 / PI).toFloat().coerceIn(40f, 75f) else 48f
+        val horizonY = if (camD > 0f) origin - camD / kotlin.math.tan(tiltDeg * PI / 180).toFloat() else -1f
         if (sky) SkyLayer(hw, headingUp, horizonY, Modifier.fillMaxSize())
-        HwCanvas(hw, zoom, headingUp, tilt, locked, Modifier.fillMaxSize(), if (sky) tiltDeg else 48f) { yh, h ->
-            horizonY = yh
-            if (sky) {
-                val origin = h * 0.72f
-                val cur = tiltDeg * PI / 180
-                val d = (origin - yh) * kotlin.math.tan(cur)            // odległość kamery warstwy, px
-                if (d > 0) {
-                    val want = (kotlin.math.atan(d / (origin - h * 0.2f)) * 180 / PI).toFloat().coerceIn(40f, 75f)
-                    if (kotlin.math.abs(want - tiltDeg) > 0.5f) tiltDeg = want
-                }
+        HwCanvas(hw, zoom, headingUp, tilt, locked, Modifier.fillMaxSize(), tiltDeg) { yh, h ->
+            if (camD == 0f && kotlin.math.abs(tiltDeg - 48f) < 0.01f) {
+                boxH = h
+                val d = (h * 0.72f - yh) * kotlin.math.tan(48.0 * PI / 180).toFloat()
+                if (d > 0f) camD = d
             }
         }
 
@@ -904,7 +903,7 @@ private fun HwStats(hw: HardwareController) {
         }
 }
 
-private const val FAR_M = 4000f
+private const val FAR_M = 1500f
 
 @Composable
 private fun HwCanvas(
@@ -967,7 +966,7 @@ private fun HwCanvas(
             val r = hypot(size.width, size.height) / sc
             val sky3d = tilt && DisplayPrefs.sky3d
             val upW = if (headingUp) viewFwd else Vec2(0.0, 1.0)
-            // 3D: ziemia aż po horyzont (4 km przed nami), żeby pole nie kończyło się krawędzią ekranu. Tylko przed kamerą —
+            // 3D: ziemia aż po horyzont (1,5 km przed nami), żeby pole nie kończyło się krawędzią ekranu. Tylko przed kamerą —
             // punkty za kamerą w perspektywie przewracają się na drugą stronę ekranu
             val rightW = Vec2(upW.y, -upW.x)
             val back = (size.height * 0.3f / sc).toDouble()
