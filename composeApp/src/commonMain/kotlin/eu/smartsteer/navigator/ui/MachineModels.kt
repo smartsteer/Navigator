@@ -26,6 +26,18 @@ object MachineModels {
         }
     }
 
+    /** Rodzaj z typu maszyny w Parku WAR; null, gdy typu nie ma (wtedy zgadujemy z nazwy). */
+    fun kindOfType(type: String): Kind? {
+        if (type.isBlank()) return null
+        val parts = type.split('/')
+        return when {
+            "kombajn" in parts -> Kind.COMBINE
+            "opryskiwacz" in parts -> Kind.SPRAYER
+            "siewnik" in parts -> Kind.SEEDER
+            else -> Kind.TRACTOR
+        }
+    }
+
     private class Box(val cx: Double, val cy: Double, val w: Double, val l: Double, val z0: Double, val h: Double, val color: Color)
 
     private val TYRE = Color(0xFF24282A)

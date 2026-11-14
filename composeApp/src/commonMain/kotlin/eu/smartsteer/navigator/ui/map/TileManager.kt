@@ -50,7 +50,7 @@ object TileManager {
                 pending.remove(k)
                 if (img != null) {
                     mem[k] = img
-                    while (mem.size > 250) mem.remove(mem.keys.first())
+                    while (mem.size > 420) mem.remove(mem.keys.first())
                     failedAt.remove(k)
                 } else failedAt[k] = now()
                 version++

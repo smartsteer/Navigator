@@ -125,11 +125,16 @@ class WarProtocolTest {
     @Test
     fun trackersFromFleetResponse() {
         val l = WarProtocol.parseTrackers(listOf(
-            mapOf("id" to "trk-abc", "nazwa" to "Ursus", "lat" to 52.1, "lon" to 19.4, "kmh" to 12.0, "kurs" to 90.0, "zaplon" to true),
+            mapOf("id" to "trk-abc", "nazwa" to "Ursus", "lat" to 52.1, "lon" to 19.4, "kmh" to 12.0, "kurs" to 90.0, "zaplon" to true, "typ" to "ciagnik/opryskiwacz"),
             mapOf("id" to "zly", "lat" to 1.0, "lon" to 1.0),
         ), 7L)
         assertEquals(1, l.size)
         assertTrue(l[0].tracker && l[0].working); assertEquals("Ursus", l[0].tractor); assertEquals(7L, l[0].receivedMs)
+        // rodzaj z Parku maszyn WAR wygrywa ze zgadywaniem z nazwy
+        assertEquals("ciagnik/opryskiwacz", l[0].type)
+        assertEquals(eu.smartsteer.navigator.ui.MachineModels.Kind.SPRAYER, eu.smartsteer.navigator.ui.MachineModels.kindOfType(l[0].type))
+        assertEquals(eu.smartsteer.navigator.ui.MachineModels.Kind.COMBINE, eu.smartsteer.navigator.ui.MachineModels.kindOfType("kombajn"))
+        assertEquals(null, eu.smartsteer.navigator.ui.MachineModels.kindOfType(""))
     }
 
     @Test

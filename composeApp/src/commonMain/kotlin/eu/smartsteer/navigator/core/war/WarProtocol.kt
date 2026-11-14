@@ -168,6 +168,8 @@ object WarProtocol {
         val color: String = "",
         /** Lokalizator WAR Track (maszyna bez Navigatora), nie Navigator. */
         val tracker: Boolean = false,
+        /** Rodzaj z Parku maszyn WAR (`ciagnik`, `kombajn`, z doczepioną maszyną `ciagnik/opryskiwacz`); pusty = nieznany. */
+        val type: String = "",
     )
 
     /** Lokalizatory WAR Track gospodarstwa z odpowiedzi floty (`lokalizatory`: id, nazwa, lat, lon, kmh, kurs, zaplon). */
@@ -181,6 +183,7 @@ object WarProtocol {
             id = id, tractor = (m["nazwa"] as? String).orEmpty().ifEmpty { "Lokalizator" }.take(40), tool = "", width = 0.0, lat = lat, lon = lon,
             courseDeg = (m["kurs"] as? Number)?.toDouble() ?: 0.0, kmh = kmh, working = m["zaplon"] == true && kmh >= 1.0,
             warId = null, field = "", who = "", receivedMs = receivedMs, tracker = true,
+            type = (m["typ"] as? String).orEmpty().lowercase().filter { it in 'a'..'z' || it == '/' }.take(40),
         )
     }
 

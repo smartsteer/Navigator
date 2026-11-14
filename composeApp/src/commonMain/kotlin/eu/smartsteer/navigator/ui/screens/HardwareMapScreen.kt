@@ -992,20 +992,33 @@ private fun HwCanvas(
                 TileManager.version
                 val (lat0, _) = pl.toGeo(cam)
                 val mppScreen = 1.0 / sc
-                var z = kotlin.math.round(kotlin.math.ln(TileMath.metersPerPixel(lat0, 0) / mppScreen) / kotlin.math.ln(2.0)).toInt().coerceIn(3, src.maxZoom)
-                val (la, lo) = pl.toGeo(cam + Vec2(-r.toDouble(), -r.toDouble()))
-                val (lb, lb2) = pl.toGeo(cam + Vec2(r.toDouble(), r.toDouble()))
-                var tiles = TileMath.range(minOf(la, lb), maxOf(la, lb), minOf(lo, lb2), maxOf(lo, lb2), z)
-                while (tiles.size > 120 && z > 3) { z--; tiles = TileMath.range(minOf(la, lb), maxOf(la, lb), minOf(lo, lb2), maxOf(lo, lb2), z) }
-                for ((tx, ty) in tiles) {
-                    val img = TileManager.get(src, z, tx, ty) ?: continue
-                    val nw = pl.toLocal(TileMath.lat(ty.toDouble(), z), TileMath.lon(tx.toDouble(), z))
-                    val se = pl.toLocal(TileMath.lat(ty + 1.0, z), TileMath.lon(tx + 1.0, z))
-                    withTransform({
-                        translate(nw.x.toFloat(), nw.y.toFloat())
-                        scale(((se.x - nw.x) / img.width).toFloat(), ((se.y - nw.y) / img.height).toFloat(), Offset.Zero)
-                    }) { drawImage(img) }
+                val zNear = kotlin.math.round(kotlin.math.ln(TileMath.metersPerPixel(lat0, 0) / mppScreen) / kotlin.math.ln(2.0)).toInt().coerceIn(3, src.maxZoom)
+                // prostokąt świata (lokalne narożniki) → kafelki; zbliżenie maleje, aż kafelków będzie najwyżej [maxTiles]
+                fun drawTiles(corners: List<Vec2>, zStart: Int, maxTiles: Int) {
+                    val geo = corners.map { pl.toGeo(it) }
+                    val laMin = geo.minOf { it.first }; val laMax = geo.maxOf { it.first }
+                    val loMin = geo.minOf { it.second }; val loMax = geo.maxOf { it.second }
+                    var z = zStart
+                    var tiles = TileMath.range(laMin, laMax, loMin, loMax, z)
+                    while (tiles.size > maxTiles && z > 3) { z--; tiles = TileMath.range(laMin, laMax, loMin, loMax, z) }
+                    for ((tx, ty) in tiles) {
+                        val img = TileManager.get(src, z, tx, ty) ?: continue
+                        val nw = pl.toLocal(TileMath.lat(ty.toDouble(), z), TileMath.lon(tx.toDouble(), z))
+                        val se = pl.toLocal(TileMath.lat(ty + 1.0, z), TileMath.lon(tx + 1.0, z))
+                        withTransform({
+                            translate(nw.x.toFloat(), nw.y.toFloat())
+                            scale(((se.x - nw.x) / img.width).toFloat(), ((se.y - nw.y) / img.height).toFloat(), Offset.Zero)
+                        }) { drawImage(img) }
+                    }
                 }
+                // 3D: podkład aż po horyzont — daleko mniej szczegółowy (dalekie kafelki są na ekranie małe), bliżej coraz dokładniejszy
+                if (tilt) {
+                    fun band(d: Double, w: Double) = listOf(cam - upW * back - rightW * w, cam - upW * back + rightW * w, cam + upW * d + rightW * w, cam + upW * d - rightW * w)
+                    drawTiles(band(FAR_M.toDouble(), FAR_M.toDouble()), zNear - 3, 48)
+                    drawTiles(band(450.0, 450.0), zNear - 1, 56)
+                }
+                val rr = r.toDouble()
+                drawTiles(listOf(cam + Vec2(-rr, -rr), cam + Vec2(rr, rr)), zNear, 120)
             }
             // siatka co 10 m
             val gc = if (sat) Color(0x22FFFFFF) else Color(0xFF1C2822)
@@ -1194,11 +1207,11 @@ private fun HwCanvas(
                     lineTo(o(mp - r * 1.1 - f * 0.6).x, o(mp - r * 1.1 - f * 0.6).y)
                     close()
                 }
-                // lokalizator WAR Track rysujemy tak samo jak maszynę z Navigatorem (rodzaj z nazwy), domyślnie pomarańczowy
+                // lokalizator WAR Track rysujemy tak samo jak maszynę z Navigatorem (rodzaj z Parku maszyn WAR, bez niego z nazwy), domyślnie pomarańczowy
                 val mc = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: if (m.tracker) Ss.Warning else Ss.Info
                 if (DisplayPrefs.machineModels) {
                     with(eu.smartsteer.navigator.ui.MachineModels) {
-                        drawMachine({ o(it) }, mp, h, kindOf(m.tractor, m.tool), mc, m.width, upView, if (tilt) 1.0 else 0.0, Ss.Text, px)
+                        drawMachine({ o(it) }, mp, h, kindOfType(m.type) ?: kindOf(m.tractor, m.tool), mc, m.width, upView, if (tilt) 1.0 else 0.0, Ss.Text, px)
                     }
                     continue
                 }
@@ -1231,6 +1244,38 @@ private fun HwCanvas(
             if (p != null) {
                 drawTractorIcon({ o(it) }, p, s.headingRad, s.profile, s.autosteer?.actualAngleDeg ?: 0.0, outline = Ss.Text, px = px)
                 if (DisplayPrefs.tractorIcon == 0) drawCircle(Ss.Text, 4f * px, o(p))
+            }
+        }
+
+        // nazwy innych maszyn nad nimi (jak na mapie WAR); w 3D napis rozciągnięty w pionie, żeby na pochylonej mapie stał prosto
+        val plane = s.plane
+        if (DisplayPrefs.machineLabels && plane != null && hw.war.fleet.isNotEmpty()) {
+            val th = if (headingUp) -hw.viewHeading else 0.0
+            val cosT = kotlin.math.cos(th).toFloat()
+            val sinT = kotlin.math.sin(th).toFloat()
+            val pos0 = s.pivot ?: Vec2.ZERO
+            val camL = if (headingUp) pos0 + Vec2.forward(hw.viewHeading) * (size.height * 0.18f / (zoom * density)).toDouble() else pos0
+            val scL = zoom * density
+            val upL = if (headingUp) Vec2.forward(hw.viewHeading) else Vec2(0.0, 1.0)
+            val stretch = if (tilt) (1.0 / kotlin.math.cos(tiltDeg * PI / 180)).toFloat().coerceAtMost(3f) else 1f
+            for (m in hw.war.fleet.values) {
+                val name = m.tractor.ifBlank { m.tool }.take(28)
+                if (name.isBlank()) continue
+                // nad bryłą: w 3D góra maszyny przesuwa się w głąb, z góry — tuż przed nią
+                val mp = plane.toLocal(m.lat, m.lon) + upL * (if (tilt) 6.0 else 0.0)
+                val vx = ((mp.x - camL.x) * scL).toFloat()
+                val vy = (-(mp.y - camL.y) * scL).toFloat()
+                val c = Offset(size.width / 2 + vx * cosT - vy * sinT, size.height / 2 + vx * sinT + vy * cosT)
+                if (c.x < -200f || c.x > size.width + 200f || c.y < -200f || c.y > size.height + 200f) continue
+                val layout = tm.measure(name, TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ss.Text))
+                val w = layout.size.width + 14f * density
+                val h = layout.size.height + 6f * density
+                val gap = if (tilt) 4f * density else 22f * density
+                withTransform({ scale(1f, stretch, Offset(c.x, c.y)) }) {
+                    val tl = Offset(c.x - w / 2, c.y - gap - h)
+                    drawRoundRect(Ss.Bar.copy(alpha = 0.85f), tl, androidx.compose.ui.geometry.Size(w, h), androidx.compose.ui.geometry.CornerRadius(h / 2))
+                    drawText(layout, topLeft = Offset(c.x - layout.size.width / 2f, tl.y + 3f * density))
+                }
             }
         }
 
