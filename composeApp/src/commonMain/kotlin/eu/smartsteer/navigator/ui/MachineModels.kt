@@ -231,8 +231,11 @@ object MachineModels {
             val a = 2 * PI * k / 6 + 0.3
             l += tubeX(0.0, ry + rr * cos(a), hw - 0.45, rz + rr * sin(a), 0.035, ACCENT, 6)
         }
-        for (sx in listOf(-1.0, 1.0)) {
-            l += Part(sx * (hw / 2 - 0.22), 0.0, 0.04, (0 until 6).map { val a = 2 * PI * it / 6 + 0.3; ry + rr * cos(a) to rz + rr * sin(a) }, BLACK, 0.0, false)
+        // ramiona nagarniacza od wału do listew (szprychy) na obu końcach
+        for (sx in listOf(-1.0, 1.0)) for (k in 0 until 6) {
+            val a = 2 * PI * k / 6 + 0.3
+            val ca = cos(a); val sa = sin(a); val t = 0.025
+            l += Part(sx * (hw / 2 - 0.22), 0.0, 0.04, listOf(ry + sa * t to rz - ca * t, ry + rr * ca + sa * t to rz + rr * sa - ca * t, ry + rr * ca - sa * t to rz + rr * sa + ca * t, ry - sa * t to rz + ca * t), BLACK, 0.0, false)
         }
         l += tubeX(0.0, ry, hw - 0.4, rz, 0.06, BLACK, 6)                                                              // wał
         return l

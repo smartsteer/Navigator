@@ -52,8 +52,9 @@ class ModelGalleryTest {
                                 val x = p.x * cos(a) - p.y * sin(a)
                                 val y = p.x * sin(a) + p.y * cos(a)
                                 val zz = z - 1.5
-                                val depth = y * cos(elev) + zz * sin(elev) + cam
-                                val up = -y * sin(elev) + zz * cos(elev)
+                                // kamera nad ziemią patrzy w dół: dalsze punkty wyżej na ekranie, wyższe bliżej kamery
+                                val depth = y * cos(elev) - zz * sin(elev) + cam
+                                val up = y * sin(elev) + zz * cos(elev)
                                 if (depth < 1) return null
                                 val k = (cam / depth).toFloat() * sc
                                 return depth.toFloat() to Offset(cx + x.toFloat() * k, cy - up.toFloat() * k)
