@@ -290,6 +290,20 @@ private fun GuideSheet(hw: HardwareController, modifier: Modifier, onClose: () -
                 Label("Prowadzi wzdłuż poprzedniego przejazdu, o szerokość maszyny obok. Jak w AgOpenGPS ślad nagrywa się tylko, gdy pracuje sekcja (przycisk sekcji AUTO albo RĘCZNIE).", Ss.TextSoft, 13.sp)
                 if (!s.sections.anyOn()) Label("Sekcje teraz nie pracują — ślad się nie nagrywa.", Ss.Warning, 13.sp)
                 ActionButton(Modifier.fillMaxWidth(), onClick = { s.clearContour(); hw.touch() }) { ButtonText("Wyczyść ślady", color = Ss.TextSoft) }
+                // dwa dotknięcia — żeby nie skasować pracy przypadkiem (to samo co Pola → Mapa pokrycia)
+                var confirmCov by remember { mutableStateOf(false) }
+                ActionButton(
+                    Modifier.fillMaxWidth(),
+                    background = if (confirmCov) Ss.Warning else Ss.SurfaceHigh,
+                    onClick = {
+                        if (confirmCov) {
+                            s.coverage.clear()
+                            if (s.fieldName != null) hw.saveField()
+                            confirmCov = false
+                        } else confirmCov = true
+                        hw.touch()
+                    },
+                ) { ButtonText(if (confirmCov) "Na pewno? Dotknij jeszcze raz" else "Usuń zmapowany obszar", color = if (confirmCov) Ss.OnWarning else Ss.Warning) }
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
