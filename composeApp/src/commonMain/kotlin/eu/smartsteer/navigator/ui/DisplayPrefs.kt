@@ -72,8 +72,25 @@ object DisplayPrefs {
     fun updateFullScreen(on: Boolean) { fullScreen = on; save() }
     fun toggleFullScreen() = updateFullScreen(!fullScreen)
 
+    /**
+     * Kolory maszyn floty wybrane na tym tablecie (id maszyny → #RRGGBB). Wygrywają z kolorem śladu, który maszyna
+     * z Navigatorem przysyła sama; lokalizatory WAR Track koloru nie mają (domyślnie pomarańczowe).
+     */
+    var fleetColors by mutableStateOf(
+        saved["flota_kolory"].orEmpty().split(';').mapNotNull { e -> e.split('|').takeIf { it.size == 2 && TrailColors.valid(it[1]) }?.let { it[0] to it[1] } }.toMap(),
+    )
+        private set
+
+    /** Następny kolor z palety dla maszyny floty; po ostatnim wraca do koloru z maszyny (bez wyboru). */
+    fun cycleFleetColor(id: String) {
+        val pal = TrailColors.palette
+        val i = pal.indexOfFirst { it.equals(fleetColors[id], ignoreCase = true) }
+        fleetColors = if (i == pal.lastIndex) fleetColors - id else fleetColors + (id to pal[i + 1])
+        save()
+    }
+
     private fun save() {
-        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nkolor=$trailColor\nikona=$tractorIcon\nkolor_c=$tractorColor\nniebo=${if (sky3d) 1 else 0}\nmodele=${if (machineModels) 1 else 0}\npodpisy=${if (machineLabels) 1 else 0}\n") }
+        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nkolor=$trailColor\nikona=$tractorIcon\nkolor_c=$tractorColor\nniebo=${if (sky3d) 1 else 0}\nmodele=${if (machineModels) 1 else 0}\npodpisy=${if (machineLabels) 1 else 0}\nflota_kolory=${fleetColors.entries.joinToString(";") { it.key.filter { c -> c != ';' && c != '|' } + "|" + it.value }}\n") }
     }
 }
 

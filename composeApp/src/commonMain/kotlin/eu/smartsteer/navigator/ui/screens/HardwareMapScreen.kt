@@ -1299,7 +1299,7 @@ private fun FleetOverlay(hw: HardwareController, zoom: Float, headingUp: Boolean
             .sortedByDescending { it.third }
         for ((m, mp, _) in items) {
             val h = m.courseDeg * PI / 180
-            val mc = eu.smartsteer.navigator.ui.TrailColors.argb(m.color)?.let { Color(it) } ?: if (m.tracker) Ss.Warning else Ss.Info
+            val mc = fleetColorOf(m)
             val kind = eu.smartsteer.navigator.ui.MachineModels.kindOfType(m.type) ?: eu.smartsteer.navigator.ui.MachineModels.kindOf(m.tractor, m.tool)
             if (DisplayPrefs.machineModels) {
                 with(eu.smartsteer.navigator.ui.MachineModels) { drawMachine({ p, z -> project(p, z) }, mp, h, kind, mc, m.width, tilt, Ss.Text) }
@@ -1349,6 +1349,11 @@ private fun FleetOverlay(hw: HardwareController, zoom: Float, headingUp: Boolean
         }
     }
 }
+
+/** Kolor maszyny floty: wybrany na tym tablecie, inaczej kolor śladu z jej Navigatora, inaczej domyślny. */
+private fun fleetColorOf(m: eu.smartsteer.navigator.core.war.WarProtocol.FleetMachine): Color =
+    (eu.smartsteer.navigator.ui.TrailColors.argb(DisplayPrefs.fleetColors[m.id]) ?: eu.smartsteer.navigator.ui.TrailColors.argb(m.color))
+        ?.let { Color(it) } ?: if (m.tracker) Ss.Warning else Ss.Info
 
 /** Wiadomość głosowa do gospodarza (WAR na telefonie): stuknij — nagrywa, stuknij drugi raz — wysyła; ▶ ostatnia odebrana. */
 @Composable
@@ -1409,10 +1414,18 @@ private fun FleetChip(hw: HardwareController, modifier: Modifier) {
         )
         if (open) for (m in fleet.take(4)) {
             val dist = if (me != null && plane != null) plane.toLocal(m.lat, m.lon).distanceTo(me) else null
-            Text(
-                "${if (m.tracker) "📡 " else ""}${m.tractor}${if (m.tool.isNotEmpty()) " · ${m.tool}" else ""}",
-                color = Ss.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // kolor maszyny na mapie tego tabletu: dotknięcie kropki — następny kolor
+                Box(
+                    Modifier.size(22.dp).clip(RoundedCornerShape(11.dp)).background(fleetColorOf(m))
+                        .border(1.5.dp, Ss.Text.copy(alpha = 0.7f), RoundedCornerShape(11.dp))
+                        .clickable { DisplayPrefs.cycleFleetColor(m.id) },
+                )
+                Text(
+                    "${if (m.tracker) "📡 " else ""}${m.tractor}${if (m.tool.isNotEmpty()) " · ${m.tool}" else ""}",
+                    color = Ss.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                )
+            }
             Text(
                 "${if (m.working) "pracuje" else "stoi"} · ${m.kmh.pl(1)} km/h" +
                     (dist?.let { " · " + if (it < 1000) "${it.toInt()} m" else "${(it / 1000).pl(1)} km" } ?: "") +
