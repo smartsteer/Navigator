@@ -1435,7 +1435,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             GuidanceMode.CURVE -> curveRef?.let { c -> T.curveLines(c, p.tramWidth, half, passes, p.tramStartPass, p.tramFlip, fence) }
             GuidanceMode.CONTOUR -> null
         }.orEmpty()
-        tramCache = T.Set(outer, inner, lines)
+        tramCache = eu.smartsteer.navigator.core.field.Tramlines.Set(outer, inner, lines)
         tramKey = key
         return tramCache
     }
