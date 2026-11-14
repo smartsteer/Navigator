@@ -444,12 +444,16 @@ class HardwareController {
             appendLine("COM: $serialStatus")
             appendLine("Autoster: ${if (s.engaged) "WŁ." else "wył."} · tryb ${s.mode.label} · odchyłka ${s.xteCm} cm · zadany ${s.steerSetDeg}° · prędkość ${s.speedKmh} km/h")
             appendLine("Pole: ${s.fieldName ?: "—"} · linii ${s.tracks.size} · obrobiono ${s.coverage.workedM2.toInt()} m²")
+            appendLine("Kurs: ${s.headingDebug(n)}")
+            appendLine("Przejazd: AB ${s.passIndex} · krzywa ${s.curvePassIndex} · przesunięcie maszyny ${profile.toolOffset} m")
             appendLine("Samouczenie: ${tuneMode.label} · ${tuneStats?.let { "RMS ${it.rmsCm} cm, maks ${it.maxCm}, przejścia ${it.crossingsPerMin}/min, koła ${it.wheelLagS}s ${it.wheelGain}" } ?: "—"}")
             appendLine()
             appendLine("--- Profil „$profileName” ---")
             appendLine(profile.toJson())
             appendLine("--- Ostatnie wyłączenia / zmiany (dziennik nadzoru) ---")
             runCatching { files.read("dziennik-nadzoru.txt").orEmpty().lines().takeLast(100) }.getOrDefault(emptyList()).forEach { appendLine(it) }
+            appendLine("--- Sekcje: zmiany stanu ---")
+            s.sectionLog.forEach { appendLine(it) }
             appendLine("--- Historia samouczenia ---")
             tuneHistory.forEach { appendLine(it) }
             appendLine("--- Ostatnie pakiety ---")

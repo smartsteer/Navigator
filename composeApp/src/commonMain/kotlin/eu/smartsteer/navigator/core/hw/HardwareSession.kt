@@ -247,6 +247,20 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         sections.updateTool(pv, headingRad, profile)
         // słaby GPS (np. telefon w budynku, ±20 m): pozycja skacze, a mapa malowałaby obrobione „gwiazdy” — sekcje czekają
         gpsTooPoorForSections = (horizontalAccuracy(nowS)?.first ?: 0.0) > POOR_GPS_SECTIONS_M
+        // dziennik powodów, dla których sekcje stoją (do pliku diagnostyki)
+        val why = when {
+            sections.mode == eu.smartsteer.navigator.core.field.SectionMode.OFF -> "sekcje WYŁ."
+            gpsTooPoorForSections -> "słaby GPS"
+            speedKmh < profile.slowSpeedCutoff -> "prędkość ${(speedKmh * 10).roundToInt() / 10.0} < ${profile.slowSpeedCutoff} km/h"
+            reversing -> "cofanie"
+            !workSwitchOn(nowS) -> "przełącznik roboczy"
+            else -> "pracują"
+        }
+        if (why != lastSectionWhy) {
+            lastSectionWhy = why
+            sectionLog.addLast("${(nowS * 10).roundToInt() / 10.0}s ${(speedKmh * 10).roundToInt() / 10.0} km/h: $why")
+            while (sectionLog.size > 60) sectionLog.removeFirst()
+        }
         sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles, othersSameWork.takeIf { it.cellCount > 0 }, gpsOk = !gpsTooPoorForSections)
         // mapa wykonania: szerokość pracujących sekcji i dawka z mapy
         if (sections.anyOn()) {
@@ -1146,6 +1160,12 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     }
 
     private var updateTimeS = 0.0
+    private var lastSectionWhy = ""
+    /** Ostatnie zmiany stanu sekcji z powodem (plik diagnostyki). */
+    val sectionLog = ArrayDeque<String>()
+
+    /** Do pliku diagnostyki: stan kursu. */
+    fun headingDebug(nowS: Double): String = "IMU ${imu.headingDeg ?: "—"}° (żywe ${imu.headingAlive(nowS)}) · IMU+offset ${(imu.corrected() * 180 / PI * 10).roundToInt() / 10.0}° · GPS ${(gpsHeadingRad * 180 / PI * 10).roundToInt() / 10.0}° · kurs ${(headingRad * 180 / PI * 10).roundToInt() / 10.0}° · cofanie $reversing · przód ustalony $firstHeadingSet · źródło ${profile.headingFrom}"
     private var lastPassCheckS = -1e9
 
     /** Wybór przejazdu: co 0,66 s i tylko gdy autoster wyłączony (albo przełącznik na płytce wyłączony) — jak w AgOpenGPS. */
