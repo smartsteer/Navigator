@@ -87,7 +87,7 @@ import kotlin.math.roundToInt
 /** Niebo za pochyloną mapą (widok 3D): pora dnia ze słońca, chmury, mgła i opad z pogody. */
 @Composable
 private fun SkyLayer(hw: HardwareController, headingUp: Boolean, horizonY: Float, modifier: Modifier) {
-    androidx.compose.foundation.Canvas(modifier) {
+    androidx.compose.foundation.Canvas(modifier.clipToBounds()) {
         hw.tick
         val look = hw.skyLook()
         val (_, az) = hw.sunNow()
@@ -97,6 +97,11 @@ private fun SkyLayer(hw: HardwareController, headingUp: Boolean, horizonY: Float
         while (rel < -180) rel += 360
         val hy = if (horizonY > 0f) horizonY.coerceAtMost(size.height) else size.height * 0.3f
         with(eu.smartsteer.navigator.ui.Sky) { drawSky(look, rel, hy, hw.now()) }
+        // pod horyzontem ziemia (tam, gdzie pochylona mapa nie sięga — np. przy dolnej krawędzi)
+        drawRect(
+            androidx.compose.ui.graphics.Brush.verticalGradient(0f to look.horizon, 1f to Ss.MapGround, startY = hy, endY = hy + size.height * 0.06f),
+            topLeft = Offset(0f, hy), size = androidx.compose.ui.geometry.Size(size.width, size.height - hy),
+        )
     }
 }
 
@@ -112,18 +117,23 @@ fun HardwareMapScreen(hw: HardwareController) {
         // widok 3D: niebo z pory dnia i pogody za pochyloną mapą
         // kamera warstwy 3D różni się między Windows i Androidem: raz mierzymy jej odległość (przy 48°), potem dobieramy
         // pochylenie tak, żeby horyzont był ok. 1/5 wysokości od góry, i liczymy go ze wzoru
-        var camD by remember { mutableStateOf(0f) }
+        // camK = ile pikseli odległości kamery daje jednostka cameraDistance (Windows ok. 72, Android zależy od gęstości ekranu);
+        // potem ustawiamy kamerę na 0,85 wysokości mapy — ta sama perspektywa na każdym ekranie
+        var camK by remember { mutableStateOf(0f) }
         var boxH by remember { mutableStateOf(0f) }
         val sky = tilt && DisplayPrefs.sky3d
         val origin = boxH * 0.72f
-        val tiltDeg = if (sky && camD > 0f && boxH > 0f) (kotlin.math.atan(camD / (origin - boxH * 0.2f)) * 180 / PI).toFloat().coerceIn(40f, 75f) else 48f
-        val horizonY = if (camD > 0f) origin - camD / kotlin.math.tan(tiltDeg * PI / 180).toFloat() else -1f
+        val dEff = boxH * 0.85f
+        val ready = sky && camK > 0f && boxH > 0f
+        val tiltDeg = if (ready) (kotlin.math.atan(dEff / (origin - boxH * 0.2f)) * 180 / PI).toFloat() else 48f
+        val camDist = if (ready) dEff / camK else -1f
+        val horizonY = if (ready) boxH * 0.2f else -1f
         if (sky) SkyLayer(hw, headingUp, horizonY, Modifier.fillMaxSize())
-        HwCanvas(hw, zoom, headingUp, tilt, locked, Modifier.fillMaxSize(), tiltDeg) { yh, h ->
-            if (camD == 0f && kotlin.math.abs(tiltDeg - 48f) < 0.01f) {
+        HwCanvas(hw, zoom, headingUp, tilt, locked, Modifier.fillMaxSize(), tiltDeg, camDist) { yh, h, cd ->
+            if (camK == 0f && kotlin.math.abs(tiltDeg - 48f) < 0.01f) {
                 boxH = h
                 val d = (h * 0.72f - yh) * kotlin.math.tan(48.0 * PI / 180).toFloat()
-                if (d > 0f) camD = d
+                if (d > 0f && cd > 0f) camK = d / cd
             }
         }
 
@@ -908,7 +918,7 @@ private const val FAR_M = 1500f
 @Composable
 private fun HwCanvas(
     hw: HardwareController, zoom: Float, headingUp: Boolean, tilt: Boolean, locked: Boolean, modifier: Modifier,
-    tiltDeg: Float = 48f, onHorizon: (Float, Float) -> Unit = { _, _ -> },
+    tiltDeg: Float = 48f, camDist: Float = -1f, onHorizon: (Float, Float, Float) -> Unit = { _, _, _ -> },
 ) {
     // pasy pokrycia zamieniamy na Path raz (otwarty pas — gdy przybędzie punktów)
     val stripCache = remember { HashMap<Coverage.Strip, Pair<Int, Path>>() }
@@ -920,7 +930,7 @@ private fun HwCanvas(
             .then(if (tilt && DisplayPrefs.sky3d) Modifier else Modifier.background(Ss.MapGround))
             // „3D”: mapa pochylona jak widok z kabiny
             .graphicsLayer {
-                if (tilt) { rotationX = tiltDeg; cameraDistance = 9f * density; transformOrigin = TransformOrigin(0.5f, 0.72f) }
+                if (tilt) { rotationX = tiltDeg; cameraDistance = if (camDist > 0f) camDist else 9f * density; transformOrigin = TransformOrigin(0.5f, 0.72f) }
             }
             // w 3D z niebem tło mapy jest częścią pochylonej płaszczyzny — nad nią widać niebo
             .then(if (tilt && DisplayPrefs.sky3d) Modifier.background(Ss.MapGround) else Modifier)
@@ -929,7 +939,7 @@ private fun HwCanvas(
                 if (tilt) {
                     val par = c.parentLayoutCoordinates
                     val far = par?.localPositionOf(c, Offset(c.size.width / 2f, -1_000_000f))
-                    if (far != null && far.y.isFinite()) onHorizon(far.y, c.size.height.toFloat())
+                    if (far != null && far.y.isFinite()) onHorizon(far.y, c.size.height.toFloat(), if (camDist > 0f) camDist else 9f * density)
                     if (par != null) hw.debug3d = listOf(800f, 576f, 0f, -1000f, -2000f, -4000f, -8000f, -20000f, -80000f, -1_000_000f)
                         .joinToString(" ") { y -> "${y.toInt()}→${par.localPositionOf(c, Offset(c.size.width / 2f, y)).y.toInt()}" }
                 }
