@@ -584,7 +584,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val t = tracks.removeAt(i)
         if (i == activeTrack) {
             activeTrack = -1
-            if (t.isCurve) { curveRef = null; curvePath = emptyList() } else { line = null; pointA = null }
+            if (t.isCurve) { curveRef = null; curvePath = emptyList(); curList = emptyList() } else { line = null; pointA = null }
             engaged = false
         } else if (i < activeTrack) activeTrack--
         ok("Usunięto „${t.name}”")
@@ -888,7 +888,18 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
                 val (a, b) = activeSegment(l, p)
                 steering.compute(a, b, p, headingRad, speedKmh, engaged && !reversing, profile, roll)
             }
-            GuidanceMode.CURVE -> if (p != null && curveRef != null) followPath(activeCurve(p), p, roll, endMessage = "Koniec krzywej — autoster wyłączony") else null
+            GuidanceMode.CURVE -> if (p != null && curveRef != null) {
+                val path = activeCurve(p)
+                if (profile.algorithm == eu.smartsteer.navigator.core.settings.SteerAlgorithm.STANLEY) {
+                    followPath(path, p, roll, endMessage = "Koniec krzywej — autoster wyłączony")
+                } else {
+                    // CABCurve.GetCurrentCurveLine (pure pursuit) 1:1
+                    curveFollow.step(curList, curveSameWay, p, headingRad, speedKmh, reversing, engaged, roll, profile, steering)?.let { cr ->
+                        if (engaged && cr.pastEnd) { engaged = false; fail("Koniec krzywej — autoster wyłączony") }
+                        AbSteering.Output(cr.steerAngleDeg, cr.distanceFromLine, cr.goal)
+                    }
+                }
+            } else null
             GuidanceMode.CONTOUR -> if (p != null) {
                 if (engaged && contour.guide.isEmpty()) trip("Kontur zgubiony — autoster wyłączony")
                 // CContour.DistanceFromContourLine 1:1
@@ -1102,7 +1113,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         recordingCurve = null
         val len = Curves.length(rec)
         if (len < MIN_AB_M || rec.size < 10) return fail("Za krótka krzywa (${len.roundToInt()} m). Potrzeba co najmniej ${MIN_AB_M.roundToInt()} m")
-        restoreCurve(Curves.buildReference(rec))
+        restoreCurve(Curves.buildReference(rec, hasBoundary = boundary != null))
         addTrack(Track(nextName("Krzywa"), null, curveRef?.map { it.p }))
         return ok("Krzywa gotowa (${len.roundToInt()} m)")
     }
@@ -1112,13 +1123,14 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun clearCurve() {
         val t = tracks.getOrNull(activeTrack)
         if (t != null && t.isCurve) { tracks.removeAt(activeTrack); activeTrack = -1 }
-        recordingCurve = null; curveRef = null; curvePath = emptyList(); engaged = false
+        recordingCurve = null; curveRef = null; curvePath = emptyList(); curList = emptyList(); engaged = false
         ok("Krzywa usunięta")
     }
 
     fun restoreCurve(ref: List<Pose>) {
         curveRef = ref
         curvePath = emptyList()
+        curList = emptyList()
         curvePassIndex = 0
         pathHint = -1
     }
@@ -1133,39 +1145,67 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
      * nowa ścieżka liczona tylko przy zmianie przejazdu, kierunku lub przesunięcia linii.
      * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Classes/CABCurve.cs (BuildCurveCurrentList).
      */
+    /** Bieżący przejazd krzywej w kierunku krzywej odniesienia (curList w AgOpenGPS) i czy jedziemy zgodnie z nią. */
+    private var curList: List<Pose> = emptyList()
+    private var curveSameWay = true
+    private val curveFollow = eu.smartsteer.navigator.core.guidance.CurveFollow()
+
+    /**
+     * CABCurve.BuildCurveCurrentList 1:1: najbliższy punkt krzywej do guidanceLookPos (co 10, potem ±7), odległość od stycznej
+     * w punkcie rA, zaokrąglenie do przejazdu; nowa linia (BuildNewOffsetList) tylko gdy zmienił się przejazd albo —
+     * przy przesuniętej maszynie — kierunek jazdy.
+     */
     private fun activeCurve(p: Vec2): List<Pose> {
         val ref = curveRef ?: return emptyList()
         val w = profile.passSpacing
-        var changed = curvePath.isEmpty()
-        // jak w AgOpenGPS (CABCurve.BuildCurveCurrentList): co 0,66 s, tylko przy wyłączonym autosterze, z punktu przed ciągnikiem
-        if (changed || passCheckAllowed()) {
+        val invalid = curList.isEmpty()
+        if (invalid || passCheckAllowed()) {
             val look = guidanceLookPos(p)
-            val r = ref[Curves.nearestIndex(ref, look)]
-            var diff = headingRad - r.heading
-            while (diff > PI) diff -= 2 * PI
-            while (diff < -PI) diff += 2 * PI
-            val rev = abs(diff) >= PI / 2
-            if (rev != curveReversed) { curveReversed = rev; changed = true }
-            val sign = if (rev) -1.0 else 1.0
-            val refDist = (((look - r.p) dot Vec2.right(r.heading)) + sign * (profile.toolOffset - lineShiftCm / 100.0)) / w
+            val refCount = ref.size
+            if (refCount < 2) { curList = emptyList(); curvePath = emptyList(); return curvePath }
+            var minA = Double.MAX_VALUE
+            var cc = 0
+            var j = 0
+            while (j < refCount) { val d = Curves.d2(look, ref[j].p); if (d < minA) { minA = d; cc = j }; j += 10 }
+            minA = Double.MAX_VALUE
+            var minB = Double.MAX_VALUE
+            var dd = cc + 7; if (dd > refCount - 1) dd = refCount
+            cc -= 7; if (cc < 0) cc = 0
+            var rA = 0; var rB = 0
+            for (k in cc until dd) {
+                val d = Curves.d2(look, ref[k].p)
+                if (d < minA) { minB = minA; rB = rA; minA = d; rA = k } else if (d < minB) { minB = d; rB = k }
+            }
+            if (rA > rB) { val c = rA; rA = rB; rB = c }
+            val same = PI - abs(abs(headingRad - ref[rA].heading) - PI) < PI / 2
+            val r1 = ref[rA].p - Vec2.forward(ref[rA].heading) * 300.0
+            val r2 = ref[rA].p + Vec2.forward(ref[rA].heading) * 300.0
+            val dx = r2.x - r1.x; val dz = r2.y - r1.y
+            val distanceFromRefLine = ((dz * look.x) - (dx * look.y) + (r2.x * r1.y) - (r2.y * r1.x)) / kotlin.math.sqrt(dz * dz + dx * dx)
+            val sign = if (same) 1.0 else -1.0
+            val refDist = (distanceFromRefLine + sign * (profile.toolOffset - lineShiftCm / 100.0)) / w
             val k = if (refDist < 0) (refDist - 0.5).toInt() else (refDist + 0.5).toInt()
-            if (k != curvePassIndex) { curvePassIndex = k; changed = true }
+            val rebuild = invalid || k != curvePassIndex || (same != curveSameWay && (profile.toolOffset != 0.0 || lineShiftCm != 0))
+            curvePassIndex = k
+            if (same != curveSameWay) { curveSameWay = same; curveReversed = !same; curvePath = if (same) curList else Curves.reversed(curList) }
+            if (rebuild) buildCurList(ref, w)
         }
-        if (lineShiftCm != curveShiftCm || w != curveSpacing || profile.toolOffset != curveToolOffset) changed = true
-        if (changed) {
-            curveShiftCm = lineShiftCm
-            curveSpacing = w
-            curveToolOffset = profile.toolOffset
-            // przesunięcie linii jest „w prawo względem jazdy”, więc przy jeździe pod prąd krzywej zmienia znak
-            val shift = (lineShiftCm / 100.0 - profile.toolOffset) * (if (curveReversed) -1 else 1)
-            val off = Curves.offset(ref, curvePassIndex * w + shift, w)
-            curvePath = if (curveReversed) Curves.reversed(off) else off
-            pathHint = -1
-            steering.reset()
-        }
+        if (lineShiftCm != curveShiftCm || w != curveSpacing || profile.toolOffset != curveToolOffset) buildCurList(ref, w)
         return curvePath
     }
 
+    private fun buildCurList(ref: List<Pose>, w: Double) {
+        curveShiftCm = lineShiftCm
+        curveSpacing = w
+        curveToolOffset = profile.toolOffset
+        // przesunięcie linii jest „w prawo względem jazdy”, więc przy jeździe pod prąd krzywej zmienia znak
+        val shift = (lineShiftCm / 100.0 - profile.toolOffset) * (if (curveSameWay) 1 else -1)
+        curList = Curves.offsetList(ref, curvePassIndex * w + shift, w, boundary?.takeIf { it.size >= 3 })
+        curvePath = if (curveSameWay) curList else Curves.reversed(curList)
+        curveFollow.reset()
+        pathHint = -1
+        steering.reset()
+    }
 
     /**
      * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs:
@@ -1518,7 +1558,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         fieldWarId = null
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
         coverage.clear(); sections.reset()
-        line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
+        line = null; pointA = null; curveRef = null; curvePath = emptyList(); curList = emptyList(); recordingCurve = null
         contour.clear(); engaged = false; youTurnPath = null
         tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersSameWork.clear(); othersGrids.clear(); othersWork = emptyMap(); othersMachines = emptyMap(); othersCells = emptyMap(); othersColors = emptyMap()
         ok("Pole zamknięte")
@@ -1529,7 +1569,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         antenna = null; pivot = null; resetDirection()
         trail.clear(); contour.clear(); coverage.clear(); sections.reset()
         boundary = null; headland = null; headlandWidth = 0.0; recordingBoundary = null
-        line = null; pointA = null; curveRef = null; curvePath = emptyList(); recordingCurve = null
+        line = null; pointA = null; curveRef = null; curvePath = emptyList(); curList = emptyList(); recordingCurve = null
         engaged = false; pathHint = -1; steering.reset(); youTurnPath = null
         tracks.clear(); activeTrack = -1; flags.clear(); obstacles.clear(); recordingObstacle = null; rateMap = null; applied.clear(); othersCoverage.clear(); othersSameWork.clear(); othersGrids.clear(); othersWork = emptyMap(); othersMachines = emptyMap(); othersCells = emptyMap(); othersColors = emptyMap()
     }

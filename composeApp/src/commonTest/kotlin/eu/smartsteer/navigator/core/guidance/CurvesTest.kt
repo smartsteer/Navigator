@@ -42,8 +42,11 @@ class CurvesTest {
         val inner = Curves.offset(ref, 10.0, 3.0) // w prawo = do środka łuku
         val outer = Curves.offset(ref, -10.0, 3.0)
         val c = Vec2(50.0, 0.0)
-        for (p in inner) assertTrue(abs(p.p.distanceTo(c) - 40.0) < 0.15, "wewnątrz ${p.p.distanceTo(c)}")
-        for (p in outer) assertTrue(abs(p.p.distanceTo(c) - 60.0) < 0.15, "na zewnątrz ${p.p.distanceTo(c)}")
+        // jak w AgOpenGPS krzywa jest przedłużana prosto o 200 m na końcach — sprawdzamy sam łuk (y ≥ 0, x ≤ 50)
+        fun onArc(v: Vec2) = v.y >= 0.5 && v.x <= 49.5
+        assertTrue(inner.count { onArc(it.p) } > 20 && outer.count { onArc(it.p) } > 20)
+        for (p in inner.filter { onArc(it.p) }) assertTrue(abs(p.p.distanceTo(c) - 40.0) < 0.15, "wewnątrz ${p.p.distanceTo(c)}")
+        for (p in outer.filter { onArc(it.p) }) assertTrue(abs(p.p.distanceTo(c) - 60.0) < 0.15, "na zewnątrz ${p.p.distanceTo(c)}")
     }
 
     @Test

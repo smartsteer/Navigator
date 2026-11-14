@@ -93,53 +93,108 @@ object Curves {
         }
     }
 
-    /** Nagrana jazda → krzywa odniesienia (jak przycisk B przy krzywej w AgOpenGPS). */
-    fun buildReference(recorded: List<Vec2>): List<Pose> {
+    /**
+     * Nagrana jazda → krzywa odniesienia (FormBuildTracks.btnBCurve_Click): MakePointMinimumSpacing(1,6), CalculateHeadings,
+     * AddFirstLastPoints (100 m przy granicy pola, 300 m bez), SmoothAB(4), CalculateHeadings.
+     */
+    fun buildReference(recorded: List<Vec2>, hasBoundary: Boolean = false): List<Pose> {
         val spaced = makePointMinimumSpacing(recorded, 1.6)
         val withHeadings = headings(spaced)
-        val extended = extendEnds(withHeadings, EXTEND_M)
+        val extended = extendEnds(withHeadings, if (hasBoundary) 100 else 300)
         return headings(smooth(extended, 4).map { it.p })
     }
 
+    /** Stara nazwa (testy, import): równoległy przejazd bez granicy. */
+    fun offset(ref: List<Pose>, distAway: Double, toolSpacing: Double): List<Pose> = offsetList(ref, distAway, toolSpacing, null)
+
     /**
-     * Równoległy przejazd: każdy punkt odsunięty o [distAway] w prawo (ujemne = w lewo).
-     * Punkty, które po odsunięciu wypadają bliżej krzywej niż [distAway] (wnętrze łuku), są pomijane,
-     * potem gęstnienie splajnem Catmull-Rom i nowe kursy — jak BuildNewOffsetList.
+     * BuildNewOffsetList (CABCurve.cs) dla krzywej, 1:1: krzywa przedłużona o 200 m (GetExtendedReferenceCurve), każdy punkt
+     * odsunięty o [distAway] w prawo, pomijane punkty bliższe krzywej niż [distAway], filtr odstępu (AgOpenGPS porównuje
+     * kwadrat odległości z krokiem), zagęszczenie Catmull-Rom, kursy, przedłużenie poza granicę pola i równe odstępy co 1 m.
      */
-    fun offset(ref: List<Pose>, distAway: Double, toolSpacing: Double): List<Pose> {
-        if (ref.size < 2) return ref
-        if (distAway == 0.0) return ref
+    fun offsetList(ref0: List<Pose>, distAway: Double, toolSpacing: Double, fence: List<Vec2>?): List<Pose> {
+        if (ref0.size < 2) return ref0
+        val ref = extendEnds(ref0, 200)
         val step = (toolSpacing * 0.48).coerceIn(1.0, 4.0)
         val distSqAway = distAway * distAway - 0.01
-        val list = ArrayList<Vec2>()
-        // do sprawdzania odległości od krzywej wystarczą punkty co ~1 m; siatka przyspiesza szukanie
+        val list = ArrayList<Pose>()
         val grid = Grid(ref.map { it.p }, kotlin.math.abs(distAway).coerceAtLeast(1.0))
         for (r in ref) {
-            val point = r.p + Vec2(sin(PI / 2 + r.heading), cos(PI / 2 + r.heading)) * distAway
-            if (grid.anyCloserThan(point, distSqAway)) continue
-            if (list.isEmpty()) {
-                list.add(point)
-            } else {
-                val l = list.last()
-                val d2 = (point.x - l.x) * (point.x - l.x) + (point.y - l.y) * (point.y - l.y)
-                if (d2 > step) list.add(point)
-            }
+            val point = Pose(r.p + Vec2(sin(PI / 2 + r.heading), cos(PI / 2 + r.heading)) * distAway, r.heading)
+            if (distSqAway > 0 && grid.anyCloserThan(point.p, distSqAway)) continue
+            if (list.isEmpty()) list.add(point)
+            else if (d2(point.p, list.last().p) > step) list.add(point)
         }
-        if (list.size <= 6) return headings(list)
-        // zagęszczenie Catmull-Rom tam, gdzie punkty są rzadsze niż krok
-        val dense = ArrayList<Vec2>(list.size * 2)
-        dense.add(list[0])
-        for (i in 0 until list.size - 3) {
-            dense.add(list[i + 1])
-            val d = list[i + 1].distanceTo(list[i + 2])
-            if (d > step) {
-                val loops = (d / step + 1).toInt()
-                for (j in 1 until loops) dense.add(catmull(j / loops.toDouble(), list[i], list[i + 1], list[i + 2], list[i + 3]))
+        var cur: List<Pose> = list
+        if (list.size > 6) {
+            // kursy do następnego punktu
+            val arr = ArrayList<Pose>(list.size)
+            for (i in 0 until list.size - 1) arr.add(Pose(list[i].p, norm(atan2(list[i + 1].p.x - list[i].p.x, list[i + 1].p.y - list[i].p.y))))
+            arr.add(Pose(list.last().p, arr.last().heading))
+            val dense = ArrayList<Pose>(arr.size * 2)
+            dense.add(arr[0])
+            for (i in 0 until arr.size - 3) {
+                dense.add(arr[i + 1])
+                val d = arr[i + 1].p.distanceTo(arr[i + 2].p)
+                if (d > step) {
+                    val loops = (d / step + 1).toInt()
+                    for (j in 1 until loops) dense.add(Pose(catmull(j / loops.toDouble(), arr[i].p, arr[i + 1].p, arr[i + 2].p, arr[i + 3].p), 0.0))
+                }
             }
+            dense.add(arr[arr.size - 2])
+            dense.add(arr[arr.size - 1])
+            // kursy z sąsiadów, ostatni z poprzedniego
+            val h = ArrayList<Pose>(dense.size)
+            h.add(dense[0])
+            for (i in 1 until dense.size - 1) h.add(Pose(dense[i].p, norm(atan2(dense[i + 1].p.x - dense[i - 1].p.x, dense[i + 1].p.y - dense[i - 1].p.y))))
+            val k = dense.size - 1
+            h.add(Pose(dense[k].p, norm(atan2(dense[k].p.x - dense[k - 1].p.x, dense[k].p.y - dense[k - 1].p.y))))
+            // przedłużenie, dopóki koniec jest w granicy pola
+            if (fence != null && fence.size >= 3) {
+                var guard = 0
+                var added = false
+                while (eu.smartsteer.navigator.core.field.Polygon.contains(fence, h.last().p) && guard++ < 2000) {
+                    added = true
+                    val base = h.last()
+                    for (i in 1 until 10) h.add(Pose(base.p + fwd(base.heading) * (i * 2.0), base.heading))
+                }
+                if (added) { var pt = h.last(); for (i in 1 until 5) { pt = Pose(pt.p + fwd(pt.heading) * 2.0, pt.heading); h.add(pt) } }
+                added = false
+                guard = 0
+                while (eu.smartsteer.navigator.core.field.Polygon.contains(fence, h.first().p) && guard++ < 2000) {
+                    added = true
+                    val base = h.first()
+                    for (i in 1 until 10) h.add(0, Pose(base.p - fwd(base.heading) * (i * 2.0), base.heading))
+                }
+                if (added) { var pt = h.first(); for (i in 1 until 5) { pt = Pose(pt.p - fwd(pt.heading) * 2.0, pt.heading); h.add(0, pt) } }
+            }
+            cur = h
         }
-        dense.add(list[list.size - 2])
-        dense.add(list[list.size - 1])
-        return headings(dense)
+        return if (cur.size > 2) resample(cur, 1.0) else cur
+    }
+
+    /** ResampleCurveToUniformSpacing: punkty co [target] m wzdłuż łamanej, kurs do następnego. */
+    fun resample(src: List<Pose>, target: Double): List<Pose> {
+        if (src.size < 2) return src
+        val out = ArrayList<Pose>()
+        out.add(src[0])
+        var acc = 0.0
+        var i = 1
+        while (i < src.size) {
+            val seg = src[i - 1].p.distanceTo(src[i].p)
+            if (seg < 0.001) { i++; continue }
+            acc += seg
+            while (acc >= target) {
+                val ratio = 1.0 - ((acc - target) / seg)
+                out.add(Pose(src[i - 1].p + (src[i].p - src[i - 1].p) * ratio, src[i - 1].heading))
+                acc -= target
+            }
+            i++
+        }
+        if (out.size == 1) out.add(src.last())
+        for (k in 0 until out.size - 1) out[k] = Pose(out[k].p, norm(atan2(out[k + 1].p.x - out[k].p.x, out[k + 1].p.y - out[k].p.y)))
+        if (out.size > 1) out[out.size - 1] = Pose(out.last().p, out[out.size - 2].heading)
+        return out
     }
 
     fun catmull(t: Double, p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2): Vec2 {
