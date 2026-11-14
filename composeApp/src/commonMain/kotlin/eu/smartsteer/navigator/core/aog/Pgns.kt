@@ -104,7 +104,8 @@ data class AutosteerStatus(
 ) {
     companion object {
         fun from(frame: Frame): AutosteerStatus? {
-            if (frame.pgn != Pgn.FROM_AUTOSTEER || frame.data.size < 8) return null
+            // jak w AgOpenGPS (UDPComm, case 253): tylko ramka o długości dokładnie 14 bajtów (8 bajtów danych)
+            if (frame.pgn != Pgn.FROM_AUTOSTEER || frame.data.size != 8) return null
             val d = frame.data
             val angle = int16(d, 0)
             val heading = int16(d, 2)

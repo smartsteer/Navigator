@@ -959,6 +959,18 @@ private fun LivePanel(hw: HardwareController) {
         }
         Chart(hw.histSet, hw.histActual, minRange = 5f, unit = "°")
         Label("Zielona — zadany, biała — kąt kół (30 s)", Ss.TextMuted, 12.sp)
+        // czujnik kąta: skąd przychodzi kąt, jak bardzo skacze i co płytka od nas dostała
+        val sources = s.activeWasSources(now)
+        val spread = s.wasSpread(now)
+        Label("Czujnik: ${s.wasRate(now).pl(0)} odczytów/s · rozrzut ${spread?.let { "${it.pl(1)}°" } ?: "—"} · źródeł ${sources.size}", Ss.TextSoft, 13.sp)
+        Label("Płytka dostała: ${hw.boardConfigText()}", Ss.TextMuted, 12.sp)
+        when {
+            sources.size > 1 -> Label("Kąt nadają ${sources.size} urządzenia (${sources.keys.joinToString()}) — odczyty się mieszają. Zostaw włączony tylko moduł skrętu.", Ss.Danger, 13.sp)
+            spread != null && spread > 2.0 && (st?.pwm ?: 0) == 0 -> Label(
+                "Kąt skacze o ${spread.pl(1)}°, choć silnik stoi. Najczęściej: zły „Czujnik kąta kół” (pojedynczy / różnicowy — musi być jak w AgOpenGPS), " +
+                    "luźny przewód czujnika albo zbyt małe CPD. Zmień i naciśnij „Wyślij do płytki”.", Ss.Danger, 13.sp,
+            )
+        }
         Row {
             Box(Modifier.weight(1f)) { Stat("Odchyłka", if (hw.histXte.lastOrNull()?.isNaN() == false) "${s.xteCm.pl(1, plusSign = true)} cm" else "—", valueSize = 20.sp) }
             Box(Modifier.weight(1f)) { Stat("PWM", st?.pwm?.toString() ?: "—", valueSize = 20.sp) }

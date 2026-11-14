@@ -428,6 +428,13 @@ class HardwareController {
      * Paczka diagnostyczna do wysłania (e-mail, komunikator): wersja, stan łączy, profil, dziennik nadzoru,
      * historia samouczenia i ostatnie pakiety. Hasła (NTRIP, kod WAR) są pomijane.
      */
+    /** Co Navigator wysyła płytce o czujniku kąta — do sprawdzenia, czy zgadza się z AgOpenGPS. */
+    fun boardConfigText(): String = with(profile) {
+        "CPD $countsPerDegree · zero (wasOffset) $wasOffset · Ackermann $ackerman · przetwornik ${if (singleInput) "pojedynczy" else "różnicowy"}" +
+            " · odwrócony WAS ${if (invertWas) "tak" else "nie"} · sterownik ${if (cytron) "Cytron" else "IBT2"} · setting0 $setting0 · setting1 $setting1" +
+            " · ostatnio wysłane ${configSentAt?.let { "${(now() - it).toInt()} s temu" } ?: "jeszcze nie"}"
+    }
+
     fun saveDiagnostics(): String {
         val n = now()
         val s = session
@@ -452,6 +459,10 @@ class HardwareController {
             appendLine(profile.toJson())
             appendLine("--- Ostatnie wyłączenia / zmiany (dziennik nadzoru) ---")
             runCatching { files.read("dziennik-nadzoru.txt").orEmpty().lines().takeLast(100) }.getOrDefault(emptyList()).forEach { appendLine(it) }
+            appendLine("--- Czujnik kąta kół (PGN 253) ---")
+            appendLine("Wysłane do płytki (PGN 252/251): ${boardConfigText()}")
+            appendLine("Ramek/s ${s.wasRate(n)} · rozrzut 2 s ${s.wasSpread(n) ?: "—"}° · źródła: " + s.wasSources.entries.joinToString { "${it.key}: ${it.value.first} ramek" })
+            s.wasSamples.toList().takeLast(80).forEach { (t, a, raw) -> appendLine("${(t * 100).toInt() / 100.0}s  ${a}°  $raw") }
             appendLine("--- Sekcje: zmiany stanu ---")
             s.sectionLog.forEach { appendLine(it) }
             appendLine("--- Historia samouczenia ---")
@@ -1466,7 +1477,7 @@ class HardwareController {
                     if (p.from != "COM") moduleSeen[p.from] = now()
                     if (f.pgn == Pgn.FROM_AUTOSTEER) linkRx.addLast(now())
                 }
-                session.onDatagram(p.bytes, p.bytes.size, now())
+                session.onDatagram(p.bytes, p.bytes.size, now(), p.from)
                 addLog(describe(p))
             }
         }

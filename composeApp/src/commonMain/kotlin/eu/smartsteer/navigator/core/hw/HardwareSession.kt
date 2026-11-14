@@ -162,7 +162,25 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     // ---------------- wejście ----------------
 
     /** Datagram z sieci modułów: NMEA (tekst, może zawierać kilka zdań) albo ramka PGN. */
-    fun onDatagram(bytes: ByteArray, length: Int, nowS: Double) {
+    // ---------------- diagnostyka czujnika kąta (PGN 253) ----------------
+    /** Kto nadaje PGN 253: adres i bajt źródła → liczba ramek i czas ostatniej. Więcej niż jedno źródło = dwa urządzenia mieszają kąt. */
+    val wasSources = LinkedHashMap<String, Pair<Int, Double>>()
+    /** Ostatnie odczyty kąta z płytki (czas, kąt, surowe bajty ramki) — do rozrzutu i pliku diagnostyki. */
+    val wasSamples = ArrayDeque<Triple<Double, Double, String>>()
+
+    /** Źródła PGN 253 aktywne w ostatnich 3 s. */
+    fun activeWasSources(nowS: Double) = wasSources.filterValues { nowS - it.second < 3.0 }
+
+    /** Rozrzut kąta kół w ostatnich 2 s (max − min), °; null = za mało odczytów. */
+    fun wasSpread(nowS: Double): Double? {
+        val v = wasSamples.filter { nowS - it.first < 2.0 }.map { it.second }
+        return if (v.size < 5) null else v.max() - v.min()
+    }
+
+    /** Ramek PGN 253 na sekundę (z ostatnich 2 s). */
+    fun wasRate(nowS: Double): Double = wasSamples.count { nowS - it.first < 2.0 } / 2.0
+
+    fun onDatagram(bytes: ByteArray, length: Int, nowS: Double, from: String = "") {
         if (length <= 0) return
         if (bytes[0] == '$'.code.toByte()) {
             bytes.decodeToString(0, length).split('\n').forEach { onNmea(it.trim(), nowS) }
@@ -170,6 +188,10 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         }
         val frame = AogFrame.parse(bytes, length) ?: return
         AutosteerStatus.from(frame)?.let {
+            val key = "${from.ifEmpty { "?" }} (źródło 0x${frame.source.toString(16).uppercase()})"
+            wasSources[key] = ((wasSources[key]?.first ?: 0) + 1) to nowS
+            wasSamples.addLast(Triple(nowS, it.actualAngleDeg, bytes.take(length).joinToString(" ") { b -> (b.toInt() and 0xFF).toString(16).padStart(2, '0') }))
+            while (wasSamples.size > 200) wasSamples.removeFirst()
             val prevSwitch = autosteer?.steerSwitch
             val prevWork = autosteer?.workSwitch ?: false     // oldWorkSwitchHigh = false na starcie
             autosteer = it
