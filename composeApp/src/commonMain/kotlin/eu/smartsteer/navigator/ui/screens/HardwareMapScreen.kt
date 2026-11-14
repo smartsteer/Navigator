@@ -1021,6 +1021,8 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
                 drawPath(polygonPath(it), Ss.TextMuted.copy(alpha = 0.6f), style = Stroke(width = 1f * px, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f * px, 6f * px))))
             }
             s.youTurnPath?.let { poly(it, Ss.Accent, 3f) }
+            // zbudowany zawrót czekający na uruchomienie (jak w AgOpenGPS — widać go przed linią zawrotu)
+            if (s.youTurnPath == null) s.turnPreview?.let { poly(it, Ss.Accent.copy(alpha = 0.5f), 2f) }
             // zawrót K: odcinek do przejechania wstecz
             if (s.kPhase == 1) s.kReverse?.let { poly(it, Ss.Warning, 2.5f, dashed = true) }
 

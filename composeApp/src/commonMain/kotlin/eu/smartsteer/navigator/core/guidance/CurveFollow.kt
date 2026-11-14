@@ -25,6 +25,9 @@ class CurveFollow {
     private var deriv = 0.0
     private var counter2 = 0
 
+    /** currentLocationIndex — punkt krzywej przy ciągniku (do szukania końca przejazdu przy zawrocie). */
+    val currentIndex: Int get() = current
+
     /** Nowa linia (findGlobalNearestCurvePoint = true). */
     fun reset() { global = true }
 

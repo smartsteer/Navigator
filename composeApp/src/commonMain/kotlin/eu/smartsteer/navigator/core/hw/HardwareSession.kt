@@ -863,12 +863,16 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val p = pivot
         val roll = imu.rollDeg?.takeIf { imu.rollAlive(nowS) }
         // auto-zawrót: zaczynamy przed końcem przejazdu, a gdy trwa — jedziemy po nim
-        if (p != null && youTurnPath == null) maybeStartTurn(p, nowS)
+        // średni błąd od linii (crossTrackError, mm) — przy > 1 m budowany zawrót jest kasowany
+        xteAvgMm = if (abs(xteCm * 10) < 29000) xteAvgMm * 0.9 + abs(xteCm * 10) * 0.1 else 0.0
+        if (p != null && youTurnPath == null) {
+            if (profile.youTurnStyle == 1) maybeStartTurn(p, nowS) else aogTurnStep(p, nowS)
+        }
         if (kPhase != 0 && p != null && kTurnStep(p, roll)) return
         val turn = youTurnPath
         if (turn != null && p != null) {
             // CYouTurn.DistanceFromYouTurnLine 1:1 (YouTurnFollow); null = zawrót zakończony (CompleteYouTurn)
-            if (!engaged) {
+            if (!engaged && !aogTurnActive) {
                 finishTurn("Zawrót przerwany", flip = false)
             } else {
                 val res = youTurnFollow.step(turn, p, headingRad, speedKmh, reversing, profile, steering)
@@ -939,6 +943,120 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             turnLineCache = key to l
             return l.takeIf { it.size >= 3 }
         }
+
+    private var xteAvgMm = 0.0
+    /** Zawrót jak w AgOpenGPS (CYouTurn) — budowany przed linią zawrotu i uruchamiany 1 m przed jego trzecim punktem. */
+    val ytAog = eu.smartsteer.navigator.core.guidance.YouTurnAog()
+    private var ytTurnLinesKey: Any? = null
+    private var ytTurnLines: eu.smartsteer.navigator.core.guidance.YouTurnAog.TurnLines? = null
+    /** Zbudowany, jeszcze nieuruchomiony zawrót (rysowany na mapie). */
+    val turnPreview: List<Pose>? get() = ytAog.ytList.takeIf { ytAog.phase == 10 && !ytAog.triggered && it.size > 5 }
+    private var ytFailShown = false
+
+    private fun aogTurnLines(): eu.smartsteer.navigator.core.guidance.YouTurnAog.TurnLines? {
+        val b = boundary ?: return null
+        val key = listOf(b, obstacles.toList(), profile.youTurnFromBoundary)
+        if (key != ytTurnLinesKey) {
+            ytTurnLinesKey = key
+            ytTurnLines = eu.smartsteer.navigator.core.guidance.YouTurnAog.TurnLines.build(b, obstacles, profile.youTurnFromBoundary)
+        }
+        return ytTurnLines
+    }
+
+    /** Stan linii dla budowy zawrotu (mf.ABLine / mf.curve). */
+    private fun aogLine(p: Vec2): eu.smartsteer.navigator.core.guidance.YouTurnAog.Line? {
+        val w = profile.passSpacing
+        val turnLeft = ytAog.isTurnLeft
+        return when (mode) {
+            GuidanceMode.AB -> {
+                val l = line ?: return null
+                val sameWay = !reversed
+                val dir = Vec2.forward(l.heading) * (if (reversed) -1.0 else 1.0)
+                fun base(k: Int, travelDir: Vec2) = l.a + Vec2.right(l.heading) * (k * w) + Vec2.right(atan2(travelDir.x, travelDir.y)) * (lineShiftCm / 100.0 - profile.toolOffset)
+                val b0 = base(passIndex, dir)
+                val fw = Vec2.forward(l.heading)
+                val proj = b0 + fw * ((p - b0) dot fw)
+                eu.smartsteer.navigator.core.guidance.YouTurnAog.Line(
+                    isAB = true, abHeading = l.heading, sameWay = sameWay, rPoint = proj,
+                    curA = b0 - fw * 2000.0, curB = b0 + fw * 2000.0, curList = emptyList(), currentLocationIndex = 0,
+                    nextLine = { skip ->
+                        val k = passIndex + (if (turnLeft xor sameWay) skip else -skip)
+                        val nb = base(k, dir * -1.0)
+                        listOf(Pose(nb - fw * 2000.0, l.heading), Pose(nb + fw * 2000.0, l.heading))
+                    },
+                )
+            }
+            GuidanceMode.CURVE -> {
+                val ref = curveRef ?: return null
+                if (curList.size < 5) return null
+                val same = curveSameWay
+                eu.smartsteer.navigator.core.guidance.YouTurnAog.Line(
+                    isAB = false, abHeading = 0.0, sameWay = same, rPoint = p, curA = p, curB = p,
+                    curList = curList, currentLocationIndex = curveFollow.currentIndex,
+                    nextLine = { skip ->
+                        val k = curvePassIndex + (if (turnLeft xor same) skip else -skip)
+                        val shift = (lineShiftCm / 100.0 - profile.toolOffset) * (if (!same) 1 else -1)
+                        Curves.offsetList(ref, k * w + shift, w, boundary?.takeIf { it.size >= 3 })
+                    },
+                )
+            }
+            GuidanceMode.CONTOUR -> null
+        }
+    }
+
+    /** Position.designer.cs, region „Youturn”: budowa w fazach, kasowanie poza polem i przy dużym błędzie, uruchomienie. */
+    private fun aogTurnStep(p: Vec2, nowS: Double) {
+        if (!autoUturn || mode == GuidanceMode.CONTOUR) { if (ytAog.phase != 0) ytAog.resetCreated(nowS); return }
+        val tl = aogTurnLines() ?: return
+        ytAog.isTurnLeft = !uTurnRight
+        if (tl.inside(p) == -1) { ytAog.resetCreated(nowS); return }
+        if (ytAog.phase != 10) {
+            if (xteAvgMm > 1000) { ytAog.resetCreated(nowS); return }
+            val ln = aogLine(p) ?: return
+            val st = eu.smartsteer.navigator.core.guidance.YouTurnAog.Settings(
+                profile.youTurnRadius, profile.youTurnSkip, profile.passSpacing, profile.toolOffset, profile.youTurnExtension, profile.youTurnStyle,
+            )
+            ytAog.build(ln, tl, p, st, nowS)
+            if (ytAog.phase == 11 && !ytFailShown) { ytFailShown = true; fail("Zawrót się nie mieści — poszerz uwrocie albo zmniejsz promień zawrotu") }
+            if (ytAog.phase == 10) ytFailShown = false
+        } else if (ytAog.ytList.size > 5) {
+            val d = ytAog.ytList[2].p.distanceTo(p)
+            if (d <= 1.0) triggerAogTurn(nowS)
+        }
+    }
+
+    /** YouTurnTrigger: przejazd i kierunek zmieniają się od razu, prowadzi ścieżka zawrotu. */
+    private fun triggerAogTurn(nowS: Double) {
+        val skip = profile.youTurnSkip
+        val left = ytAog.isTurnLeft
+        savedPass = passIndex; savedReversed = reversed; savedTurnRight = uTurnRight
+        savedCurvePass = curvePassIndex; savedCurveSameWay = curveSameWay
+        if (!ytAog.isGoingStraightThrough) {
+            when (mode) {
+                GuidanceMode.AB -> { passIndex += if (left xor !reversed) skip else -skip; reversed = !reversed }
+                GuidanceMode.CURVE -> {
+                    curvePassIndex += if (left xor curveSameWay) skip else -skip
+                    curveSameWay = !curveSameWay; curveReversed = !curveSameWay
+                    curveRef?.let { buildCurList(it, profile.passSpacing) }
+                }
+                GuidanceMode.CONTOUR -> {}
+            }
+        }
+        ytAog.trigger()
+        uTurnRight = !ytAog.isTurnLeft
+        youTurnPath = ytAog.ytList
+        aogTurnActive = true
+        turnHint = -1
+        youTurnFollow.reset()
+        steering.reset()
+        ok("Zawracam ${if (left) "w lewo" else "w prawo"}")
+    }
+    private var aogTurnActive = false
+    private var savedPass = 0
+    private var savedReversed = false
+    private var savedTurnRight = true
+    private var savedCurvePass = 0
+    private var savedCurveSameWay = true
 
     private fun maybeStartTurn(p: Vec2, nowS: Double) {
         if (!autoUturn || !engaged || mode == GuidanceMode.CONTOUR) return
@@ -1069,13 +1187,31 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         turnHint = -1
         pathHint = -1
         steering.reset()
-        if (flip) uTurnRight = !uTurnRight
-        passRecheck = true // jak isABValid = false po zawrocie w AgOpenGPS: przejazd wybierany od nowa
+        if (aogTurnActive) {
+            // CompleteYouTurn: przejazd zmieniony już przy uruchomieniu (YouTurnTrigger)
+            aogTurnActive = false
+            ytAog.complete(updateTimeS)
+        } else {
+            if (flip) uTurnRight = !uTurnRight
+            passRecheck = true // jak isABValid = false po zawrocie w AgOpenGPS: przejazd wybierany od nowa
+        }
         ok(msg)
     }
 
     /** Ręczne przerwanie zawrotu. */
-    fun cancelTurn() { if (youTurnPath != null) { youTurnPath = null; kPhase = 0; kReverse = null; kExit = null; pathHint = -1; steering.reset(); ok("Zawrót przerwany") } }
+    fun cancelTurn() {
+        if (aogTurnActive) {
+            // RestorePreTriggerState + ResetYouTurn: wracamy do przejazdu sprzed zawrotu
+            aogTurnActive = false
+            passIndex = savedPass; reversed = savedReversed; uTurnRight = savedTurnRight
+            if (curvePassIndex != savedCurvePass || curveSameWay != savedCurveSameWay) {
+                curvePassIndex = savedCurvePass; curveSameWay = savedCurveSameWay; curveReversed = !curveSameWay
+                curveRef?.let { buildCurList(it, profile.passSpacing) }
+            }
+            ytAog.reset(updateTimeS)
+        }
+        if (youTurnPath != null) { youTurnPath = null; kPhase = 0; kReverse = null; kExit = null; pathHint = -1; steering.reset(); ok("Zawrót przerwany") }
+    }
 
     private fun followPath(path: List<Pose>, p: Vec2, roll: Double?, endMessage: String?): AbSteering.Output? {
         val res = steering.computePath(path, pathHint, p, headingRad, speedKmh, engaged && !reversing, profile, roll) ?: return null
