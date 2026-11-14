@@ -30,6 +30,8 @@ import eu.smartsteer.navigator.core.settings.VehicleProfile
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.roundToInt
 
 /** Linia AB w płaszczyźnie lokalnej pola. Kurs AB w radianach (0 = północ). */
@@ -1008,7 +1010,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     private fun aogTurnStep(p: Vec2, nowS: Double) {
         if (!autoUturn || mode == GuidanceMode.CONTOUR) { if (ytAog.phase != 0) ytAog.resetCreated(nowS); return }
         val tl = aogTurnLines() ?: return
-        ytAog.isTurnLeft = !uTurnRight
+        // zmiana kierunku przyciskiem kasuje zbudowany zawrót
+        if (ytAog.isTurnLeft != !uTurnRight) { ytAog.isTurnLeft = !uTurnRight; ytAog.resetCreated(nowS) }
         if (tl.inside(p) == -1) { ytAog.resetCreated(nowS); return }
         if (ytAog.phase != 10) {
             if (xteAvgMm > 1000) { ytAog.resetCreated(nowS); return }
@@ -1052,6 +1055,54 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         ok("Zawracam ${if (left) "w lewo" else "w prawo"}")
     }
     private var aogTurnActive = false
+
+    /** BuildManualYouLateral: przeskok o jeden przejazd w lewo / prawo (poniżej setAS_functionSpeedLimit). */
+    fun manualLateral(left: Boolean): Boolean {
+        if (speedKmh >= profile.functionSpeedLimit) return fail("Za szybko — przeskok tylko poniżej ${profile.functionSpeedLimit.roundToInt()} km/h")
+        when (mode) {
+            GuidanceMode.AB -> { if (line == null) return fail("Brak linii"); val same = !reversed; passIndex += if (same == left) 1 else -1 }
+            GuidanceMode.CURVE -> {
+                val ref = curveRef ?: return fail("Brak krzywej")
+                curvePassIndex += if (curveSameWay == left) 1 else -1
+                buildCurList(ref, profile.passSpacing)
+            }
+            GuidanceMode.CONTOUR -> return fail("W konturze nie ma przejazdów")
+        }
+        steering.reset(); pathHint = -1
+        return ok("Przejazd ${if (left) "w lewo" else "w prawo"}")
+    }
+
+    /** BuildManualYouTurn: zawrót od razu (Dubins od punktu 4 m przed ciągnikiem), poniżej setAS_functionSpeedLimit. */
+    fun manualTurn(right: Boolean, nowS: Double): Boolean {
+        if (speedKmh >= profile.functionSpeedLimit) return fail("Za szybko — ręczny zawrót tylko poniżej ${profile.functionSpeedLimit.roundToInt()} km/h")
+        if (youTurnPath != null) { cancelTurn(); return true }
+        val p = pivot ?: return fail("Brak pozycji GPS")
+        val ln = aogLine(p) ?: return fail("Brak linii")
+        var head: Double
+        var r: Vec2
+        if (ln.isAB) { head = ln.abHeading; r = ln.rPoint }
+        else {
+            val c = curList.getOrNull(curveFollow.currentIndex) ?: return fail("Brak krzywej")
+            head = c.heading; r = c.p
+        }
+        val same = ln.sameWay
+        val turnOffset = profile.passSpacing * profile.youTurnSkip + (if (right) profile.toolOffset * 2.0 else -profile.toolOffset * 2.0)
+        if (!same) head += 3.14 else head -= 0.01
+        r = Vec2(r.x + sin(head) * 4, r.y + cos(head) * 4)
+        val start = Pose(r, head)
+        head -= PI
+        if (head < 0) head += 2 * PI
+        val goal = if (right) Vec2(r.x - cos(-head) * turnOffset, r.y - sin(-head) * turnOffset)
+            else Vec2(r.x + cos(-head) * turnOffset, r.y + sin(-head) * turnOffset)
+        val path = eu.smartsteer.navigator.core.guidance.Dubins(profile.youTurnRadius).generate(start, Pose(goal, head))
+        if (path.size < 3) return fail("Nie da się zbudować zawrotu")
+        ytAog.resetCreated(nowS)
+        ytAog.isTurnLeft = !right
+        uTurnRight = right
+        ytAog.setManual(path)
+        triggerAogTurn(nowS)
+        return true
+    }
     private var savedPass = 0
     private var savedReversed = false
     private var savedTurnRight = true
@@ -1478,6 +1529,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     /** Ramka PGN 238 (konfiguracja modułu maszyny) z profilu. */
     fun machineConfigFrame(): ByteArray = Sections.machineConfigFrame(profile)
 
+    /** Ramka PGN 236 (piny przekaźników modułu maszyny). */
+    fun relayConfigFrame(): ByteArray = Sections.relayConfigFrame(profile)
+
     // ---------------- test silnika (Free drive) ----------------
     /** Ręczne kręcenie kołami z ekranu — do sprawdzenia silnika i czujnika kąta bez jazdy. */
     var freeDrive = false; private set
@@ -1499,10 +1553,24 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
     fun centerFreeDrive() { freeDriveAngle = 0.0 }
 
     /** Ramka PGN 239 do modułu maszyny (sekcje). */
-    fun machineFrame(): ByteArray = Sections.machineFrame(speedKmh, sections.bits(), hydLiftState(), tramBits())
+    fun machineFrame(): ByteArray = Sections.machineFrame(speedKmh, sections.bits(), hydLiftState(), tramBits(), uturn = aogTurnActive, geoStop = outOfBounds())
 
-    /** PGN 229 — tylko przy więcej niż 16 sekcjach. */
-    fun sections64Frame(): ByteArray? = if (profile.numSections > 16) Sections.sections64Frame(sections.bits()) else null
+    /**
+     * mc.isOutOfBounds (Position.designer.cs, region „Youturn”): bez auto-zawrotu — oś tylna poza granicą pola;
+     * z auto-zawrotem — poza obszarem zawracania (gdy zawrót nie trwa).
+     */
+    fun outOfBounds(): Boolean {
+        val p = pivot ?: return false
+        val b = boundary?.takeIf { it.size >= 3 } ?: return false
+        val inFence = Polygon.contains(b, p) && obstacles.none { it.size >= 3 && Polygon.contains(it, p) }
+        if (!autoUturn || mode == GuidanceMode.CONTOUR) return !inFence
+        val tl = aogTurnLines() ?: return !inFence
+        if (tl.inside(p) != -1) return false
+        return if (aogTurnActive) false else !inFence
+    }
+
+    /** PGN 229 — jak w AgOpenGPS wysyłany zawsze (przy otwartym polu), z prędkościami krawędzi maszyny. */
+    fun sections64Frame(): ByteArray? = if (fieldName != null || profile.numSections > 16) Sections.sections64Frame(sections.bits(), sections.farLeftSpeed, sections.farRightSpeed) else null
 
     /** Podnośnik włączony przyciskiem na mapie (działa, gdy w profilu jest podnośnik i automat). */
     var hydLiftOn = false

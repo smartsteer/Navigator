@@ -100,6 +100,12 @@ data class VehicleProfile(
     val uTurnSmoothing: Int = 14,
     /** Ręczny zawrót i przesunięcie w bok tylko poniżej tej prędkości, km/h (setAS_functionSpeedLimit). */
     val functionSpeedLimit: Double = 12.0,
+    /** Krok przesuwania linii, cm (setAS_snapDistance). */
+    val nudgeStepCm: Int = 2,
+    /** Alarm przy utracie RTK (setGPS_isRTK). */
+    val rtkAlarm: Boolean = true,
+    /** Przypisanie przekaźników modułu maszyny do sekcji, 24 liczby (setRelay_pinConfig, PGN 236). */
+    val relayPinConfig: String = "1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
 
     // --- Prowadzenie ---
     val algorithm: SteerAlgorithm = SteerAlgorithm.PURE_PURSUIT,
@@ -326,7 +332,7 @@ data class VehicleProfile(
         "tramFlip" to tramFlip, "tramMode" to tramMode, "tramOuterInverted" to tramOuterInverted, "hydAuto" to hydAuto,
         "rateBase" to rateBase, "rateBaseSpeed" to rateBaseSpeed, "rateHintMode" to rateHintMode, "rateStepPct" to rateStepPct,
         "youTurnStyle" to youTurnStyle, "uTurnCompensation" to uTurnCompensation, "youTurnExtension" to youTurnExtension,
-        "uTurnSmoothing" to uTurnSmoothing, "functionSpeedLimit" to functionSpeedLimit, "steerInReverse" to steerInReverse,
+        "uTurnSmoothing" to uTurnSmoothing, "functionSpeedLimit" to functionSpeedLimit, "nudgeStepCm" to nudgeStepCm, "rtkAlarm" to rtkAlarm, "relayPinConfig" to relayPinConfig, "steerInReverse" to steerInReverse,
         "guidanceLookAheadS" to guidanceLookAheadS, "remoteAutoSteer" to remoteAutoSteer, "constantContour" to constantContour,
         "hydLiftLookAhead" to hydLiftLookAhead, "isSprayer" to isSprayer, "headlandSeq" to headlandSeq,
         "supRtkLossS" to supRtkLossS, "supMaxXteM" to supMaxXteM, "supSteerErrDeg" to supSteerErrDeg,
@@ -409,6 +415,9 @@ data class VehicleProfile(
                 youTurnExtension = num("youTurnExtension", d.youTurnExtension),
                 uTurnSmoothing = int("uTurnSmoothing", d.uTurnSmoothing),
                 functionSpeedLimit = num("functionSpeedLimit", d.functionSpeedLimit),
+                nudgeStepCm = int("nudgeStepCm", d.nudgeStepCm).coerceIn(1, 100),
+                rtkAlarm = bool("rtkAlarm", d.rtkAlarm),
+                relayPinConfig = (m["relayPinConfig"] as? String) ?: d.relayPinConfig,
                 steerInReverse = bool("steerInReverse", d.steerInReverse),
                 guidanceLookAheadS = num("guidanceLookAheadS", d.guidanceLookAheadS),
                 remoteAutoSteer = bool("remoteAutoSteer", d.remoteAutoSteer),

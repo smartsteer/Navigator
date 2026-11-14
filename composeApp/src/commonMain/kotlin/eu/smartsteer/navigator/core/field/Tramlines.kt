@@ -38,15 +38,15 @@ object Tramlines {
 
     fun boundaryTracks(fence: List<Vec2>, tramWidth: Double, halfWheelTrack: Double): Pair<List<Vec2>, List<Vec2>> {
         if (fence.size < 3) return emptyList<Vec2>() to emptyList()
-        val f = clockwise(fence)
+        val f = counterClockwise(fence)
         return boundaryTrack(f, 0.5 * tramWidth - halfWheelTrack) to boundaryTrack(f, 0.5 * tramWidth + halfWheelTrack)
     }
 
-    /** AgOpenGPS przesuwa granicę w lewo od jej kierunku — dla granicy zgodnej z zegarem to jest do środka pola. */
-    private fun clockwise(r: List<Vec2>): List<Vec2> {
+    /** AgOpenGPS przesuwa granicę w lewo od jej kierunku — dla granicy przeciwnej do zegara to jest do środka pola. */
+    private fun counterClockwise(r: List<Vec2>): List<Vec2> {
         var a = 0.0
         for (i in r.indices) { val p = r[i]; val q = r[(i + 1) % r.size]; a += p.x * q.y - q.x * p.y }
-        return if (a > 0) r.reversed() else r
+        return if (a < 0) r.reversed() else r
     }
 
     /** CFenceLine.CalculateFenceLineHeadings — kurs punktu z sąsiadów (zamknięta pętla). */

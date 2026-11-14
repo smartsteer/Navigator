@@ -97,6 +97,7 @@ object AgoImport {
         d("set_youTurnExtensionLength")?.let { p = p.copy(youTurnExtension = it) }
         d("setAS_uTurnSmoothing")?.let { p = p.copy(uTurnSmoothing = it.toInt()) }
         d("setAS_functionSpeedLimit")?.let { p = p.copy(functionSpeedLimit = it) }
+        d("setAS_snapDistance")?.let { p = p.copy(nudgeStepCm = it.toInt().coerceIn(1, 100)) }
         b("setAS_isSteerInReverse")?.let { p = p.copy(steerInReverse = it) }
         d("setAS_guidanceLookAheadTime")?.let { p = p.copy(guidanceLookAheadS = it) }
         b("setAS_isAutoSteerAutoOn")?.let { p = p.copy(remoteAutoSteer = it) }
@@ -106,6 +107,8 @@ object AgoImport {
         s["setArdMac_isHydEnabled"]?.trim()?.let { v -> (v.toIntOrNull()?.let { it != 0 } ?: v.equals("true", true)).let { n++; p = p.copy(hydEnabled = it) } }
         // alarmy GPS → nadzór autostera
         d("setGPS_ageAlarm")?.let { p = p.copy(supCorrAgeS = it) }
+        b("setGPS_isRTK")?.let { p = p.copy(rtkAlarm = it) }
+        s["setRelay_pinConfig"]?.trim()?.takeIf { it.split(',').size >= 24 }?.let { n++; p = p.copy(relayPinConfig = it) }
         b("setGPS_isRTK_KillAutoSteer")?.let { p = p.copy(supRtkLossS = if (it) (if (p.supRtkLossS > 0) p.supRtkLossS else 5.0) else 0.0) }
         // ścieżki technologiczne: szerokość opryskiwacza → co ile przejazdów
         d("setTram_tramWidth")?.let { p = p.copy(tramWidth = it) }

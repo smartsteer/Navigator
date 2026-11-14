@@ -381,6 +381,9 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
     Toggle("Prowadź także przy cofaniu", p.steerInReverse) { set(p.copy(steerInReverse = it)) }
     Num("Wyprzedzenie wyboru przejazdu", "Z jakiego punktu przed ciągnikiem wybierany jest najbliższy przejazd", p.guidanceLookAheadS, "s", 0.1, 0.0, 5.0, 1) { set(p.copy(guidanceLookAheadS = it)) }
     Toggle("Stały kontur (prędkość kątowa do płytki)", p.constantContour) { set(p.copy(constantContour = it)) }
+    Num("Ręczny zawrót i przeskok poniżej", "AgOpenGPS: Function speed limit", p.functionSpeedLimit, "km/h", 1.0, 1.0, 40.0, 0) { set(p.copy(functionSpeedLimit = it)) }
+    Num("Krok przesuwania linii", null, p.nudgeStepCm.toDouble(), "cm", 1.0, 1.0, 100.0, 0) { set(p.copy(nudgeStepCm = it.toInt())) }
+    Toggle("Alarm przy utracie RTK", p.rtkAlarm) { set(p.copy(rtkAlarm = it)) }
     SectionTitle("Martwa strefa")
     Num("Martwa strefa kąta", "Poniżej tej różnicy kąta silnik nie poprawia", p.deadZoneDeg, "°", 0.05, 0.0, 2.0, 2) { set(p.copy(deadZoneDeg = it)) }
     Num("Opóźnienie martwej strefy", "Po tylu sekundach w strefie kąt przestaje się zmieniać", p.deadZoneDelay.toDouble(), "s", 1.0, 0.0, 50.0, 0) { set(p.copy(deadZoneDelay = it.toInt())) }

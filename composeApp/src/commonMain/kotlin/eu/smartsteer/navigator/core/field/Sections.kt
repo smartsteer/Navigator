@@ -334,19 +334,27 @@ class Sections {
         }
 
         const val PGN_MACHINE_CONFIG = 0xEE
+        const val PGN_RELAY_CONFIG = 0xEC
+
+        /** PGN 236 — przypisanie 24 pinów modułu maszyny (CPGN_EC, setRelay_pinConfig). */
+        fun relayConfigFrame(p: VehicleProfile): ByteArray {
+            val w = p.relayPinConfig.split(',').map { it.trim().toIntOrNull() ?: 0 }
+            val d = ByteArray(24) { i -> (w.getOrElse(i) { 0 }.coerceIn(0, 255)).toByte() }
+            return AogFrame.build(PGN_RELAY_CONFIG, d)
+        }
 
         /** PGN 239 — dane dla modułu maszyny: prędkość × 10 i sekcje. */
         /**
          * [hydLift]: 0 = podnośnik nieużywany, 1 = opuść (praca), 2 = podnieś (uwrocie) — jak w AgOpenGPS
          * (Position.designer.cs, p_239.hydLift). [tram]: bit 0 = ślad po prawej, bit 1 = po lewej.
          */
-        fun machineFrame(speedKmh: Double, bits: Long, hydLift: Int = 0, tram: Int = 0): ByteArray {
+        fun machineFrame(speedKmh: Double, bits: Long, hydLift: Int = 0, tram: Int = 0, uturn: Boolean = false, geoStop: Boolean = false): ByteArray {
             val d = ByteArray(8)
-            d[0] = 0 // zawrót
-            d[1] = (speedKmh * 10).roundToInt().coerceIn(0, 255).toByte()
+            d[0] = (if (uturn) 1 else 0).toByte() // zawrót trwa (DrawUTurnBtn: p_239.uturn)
+            d[1] = (speedKmh * 10).toInt().coerceIn(0, 255).toByte() // (byte)(avgSpeed × 10)
             d[2] = hydLift.coerceIn(0, 2).toByte() // podnośnik
             d[3] = (tram and 3).toByte() // ścieżki technologiczne
-            d[4] = 0 // geo-stop
+            d[4] = (if (geoStop) 1 else 0).toByte() // poza polem (mc.isOutOfBounds)
             d[5] = 0
             d[6] = (bits and 0xFF).toByte()
             d[7] = ((bits shr 8) and 0xFF).toByte()
@@ -359,8 +367,11 @@ class Sections {
          * PGN 229 — stan do 64 sekcji (8 bajtów, bit 0 bajtu 0 = sekcja 1), wysyłany przy więcej niż 16 sekcjach.
          * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/PGN.Designer.cs (CPGN_E5).
          */
-        fun sections64Frame(bits: Long): ByteArray {
-            val d = ByteArray(8) { i -> ((bits ushr (8 * i)) and 0xFF).toByte() }
+        fun sections64Frame(bits: Long, farLeftSpeed: Double = 0.0, farRightSpeed: Double = 0.0): ByteArray {
+            // CPGN_E5: 8 bajtów sekcji + prędkość lewej i prawej krawędzi maszyny × 10 (toolLSpeed / toolRSpeed)
+            val d = ByteArray(10) { i -> if (i < 8) ((bits ushr (8 * i)) and 0xFF).toByte() else 0 }
+            d[8] = (farLeftSpeed * 10).toInt().toByte()
+            d[9] = (farRightSpeed * 10).toInt().toByte()
             return AogFrame.build(PGN_SECTIONS_64, d)
         }
     }

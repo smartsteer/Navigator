@@ -294,8 +294,9 @@ private fun GuideSheet(hw: HardwareController, modifier: Modifier, onClose: () -
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Label("Przesuń linię · ${if (s.lineShiftCm == 0) "0" else s.lineShiftCm.toDouble().pl(0, plusSign = true)} cm")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm -= 2; hw.touch() }) { NavIcon(IconKind.ChevronLeft, Ss.Text, 22.dp, 2.4f) }
-                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm += 2; hw.touch() }) { NavIcon(IconKind.ChevronRight, Ss.Text, 22.dp, 2.4f) }
+                // krok jak setAS_snapDistance w AgOpenGPS
+                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm -= s.profile.nudgeStepCm; hw.touch() }) { NavIcon(IconKind.ChevronLeft, Ss.Text, 22.dp, 2.4f) }
+                ActionButton(Modifier.weight(1f), onClick = { s.lineShiftCm += s.profile.nudgeStepCm; hw.touch() }) { NavIcon(IconKind.ChevronRight, Ss.Text, 22.dp, 2.4f) }
             }
         }
         if (s.mode != GuidanceMode.CONTOUR) TurnControls(hw)
@@ -564,6 +565,15 @@ private fun TurnControls(hw: HardwareController) {
                 ButtonText(if (s.uTurnRight) "w prawo ▶" else "◀ w lewo", size = 15.sp, weight = FontWeight.Bold)
             }
         }
+    }
+    // jak w AgOpenGPS: ręczny zawrót i przeskok o przejazd (poniżej prędkości z ustawień)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActionButton(Modifier.weight(1f), onClick = { s.manualTurn(false, hw.now()); hw.touch() }) { ButtonText("◀ Zawróć", size = 13.sp) }
+        ActionButton(Modifier.weight(1f), onClick = { s.manualTurn(true, hw.now()); hw.touch() }) { ButtonText("Zawróć ▶", size = 13.sp) }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActionButton(Modifier.weight(1f), onClick = { s.manualLateral(true); hw.touch() }) { ButtonText("◀ Przejazd", size = 13.sp) }
+        ActionButton(Modifier.weight(1f), onClick = { s.manualLateral(false); hw.touch() }) { ButtonText("Przejazd ▶", size = 13.sp) }
     }
     if (s.youTurnPath != null) {
         ActionButton(Modifier.fillMaxWidth(), background = Ss.Warning, border = Ss.Warning, onClick = { s.cancelTurn(); hw.touch() }) {

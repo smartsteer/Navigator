@@ -1391,6 +1391,7 @@ class HardwareController {
         gainP, highPwm, lowPwm, minPwm, countsPerDegree, wasOffset, ackerman,
         setting0, setting1, maxPulseCounts, (minSteerSpeed * 10).toInt(),
         machineSetting0, hydRaiseTime, hydLowerTime, machineUser1, machineUser2, machineUser3, machineUser4,
+        relayPinConfig, constantContour,
     )
 
     private class Packet(val bytes: ByteArray, val from: String)
@@ -1543,7 +1544,8 @@ class HardwareController {
                     val f252 = session.steerSettingsFrame()
                     val f251 = session.steerConfigFrame()
                     val f238 = session.machineConfigFrame()
-                    val err = withContext(Dispatchers.Default) { l.send(f252) ?: l.send(f251) ?: l.send(f238) }
+                    val f236 = session.relayConfigFrame()
+                    val err = withContext(Dispatchers.Default) { l.send(f252) ?: l.send(f251) ?: l.send(f238) ?: l.send(f236) }
                     if (err == null) { configDirty = false; configSentAt = now() }
                 }
             }
@@ -1609,7 +1611,7 @@ class HardwareController {
         val ev = alerts.events(
             AlertState(
                 hardware = hardware, engaged = s.engaged, userToggleS = s.lastUserToggleS,
-                gpsOk = hardware && s.gpsAlive(n), rtkFix = rtkNotExpected || s.fix == FixQuality.RTK_FIX, turning = s.youTurnPath != null,
+                gpsOk = hardware && s.gpsAlive(n), rtkFix = rtkNotExpected || !profile.rtkAlarm || s.fix == FixQuality.RTK_FIX, turning = s.youTurnPath != null,
                 anySection = s.sections.anyOn(), newOrders = war.newOrders.size, nowS = n,
                 obstacle = if (hardware) s.obstacleVerdict?.level ?: 0 else 0,
             ),

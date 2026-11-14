@@ -109,7 +109,7 @@ class TramlinesTest {
         val bits = (1L shl 0) or (1L shl 17) or (1L shl 63)
         val f = Sections.sections64Frame(bits)
         assertEquals(0xE5, f[3].toInt() and 0xFF)
-        assertEquals(8, f[4].toInt())
+        assertEquals(10, f[4].toInt()) // jak CPGN_E5: 8 bajtów sekcji + prędkości krawędzi
         assertEquals(1, f[5].toInt() and 0xFF)
         assertEquals(2, f[7].toInt() and 0xFF)   // sekcja 18 = bajt 2, bit 1
         assertEquals(0x80, f[12].toInt() and 0xFF)

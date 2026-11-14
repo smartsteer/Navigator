@@ -35,7 +35,9 @@ class YouTurnAog {
                 if (fence.size < 3) return null
                 val lines = ArrayList<List<Pose>>()
                 val polys = ArrayList<List<Vec2>>()
-                val all = listOf(clockwise(fence)) + obstacles.filter { it.size >= 3 }.map { clockwise(it).reversed() }
+                // AgOpenGPS odsuwa punkt w lewo od kierunku granicy: zewnętrzna przeciwnie do zegara (lewo = do środka pola),
+                // przeszkody zgodnie z zegarem (lewo = na zewnątrz przeszkody)
+                val all = listOf(counterClockwise(fence)) + obstacles.filter { it.size >= 3 }.map { counterClockwise(it).reversed() }
                 for ((j, f) in all.withIndex()) {
                     val head = loopHeadings(f)
                     val raw = ArrayList<Pose>()
@@ -61,10 +63,10 @@ class YouTurnAog {
                 return TurnLines(lines, polys)
             }
 
-            private fun clockwise(r: List<Vec2>): List<Vec2> {
+            private fun counterClockwise(r: List<Vec2>): List<Vec2> {
                 var a = 0.0
                 for (i in r.indices) { val p = r[i]; val q = r[(i + 1) % r.size]; a += p.x * q.y - q.x * p.y }
-                return if (a > 0) r.reversed() else r
+                return if (a < 0) r.reversed() else r
             }
 
             private fun loopHeadings(f: List<Vec2>): DoubleArray {
@@ -176,6 +178,9 @@ class YouTurnAog {
     fun complete(nowS: Double) { triggered = false; resetCreated(nowS) }
 
     private fun failCreate() { isOutOfBounds = true; tooClose = true; phase = 11 }
+
+    /** Ręczny zawrót (BuildManualYouTurn): gotowa ścieżka Dubinsa. */
+    fun setManual(path: List<Pose>) { ytList = path; phase = 10; isGoingStraightThrough = false }
 
     /** YouTurnTrigger — zmiana przejazdu i kierunku robi sesja; tu stan zawrotu i kierunek następnego. */
     fun trigger() { triggered = true; if (!isGoingStraightThrough) isTurnLeft = !isTurnLeft }
