@@ -67,7 +67,8 @@ object DisplayPrefs {
     /** Ustawia okno Windows (main.kt); na Androidzie pełny ekran jest zawsze. */
     var fullScreenSupported = false
 
-    fun updateTablet(on: Boolean) { tablet = on; save() }
+    /** Tryb tabletu; na Windows od razu też pełny ekran (tablet w kabinie — bez paska okna i paska zadań). */
+    fun updateTablet(on: Boolean) { tablet = on; if (fullScreenSupported) fullScreen = on; save() }
     fun updateFullScreen(on: Boolean) { fullScreen = on; save() }
     fun toggleFullScreen() = updateFullScreen(!fullScreen)
 
