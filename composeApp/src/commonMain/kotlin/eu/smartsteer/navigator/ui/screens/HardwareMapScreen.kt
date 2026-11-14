@@ -947,8 +947,16 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             val r = hypot(size.width, size.height) / sc
             val sky3d = tilt && DisplayPrefs.sky3d
             val upW = if (headingUp) viewFwd else Vec2(0.0, 1.0)
-            // 3D: ziemia aż po horyzont (4 km wokół), żeby pole nie kończyło się krawędzią ekranu
-            if (sky3d) drawRect(Ss.MapGround, Offset(camX - FAR_M, camY - FAR_M), androidx.compose.ui.geometry.Size(2 * FAR_M, 2 * FAR_M))
+            // 3D: ziemia aż po horyzont (4 km przed nami), żeby pole nie kończyło się krawędzią ekranu. Tylko przed kamerą —
+            // punkty za kamerą w perspektywie przewracają się na drugą stronę ekranu
+            val rightW = Vec2(upW.y, -upW.x)
+            val back = (size.height * 0.3f / sc).toDouble()
+            val groundQuad = Path().apply {
+                val a = cam - upW * back - rightW * FAR_M.toDouble(); val b = cam - upW * back + rightW * FAR_M.toDouble()
+                val c = cam + upW * FAR_M.toDouble() + rightW * FAR_M.toDouble(); val d = cam + upW * FAR_M.toDouble() - rightW * FAR_M.toDouble()
+                moveTo(o(a).x, o(a).y); lineTo(o(b).x, o(b).y); lineTo(o(c).x, o(c).y); lineTo(o(d).x, o(d).y); close()
+            }
+            if (sky3d) drawPath(groundQuad, Ss.MapGround)
             // podkład: ortofotomapa / zdjęcia satelitarne
             val src = TileSource.entries.getOrElse(DisplayPrefs.background) { TileSource.NONE }
             val pl = s.plane
@@ -1183,19 +1191,17 @@ private fun HwCanvas(hw: HardwareController, zoom: Float, headingUp: Boolean, ti
             // 3D: noc przyciemnia pole, mgła gęstnieje z odległością i na horyzoncie ma kolor nieba (szew niewidoczny)
             if (sky3d) {
                 val look = hw.skyLook()
-                val tl = Offset(camX - FAR_M, camY - FAR_M)
-                val sz = androidx.compose.ui.geometry.Size(2 * FAR_M, 2 * FAR_M)
-                if (look.night > 0f) drawRect(Color(0xFF050A18).copy(alpha = look.night), tl, sz)
+                if (look.night > 0f) drawPath(groundQuad, Color(0xFF050A18).copy(alpha = look.night))
                 val near = 25.0 + 60.0 * (1 - look.fog)
                 val far = 150.0 + 900.0 * (1 - look.fog)
-                drawRect(
+                drawPath(
+                    groundQuad,
                     androidx.compose.ui.graphics.Brush.linearGradient(
                         0f to look.horizon.copy(alpha = 0f),
                         0.5f to look.horizon.copy(alpha = 0.35f + 0.4f * look.fog),
                         1f to look.horizon,
                         start = o(cam + upW * near), end = o(cam + upW * far),
                     ),
-                    tl, sz,
                 )
             }
             // ciągnik: strzałka, ciągnik z góry (przednie koła skręcają jak prawdziwe) albo własny obraz — Ustawienia → Ciągnik
