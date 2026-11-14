@@ -135,6 +135,9 @@ class WarProtocolTest {
         assertEquals(eu.smartsteer.navigator.ui.MachineModels.Kind.SPRAYER, eu.smartsteer.navigator.ui.MachineModels.kindOfType(l[0].type))
         assertEquals(eu.smartsteer.navigator.ui.MachineModels.Kind.COMBINE, eu.smartsteer.navigator.ui.MachineModels.kindOfType("kombajn"))
         assertEquals(null, eu.smartsteer.navigator.ui.MachineModels.kindOfType(""))
+        assertEquals(eu.smartsteer.navigator.ui.MachineModels.Kind.LOADER, eu.smartsteer.navigator.ui.MachineModels.kindOfType("ladowarka"))
+        assertEquals(eu.smartsteer.navigator.ui.MachineModels.Kind.TRAILER, eu.smartsteer.navigator.ui.MachineModels.kindOfType("ciagnik/przyczepa"))
+        assertEquals(eu.smartsteer.navigator.ui.MachineModels.Kind.SPREADER, eu.smartsteer.navigator.ui.MachineModels.kindOf("Ursus", "rozsiewacz"))
     }
 
     @Test

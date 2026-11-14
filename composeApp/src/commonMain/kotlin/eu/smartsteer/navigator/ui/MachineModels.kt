@@ -18,7 +18,7 @@ import kotlin.math.sqrt
  * z góry. Własne kształty — żadnych cudzych grafik.
  */
 object MachineModels {
-    enum class Kind { COMBINE, SPRAYER, SEEDER, TRACTOR }
+    enum class Kind { COMBINE, SPRAYER, SEEDER, TRACTOR, LOADER, SPREADER, TRAILER, CULTIVATOR }
 
     /** Rodzaj z nazwy pojazdu i maszyny (WAR: „pojazd”, „narzedzie”). */
     fun kindOf(tractor: String, tool: String): Kind {
@@ -26,7 +26,11 @@ object MachineModels {
         return when {
             listOf("kombajn", "combine", "harvester", "lexion", "tucano").any { it in t } -> Kind.COMBINE
             listOf("oprysk", "sprayer", "spray").any { it in t } -> Kind.SPRAYER
+            listOf("rozsiew", "spreader").any { it in t } -> Kind.SPREADER
             listOf("siewnik", "siew", "seeder", "drill", "sadzark").any { it in t } -> Kind.SEEDER
+            listOf("ładowark", "ladowark", "teleskop", "manitou", "loader", "telehandler").any { it in t } -> Kind.LOADER
+            listOf("przyczep", "trailer").any { it in t } -> Kind.TRAILER
+            listOf("agregat", "kultywator", "brona", "talerzów", "pług", "plug", "cultivator").any { it in t } -> Kind.CULTIVATOR
             else -> Kind.TRACTOR
         }
     }
@@ -39,6 +43,10 @@ object MachineModels {
             "kombajn" in parts -> Kind.COMBINE
             "opryskiwacz" in parts -> Kind.SPRAYER
             "siewnik" in parts -> Kind.SEEDER
+            "ladowarka" in parts -> Kind.LOADER
+            "rozsiewacz" in parts -> Kind.SPREADER
+            "przyczepa" in parts -> Kind.TRAILER
+            "uprawa" in parts -> Kind.CULTIVATOR
             else -> Kind.TRACTOR
         }
     }
@@ -286,6 +294,62 @@ object MachineModels {
         return l
     }
 
+    /**
+     * Ładowarka teleskopowa: niskie podwozie z czterema równymi kołami, wąska kabina po lewej, osłona silnika po prawej,
+     * wysięgnik od tyłu nad kabiną do przodu z łyżką, przeciwwaga z tyłu.
+     */
+    private fun loader(body: Color): List<Part> {
+        val dark = shade(body, 0.75f)
+        val l = ArrayList<Part>()
+        l += wheel(-0.98, 0.0, 0.66, 0.5, 0.0, DARK) + wheel(0.98, 0.0, 0.66, 0.5, 0.0, DARK)
+        l += wheel(-0.98, 2.9, 0.66, 0.5, 0.0, DARK) + wheel(0.98, 2.9, 0.66, 0.5, 0.0, DARK)
+        l += listOf(
+            box(0.0, 1.45, 1.3, 4.1, 0.45, 0.5, BLACK),                                                                  // rama
+            Part(0.0, 0.0, 2.2, listOf(-0.95 to 0.6, -0.55 to 0.6, -0.55 to 1.35, -0.95 to 1.35), dark),              // przeciwwaga
+            Part(0.62, 0.0, 0.85, listOf(-0.55 to 0.75, 2.2 to 0.75, 2.2 to 1.45, -0.4 to 1.6), body),                // osłona silnika
+            Part(-0.58, 0.0, 0.92, listOf(0.6 to 0.9, 2.15 to 0.9, 2.35 to 2.35, 0.75 to 2.42), GLASS.copy(alpha = 0.82f), edges = false), // kabina
+            Part(-0.58, 0.0, 1.0, listOf(0.55 to 2.38, 2.45 to 2.33, 2.45 to 2.5, 0.55 to 2.55), body),               // dach
+            Part(-0.58, 0.0, 0.96, listOf(0.6 to 0.85, 2.2 to 0.85, 2.2 to 1.0, 0.6 to 1.0), body),                   // dół kabiny
+            // wysięgnik: z przegubu z tyłu do przodu, lekko w dół, i łyżka
+            Part(0.05, 0.0, 0.48, listOf(-0.75 to 1.55, 4.35 to 0.95, 4.4 to 1.3, -0.7 to 2.0), body),
+            Part(0.05, 0.0, 0.5, listOf(1.9 to 1.0, 2.25 to 1.0, 2.2 to 1.55, 1.95 to 1.6), BLACK),                   // siłownik
+            Part(0.0, 0.0, 2.3, listOf(4.25 to 0.12, 5.25 to 0.12, 5.3 to 0.28, 4.4 to 1.05, 4.25 to 1.05), STEEL),   // łyżka
+            round(-0.35, 1.3, 2.62, 0.06, 0.07, 0.12, BEACON, 8),
+        )
+        return l
+    }
+
+    /** Rozsiewacz nawozu zawieszany: lej, zwężenie do talerzy, dwa talerze, rama. */
+    private fun spreader(): List<Part> {
+        val c = Color(0xFF3F7F9F)
+        return listOf(
+            box(0.0, -1.35, 0.7, 0.5, 0.45, 0.6, DARK),
+            box(0.0, -2.9, 1.4, 1.3, 0.45, 0.12, DARK),
+            Part(0.0, 0.0, 1.0, listOf(-3.3 to 0.62, -2.6 to 0.62, -2.35 to 1.0, -3.55 to 1.0), shade(c, 0.85f)),     // zwężenie
+            Part(0.0, 0.0, 2.4, listOf(-3.55 to 1.0, -2.35 to 1.0, -2.05 to 1.95, -3.85 to 1.95), c),                 // lej
+            Part(0.0, 0.0, 2.48, listOf(-3.9 to 1.92, -2.0 to 1.92, -2.0 to 2.0, -3.9 to 2.0), shade(c, 0.7f)),       // obrzeże
+            box(-0.42, -2.95, 0.62, 0.62, 0.5, 0.05, STEEL), box(0.42, -2.95, 0.62, 0.62, 0.5, 0.05, STEEL),          // talerze
+        )
+    }
+
+    /** Przyczepa: dyszel, skrzynia z burtami, dwie osie. */
+    private fun trailer(): List<Part> {
+        val c = Color(0xFF9A3A2A)
+        val l = ArrayList<Part>()
+        l += listOf(
+            Part(0.0, 0.0, 0.18, listOf(-2.3 to 0.45, -1.1 to 0.55, -1.1 to 0.65, -2.3 to 0.7), DARK),               // dyszel
+            box(0.0, -5.2, 1.6, 5.4, 0.75, 0.25, DARK),                                                               // podwozie
+        )
+        for (y in listOf(-4.6, -5.8)) l += wheel(-1.0, y, 0.52, 0.4) + wheel(1.0, y, 0.52, 0.4)
+        l += listOf(
+            box(0.0, -5.1, 2.45, 5.8, 1.0, 0.12, shade(c, 0.8f)),                                                     // podłoga
+            box(-1.2, -5.1, 0.06, 5.8, 1.1, 1.1, c), box(1.2, -5.1, 0.06, 5.8, 1.1, 1.1, c),                          // burty boczne
+            box(0.0, -2.23, 2.45, 0.06, 1.1, 1.3, c), box(0.0, -7.97, 2.45, 0.06, 1.1, 1.1, c),                       // przednia i tylna
+            box(-1.2, -5.1, 0.08, 5.82, 2.18, 0.05, shade(c, 0.6f)), box(1.2, -5.1, 0.08, 5.82, 2.18, 0.05, shade(c, 0.6f)),
+        )
+        return l
+    }
+
     /** Siewnik: skrzynia nasienna z pokrywą, belka z redlicami (talerze), zagarniacz. */
     private fun seeder(w: Double): List<Part> {
         val blue = Color(0xFF3B6FA8)
@@ -314,6 +378,10 @@ object MachineModels {
             Kind.SPRAYER -> tractor(body) + sprayer(w)
             Kind.SEEDER -> tractor(body) + seeder(w)
             Kind.TRACTOR -> tractor(body) + if (width > 0.5) cultivator(width) else emptyList()
+            Kind.CULTIVATOR -> tractor(body) + cultivator(w)
+            Kind.SPREADER -> tractor(body) + spreader()
+            Kind.TRAILER -> tractor(body) + trailer()
+            Kind.LOADER -> loader(body)
         }
     }
 

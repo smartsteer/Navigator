@@ -32,6 +32,10 @@ class ModelGalleryTest {
                 Triple("ciagnik", MachineModels.Kind.TRACTOR, Color(0xFFD8322B)),
                 Triple("opryskiwacz", MachineModels.Kind.SPRAYER, Color(0xFFFF8C1A)),
                 Triple("siewnik", MachineModels.Kind.SEEDER, Color(0xFF2F6BD8)),
+                Triple("ladowarka", MachineModels.Kind.LOADER, Color(0xFFD8322B)),
+                Triple("rozsiewacz", MachineModels.Kind.SPREADER, Color(0xFF2E8B3E)),
+                Triple("przyczepa", MachineModels.Kind.TRAILER, Color(0xFF2F6BD8)),
+                Triple("uprawa", MachineModels.Kind.CULTIVATOR, Color(0xFFFF8C1A)),
             )
             for ((name, kind, color) in kinds) {
                 val scene = ImageComposeScene(1600, 500, Density(1f)) {
