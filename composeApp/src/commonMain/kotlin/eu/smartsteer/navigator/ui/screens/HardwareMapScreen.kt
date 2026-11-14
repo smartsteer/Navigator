@@ -287,7 +287,8 @@ private fun GuideSheet(hw: HardwareController, modifier: Modifier, onClose: () -
             GuidanceMode.AB -> AbControls(hw)
             GuidanceMode.CURVE -> CurveControls(hw)
             GuidanceMode.CONTOUR -> {
-                Label("Prowadzi wzdłuż poprzedniego przejazdu, o szerokość maszyny obok. Przejazdy nagrywają się same podczas jazdy.", Ss.TextSoft, 13.sp)
+                Label("Prowadzi wzdłuż poprzedniego przejazdu, o szerokość maszyny obok. Jak w AgOpenGPS ślad nagrywa się tylko, gdy pracuje sekcja (przycisk sekcji AUTO albo RĘCZNIE).", Ss.TextSoft, 13.sp)
+                if (!s.sections.anyOn()) Label("Sekcje teraz nie pracują — ślad się nie nagrywa.", Ss.Warning, 13.sp)
                 ActionButton(Modifier.fillMaxWidth(), onClick = { s.clearContour(); hw.touch() }) { ButtonText("Wyczyść ślady", color = Ss.TextSoft) }
             }
         }
