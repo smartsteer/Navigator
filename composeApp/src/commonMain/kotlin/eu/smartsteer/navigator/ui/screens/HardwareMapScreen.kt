@@ -1215,7 +1215,8 @@ private fun HwCanvas(
             }
             // ciągnik: strzałka, ciągnik z góry (przednie koła skręcają jak prawdziwe) albo własny obraz — Ustawienia → Ciągnik
             val p = s.pivot
-            if (p != null) {
+            // w 3D własny ciągnik rysuje FleetOverlay (bryła stoi), tu tylko własny obraz, który nie ma bryły
+            if (p != null && (!tilt || (DisplayPrefs.tractorIcon == 2 && eu.smartsteer.navigator.ui.TractorIcons.custom != null))) {
                 drawTractorIcon({ o(it) }, p, s.headingRad, s.profile, s.autosteer?.actualAngleDeg ?: 0.0, outline = Ss.Text, px = px)
                 if (DisplayPrefs.tractorIcon == 0) drawCircle(Ss.Text, 4f * px, o(p))
             }
@@ -1266,9 +1267,10 @@ private fun FleetOverlay(hw: HardwareController, zoom: Float, headingUp: Boolean
     Canvas(modifier) {
         hw.tick
         val s = hw.session
-        val plane = s.plane ?: return@Canvas
-        val fleet = hw.war.fleet.values
-        if (fleet.isEmpty()) return@Canvas
+        val plane = s.plane
+        val fleet = if (plane != null) hw.war.fleet.values else emptyList()
+        val own3d = tilt && s.pivot != null && (DisplayPrefs.tractorIcon != 2 || eu.smartsteer.navigator.ui.TractorIcons.custom == null)
+        if (fleet.isEmpty() && !own3d) return@Canvas
         val sc = zoom * density
         val pos = s.pivot ?: Vec2.ZERO
         val viewFwd = Vec2.forward(hw.viewHeading)
@@ -1292,7 +1294,7 @@ private fun FleetOverlay(hw: HardwareController, zoom: Float, headingUp: Boolean
             if (den < d * 0.08f) return null
             return pz to Offset(ox + u * d / den, oy + py * d / den)
         }
-        val items = fleet.mapNotNull { m -> val mp = plane.toLocal(m.lat, m.lon); project(mp, 0.0)?.let { Triple(m, mp, it.first) } }
+        val items = fleet.mapNotNull { m -> val mp = plane!!.toLocal(m.lat, m.lon); project(mp, 0.0)?.let { Triple(m, mp, it.first) } }
             .sortedByDescending { it.third }
         for ((m, mp, _) in items) {
             val h = m.courseDeg * PI / 180
@@ -1336,6 +1338,13 @@ private fun FleetOverlay(hw: HardwareController, zoom: Float, headingUp: Boolean
             drawCircle(mc, dot / 2, Offset(tl.x + padX + dot / 2, tl.y + bh / 2))
             drawText(layout, topLeft = Offset(tl.x + padX + dot + 6f * density * k, tl.y + padY))
             if (tilt) drawCircle(mc.copy(alpha = 0.6f), 2.5f * density, anchor.copy(y = bottom + tail))
+        }
+        // własny ciągnik w 3D jako bryła (albo gruba strzałka) — z góry zostaje płaska ikona na mapie
+        val p0 = s.pivot
+        if (own3d && p0 != null) with(eu.smartsteer.navigator.ui.MachineModels) {
+            val body = eu.smartsteer.navigator.ui.TractorIcons.bodyColor()
+            if (DisplayPrefs.tractorIcon == 0) drawOwnArrow({ p, z -> project(p, z) }, p0, s.headingRad, body, Ss.Text)
+            else drawOwnTractor({ p, z -> project(p, z) }, p0, s.headingRad, body, s.profile.wheelbase, s.profile.trackWidth, s.autosteer?.actualAngleDeg ?: 0.0, Ss.Text)
         }
     }
 }
