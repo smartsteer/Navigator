@@ -148,32 +148,146 @@ object MachineModels {
         return list
     }
 
+
+    private val ACCENT = Color(0xFFE2BE2C)
+    private val BLACK = Color(0xFF15181A)
+
+    /** Rura wzdłuż maszyny (oś y): środek (cx, cy), długość [len], na wysokości [z]. */
+    private fun tubeY(cx: Double, cy: Double, len: Double, z: Double, r: Double, c: Color, n: Int = 8) =
+        Part(cx, cy, len, (0 until n).map { val a = 2 * PI * it / n; r * cos(a) to z + r * sin(a) }, c, 90.0, false)
+
+    /** Rura w poprzek maszyny (oś x). */
+    private fun tubeX(cx: Double, y: Double, len: Double, z: Double, r: Double, c: Color, n: Int = 8) =
+        Part(cx, 0.0, len, (0 until n).map { val a = 2 * PI * it / n; y + r * cos(a) to z + r * sin(a) }, c, 0.0, false)
+
+    /**
+     * Kombajn zbożowy: heder z nagarniaczem (listwy na kole), ślimakiem i rozdzielaczami na końcach, przenośnik pochyły,
+     * wysoki korpus z panelami bocznymi i paskiem, zbiornik ziarna z obrzeżem, rura wyładowcza złożona wzdłuż lewego boku,
+     * przeszklona kabina z daszkiem, kogutem i barierką, drabinka, duże koła napędowe z przodu i małe skrętne z tyłu,
+     * kratka chłodnicy i rozrzutnik słomy z tyłu.
+     */
+    private fun combine(body: Color, hw: Double): List<Part> {
+        val dark = shade(body, 0.78f)
+        val l = ArrayList<Part>()
+        l += wheel(-1.5, 1.6, 0.92, 0.78, 0.0, ACCENT) + wheel(1.5, 1.6, 0.92, 0.78, 0.0, ACCENT)
+        l += wheel(-1.3, -3.3, 0.6, 0.45, 0.0, ACCENT) + wheel(1.3, -3.3, 0.6, 0.45, 0.0, ACCENT)
+        for (sx in listOf(-1.0, 1.0)) l += Part(sx * 1.5, 1.6, 0.86, arc(0.98, 0.92, 0.07, 10.0, 120.0, 7), body)   // błotniki
+        l += listOf(
+            // korpus: ścięte rogi z przodu i z tyłu
+            Part(0.0, 0.0, 2.3, listOf(-4.0 to 0.95, 2.3 to 0.95, 2.6 to 1.3, 2.6 to 2.95, -3.5 to 3.15, -4.0 to 2.6), body),
+            // panele boczne (szersze, odrobinę ciemniejsze) i pasek wzdłuż boku
+            Part(0.0, 0.0, 2.75, listOf(-3.3 to 1.15, 0.6 to 1.15, 0.6 to 2.85, -3.3 to 2.95), shade(body, 0.92f)),
+            Part(0.0, 0.0, 2.78, listOf(-3.4 to 2.45, 0.65 to 2.45, 0.65 to 2.52, -3.4 to 2.52), ACCENT, edges = false),
+            box(0.0, -2.0, 1.9, 2.6, 0.55, 0.45, BLACK),                                                          // podwozie
+            // zbiornik ziarna z pochylonymi ścianami i ciemnym obrzeżem
+            Part(0.0, 0.0, 2.85, listOf(-2.3 to 3.1, 0.6 to 3.1, 1.25 to 3.85, 1.15 to 4.1, -2.65 to 4.1, -2.75 to 3.85), body),
+            Part(0.0, 0.0, 2.95, listOf(-2.7 to 4.05, 1.2 to 4.05, 1.2 to 4.18, -2.7 to 4.18), dark),
+            // tył: kratka chłodnicy, wydech, rozrzutnik słomy
+            box(0.0, -3.3, 2.0, 1.1, 3.05, 0.45, BLACK),
+            Part(0.65, 0.0, 0.16, listOf(-2.98 to 3.3, -2.82 to 3.3, -2.82 to 4.05, -2.98 to 4.05), BLACK),         // wydech
+            Part(0.0, 0.0, 1.9, listOf(-4.45 to 0.85, -3.95 to 0.85, -3.95 to 1.65, -4.3 to 1.55), BLACK),
+            // rura wyładowcza złożona wzdłuż lewego boku, z wylotem z tyłu
+            tubeY(-1.55, -0.9, 6.4, 3.75, 0.17, body, 10),
+            Part(-1.55, -4.1, 0.34, listOf(-0.12 to 3.35, 0.12 to 3.35, 0.15 to 3.75, -0.15 to 3.75), dark, 90.0),
+            // przenośnik pochyły do hedera
+            Part(0.0, 0.0, 1.45, listOf(2.3 to 0.95, 3.85 to 0.55, 4.1 to 0.72, 4.1 to 1.6, 2.6 to 2.35), dark),
+            // kabina: podest, przeszklenie (przód załamany), czarne słupki, daszek z lampami i kogutem
+            box(0.0, 2.0, 2.5, 2.0, 2.85, 0.2, BLACK),
+            Part(0.0, 0.0, 1.95, listOf(1.15 to 3.05, 2.65 to 3.05, 3.05 to 3.65, 3.05 to 4.35, 1.15 to 4.45), GLASS.copy(alpha = 0.82f), edges = false),
+        )
+        for (sx in listOf(-1.0, 1.0)) {
+            l += Part(sx * 0.98, 0.0, 0.08, listOf(2.95 to 3.05, 3.1 to 3.05, 3.12 to 4.38, 2.98 to 4.38), BLACK)       // słupki przednie
+            l += Part(sx * 0.98, 0.0, 0.08, listOf(1.12 to 3.05, 1.25 to 3.05, 1.25 to 4.45, 1.12 to 4.45), BLACK)       // tylne
+            l += tubeY(sx * 1.24, 2.0, 1.9, 3.45, 0.025, STEEL, 6)                                                     // barierka
+            l += Part(sx * 1.24, 0.0, 0.04, listOf(1.15 to 2.95, 1.2 to 2.95, 1.2 to 3.45, 1.15 to 3.45), STEEL)
+            l += Part(sx * 1.24, 0.0, 0.04, listOf(2.85 to 2.95, 2.9 to 2.95, 2.9 to 3.45, 2.85 to 3.45), STEEL)
+        }
+        l += listOf(
+            Part(0.0, 0.0, 2.15, listOf(1.0 to 4.4, 3.2 to 4.33, 3.28 to 4.5, 1.0 to 4.62), body),                        // daszek
+            box(0.0, 3.22, 1.7, 0.08, 4.36, 0.1, BLACK),
+            box(-0.55, 3.27, 0.14, 0.04, 4.38, 0.06, LAMP), box(0.55, 3.27, 0.14, 0.04, 4.38, 0.06, LAMP),
+            round(-0.7, 1.4, 4.7, 0.07, 0.08, 0.12, BEACON, 8),
+            // drabinka po lewej przed kołem
+            Part(-1.3, 0.0, 0.06, listOf(2.45 to 0.5, 2.6 to 0.5, 2.15 to 2.9, 2.0 to 2.9), STEEL),
+            Part(-1.3, 0.0, 0.5, listOf(2.2 to 1.3, 2.4 to 1.3, 2.38 to 1.36, 2.18 to 1.36), BLACK),
+            Part(-1.3, 0.0, 0.5, listOf(2.08 to 2.0, 2.28 to 2.0, 2.26 to 2.06, 2.06 to 2.06), BLACK),
+        )
+        // heder: podłoga z listwą tnącą, tylna ściana, ślimak, ściany boczne z rozdzielaczami, nagarniacz
+        l += listOf(
+            Part(0.0, 0.0, hw, listOf(3.95 to 0.25, 5.15 to 0.22, 5.25 to 0.32, 3.95 to 0.45), dark),
+            Part(0.0, 0.0, hw, listOf(3.8 to 0.3, 4.1 to 0.3, 4.15 to 1.6, 3.85 to 1.6), body),
+            tubeX(0.0, 4.4, hw - 0.3, 0.68, 0.28, ACCENT, 10),
+            box(0.0, 5.2, hw - 0.1, 0.08, 0.23, 0.05, STEEL),
+        )
+        for (sx in listOf(-1.0, 1.0)) {
+            val ex = sx * (hw / 2 - 0.03)
+            l += Part(ex, 0.0, 0.06, listOf(3.8 to 0.25, 5.15 to 0.25, 4.7 to 1.05, 3.85 to 1.65), body)              // ściana boczna
+            l += Part(sx * (hw / 2 + 0.08), 0.0, 0.2, listOf(4.6 to 0.2, 6.0 to 0.25, 4.7 to 0.95), ACCENT)          // rozdzielacz
+            l += Part(sx * (hw / 2 - 0.15), 0.0, 0.08, listOf(3.9 to 1.5, 4.05 to 1.45, 4.95 to 1.5, 4.9 to 1.62), BLACK) // ramię nagarniacza
+        }
+        // nagarniacz: listwy na kole Ø 1,1 m i tarcze na końcach
+        val ry = 4.95; val rz = 1.5; val rr = 0.55
+        for (k in 0 until 6) {
+            val a = 2 * PI * k / 6 + 0.3
+            l += tubeX(0.0, ry + rr * cos(a), hw - 0.45, rz + rr * sin(a), 0.035, ACCENT, 6)
+        }
+        for (sx in listOf(-1.0, 1.0)) {
+            l += Part(sx * (hw / 2 - 0.22), 0.0, 0.04, (0 until 6).map { val a = 2 * PI * it / 6 + 0.3; ry + rr * cos(a) to rz + rr * sin(a) }, BLACK, 0.0, false)
+        }
+        l += tubeX(0.0, ry, hw - 0.4, rz, 0.06, BLACK, 6)                                                              // wał
+        return l
+    }
+
+    /** Opryskiwacz zawieszany: zbiornik z pokrywą, rama, belka kratownicowa z rurą cieczy i rozpylaczami. */
+    private fun sprayer(w: Double): List<Part> {
+        val white = Color(0xFFE6E8E6)
+        val l = ArrayList<Part>()
+        l += listOf(
+            box(0.0, -1.35, 0.7, 0.5, 0.55, 0.6, DARK),                                                                // zawieszenie
+            box(0.0, -3.0, 1.9, 2.6, 0.45, 0.22, DARK),                                                                // rama
+            Part(0.0, 0.0, 1.75, (0 until 14).map { val a = 2 * PI * it / 14; -3.0 + 1.2 * cos(a) to 1.5 + 0.82 * sin(a) }, white), // zbiornik
+            Part(0.0, 0.0, 0.5, (0 until 10).map { k -> val a = 2 * PI * k / 10; -2.6 + 0.24 * cos(a) to 2.36 + 0.08 * sin(a) }, Color(0xFFF0B020)), // pokrywa wlewu
+            box(0.0, -4.35, 1.2, 0.3, 0.6, 1.2, DARK),                                                                 // wieża belki
+        )
+        // belka: górna i dolna rura, ukośne pręty, rura cieczy i rozpylacze
+        l += tubeX(0.0, -4.65, w, 1.55, 0.05, STEEL, 6)
+        l += tubeX(0.0, -4.65, w, 0.95, 0.06, STEEL, 6)
+        l += tubeX(0.0, -4.75, w, 0.85, 0.025, BLACK, 6)
+        val n = (w / 1.5).toInt().coerceIn(2, 30)
+        for (i in 0..n) {
+            val x = -w / 2 + w * i / n
+            l += Part(x, 0.0, 0.05, listOf(-4.68 to 0.95, -4.62 to 0.95, -4.62 to 1.55, -4.68 to 1.55), STEEL, 0.0, false)
+        }
+        return l
+    }
+
+    /** Siewnik: skrzynia nasienna z pokrywą, belka z redlicami (talerze), zagarniacz. */
+    private fun seeder(w: Double): List<Part> {
+        val blue = Color(0xFF3B6FA8)
+        val l = ArrayList<Part>()
+        val hb = minOf(w, 3.0)
+        l += listOf(
+            box(0.0, -1.35, 0.7, 0.5, 0.45, 0.6, DARK),
+            box(0.0, -2.9, w, 1.7, 0.45, 0.25, DARK),                                                                  // rama
+            Part(0.0, 0.0, hb, listOf(-3.35 to 0.75, -2.45 to 0.75, -2.15 to 1.75, -3.65 to 1.75), blue),            // skrzynia
+            Part(0.0, 0.0, hb + 0.06, listOf(-3.7 to 1.72, -2.1 to 1.72, -2.2 to 1.86, -3.6 to 1.86), shade(blue, 0.8f)), // pokrywa
+            tubeX(0.0, -3.9, w, 0.4, 0.05, STEEL, 6),                                                                  // zagarniacz
+        )
+        // redlice talerzowe co ~0,25 m (najwyżej 24 widoczne)
+        val n = (w / 0.25).toInt().coerceIn(4, 24)
+        for (i in 0 until n) {
+            val x = -w / 2 + w * (i + 0.5) / n
+            l += Part(x, -3.3, 0.04, (0 until 10).map { k -> val a = 2 * PI * k / 10; 0.2 * cos(a) to 0.22 + 0.2 * sin(a) }, STEEL, 0.0, false)
+        }
+        return l
+    }
+
     private fun parts(kind: Kind, body: Color, width: Double): List<Part> {
         val w = if (width > 0.5) width else 3.0
         return when (kind) {
-            Kind.COMBINE -> {
-                val hw = if (width > 0.5) width else 6.0
-                val dark = shade(body, 0.82f)
-                wheel(-1.6, 2.0, 0.95, 0.75) + wheel(1.6, 2.0, 0.95, 0.75) + wheel(-1.35, -2.3, 0.6, 0.45) + wheel(1.35, -2.3, 0.6, 0.45) + listOf(
-                    Part(0.0, 0.0, hw, listOf(4.0 to 0.3, 5.4 to 0.3, 5.45 to 0.5, 4.35 to 1.25, 4.0 to 1.25), Color(0xFFD9A930)), // heder
-                    Part(0.0, 0.0, 1.3, listOf(2.9 to 0.75, 4.15 to 0.75, 4.15 to 1.45, 2.9 to 2.1), dark),           // przenośnik pochyły
-                    Part(0.0, 0.0, 2.9, listOf(-3.0 to 0.95, 2.8 to 0.95, 2.8 to 3.4, -2.3 to 3.4, -3.0 to 2.6), body), // korpus
-                    Part(0.0, 0.0, 2.6, listOf(-1.5 to 3.4, 1.2 to 3.4, 1.45 to 4.3, -1.75 to 4.3), dark),           // zbiornik ziarna
-                    Part(0.0, 0.0, 1.8, listOf(1.6 to 3.4, 3.25 to 3.4, 3.55 to 4.8, 1.6 to 4.9), GLASS),            // kabina
-                    Part(0.0, 0.0, 2.0, listOf(1.45 to 4.85, 3.7 to 4.78, 3.65 to 5.0, 1.45 to 5.06), shade(body, 0.92f)),
-                    round(-2.9, 0.6, 3.9, 0.17, 0.17, 3.4, STEEL, 8),                                                   // rura wyładowcza
-                )
-            }
-            Kind.SPRAYER -> tractor(body) + listOf(
-                round(0.0, -3.4, 1.45, 1.15, 0.8, 1.7, Color(0xFFE6E8E6)),                                       // zbiornik
-                box(0.0, -3.4, 1.9, 2.5, 0.45, 0.25, DARK),                                                       // rama
-                box(0.0, -4.85, w, 0.18, 1.1, 0.16, STEEL),                                                       // belka
-                box(0.0, -4.85, 0.5, 0.5, 0.55, 0.8, DARK),
-            )
-            Kind.SEEDER -> tractor(body) + listOf(
-                box(0.0, -3.0, w, 1.6, 0.25, 0.75, Color(0xFF3B6FA8)),
-                Part(0.0, 0.0, minOf(w, 2.6), listOf(-3.6 to 1.0, -2.4 to 1.0, -2.25 to 1.95, -3.75 to 1.95), Color(0xFF2E5A8C)), // skrzynia nasienna
-            )
+            Kind.COMBINE -> combine(body, if (width > 0.5) width else 6.0)
+            Kind.SPRAYER -> tractor(body) + sprayer(w)
+            Kind.SEEDER -> tractor(body) + seeder(w)
             Kind.TRACTOR -> tractor(body) + if (width > 0.5) listOf(box(0.0, -2.6, width, 0.9, 0.2, 0.8, Color(0xFFB0662A))) else emptyList()
         }
     }
