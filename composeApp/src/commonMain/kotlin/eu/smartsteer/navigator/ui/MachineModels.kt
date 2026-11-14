@@ -117,12 +117,14 @@ object MachineModels {
             box(0.0, wb * 0.55, 0.7, wb * 0.9, 0.55, 0.45, DARK),                                               // rama pod maską
             // maska: od kabiny do przodu, przód zaokrąglony w dół
             Part(0.0, 0.0, 1.02, listOf(0.7 to 0.95, wb + 0.75 to 0.95, wb + 0.98 to 1.15, wb + 0.95 to 1.5, wb + 0.7 to 1.68, 0.7 to 1.82), body),
-            Part(0.0, 0.0, 1.05, listOf(0.75 to 1.5, wb + 0.85 to 1.42, wb + 0.85 to 1.47, 0.75 to 1.55), STRIPE, edges = false), // pasek
+            // pasek tylko na bokach maski (cienkie listwy tuż obok niej — nie zasłaniają wierzchu)
+            Part(-0.52, 0.0, 0.02, listOf(0.75 to 1.5, wb + 0.85 to 1.42, wb + 0.85 to 1.47, 0.75 to 1.55), STRIPE, edges = false),
+            Part(0.52, 0.0, 0.02, listOf(0.75 to 1.5, wb + 0.85 to 1.42, wb + 0.85 to 1.47, 0.75 to 1.55), STRIPE, edges = false),
             // czarna atrapa z przodu i światła po bokach atrapy
             Part(0.0, 0.0, 0.86, listOf(wb + 0.72 to 0.75, wb + 1.0 to 0.75, wb + 1.03 to 1.12, wb + 1.0 to 1.4, wb + 0.72 to 1.4), Color(0xFF15181A)),
             box(-0.4, wb + 1.0, 0.16, 0.06, 1.28, 0.1, LAMP), box(0.4, wb + 1.0, 0.16, 0.06, 1.28, 0.1, LAMP),
             // obciążnik
-            Part(0.0, 0.0, 1.05, listOf(wb + 0.95 to 0.45, wb + 1.55 to 0.45, wb + 1.6 to 0.6, wb + 1.55 to 1.0, wb + 0.95 to 1.0), Color(0xFF2B2F31)),
+            Part(0.0, 0.0, 1.05, listOf(wb + 0.95 to 0.55, wb + 1.4 to 0.55, wb + 1.45 to 0.68, wb + 1.4 to 0.98, wb + 0.95 to 0.98), Color(0xFF2B2F31)),
             // kabina: szyby i czarne słupki w narożnikach
             Part(0.0, 0.0, 1.55, listOf(-0.75 to 1.15, 0.95 to 1.15, 1.08 to 2.7, -0.72 to 2.72), GLASS.copy(alpha = 0.82f), edges = false),
         )
@@ -177,13 +179,15 @@ object MachineModels {
             Part(0.0, 0.0, 2.3, listOf(-4.0 to 0.95, 2.3 to 0.95, 2.6 to 1.3, 2.6 to 2.95, -3.5 to 3.15, -4.0 to 2.6), body),
             // panele boczne (szersze, odrobinę ciemniejsze) i pasek wzdłuż boku
             Part(0.0, 0.0, 2.75, listOf(-3.3 to 1.15, 0.6 to 1.15, 0.6 to 2.85, -3.3 to 2.95), shade(body, 0.92f)),
-            Part(0.0, 0.0, 2.78, listOf(-3.4 to 2.45, 0.65 to 2.45, 0.65 to 2.52, -3.4 to 2.52), ACCENT, edges = false),
+            Part(-1.39, 0.0, 0.02, listOf(-3.3 to 2.45, 0.6 to 2.45, 0.6 to 2.52, -3.3 to 2.52), ACCENT, edges = false),
+            Part(1.39, 0.0, 0.02, listOf(-3.3 to 2.45, 0.6 to 2.45, 0.6 to 2.52, -3.3 to 2.52), ACCENT, edges = false),
             box(0.0, -2.0, 1.9, 2.6, 0.55, 0.45, BLACK),                                                          // podwozie
             // zbiornik ziarna z pochylonymi ścianami i ciemnym obrzeżem
             Part(0.0, 0.0, 2.85, listOf(-2.3 to 3.1, 0.6 to 3.1, 1.25 to 3.85, 1.15 to 4.1, -2.65 to 4.1, -2.75 to 3.85), body),
             Part(0.0, 0.0, 2.95, listOf(-2.7 to 4.05, 1.2 to 4.05, 1.2 to 4.18, -2.7 to 4.18), dark),
             // tył: kratka chłodnicy, wydech, rozrzutnik słomy
-            box(0.0, -3.3, 2.0, 1.1, 3.05, 0.45, BLACK),
+            Part(0.0, 0.0, 2.0, listOf(-3.85 to 3.05, -2.75 to 3.05, -2.75 to 3.45, -3.6 to 3.55), body),            // osłona silnika
+            Part(0.0, 0.0, 2.04, listOf(-3.7 to 3.1, -2.95 to 3.1, -2.95 to 3.38, -3.55 to 3.45), BLACK),           // kratka (widać po bokach)
             Part(0.65, 0.0, 0.16, listOf(-2.98 to 3.3, -2.82 to 3.3, -2.82 to 4.05, -2.98 to 4.05), BLACK),         // wydech
             Part(0.0, 0.0, 1.9, listOf(-4.45 to 0.85, -3.95 to 0.85, -3.95 to 1.65, -4.3 to 1.55), BLACK),
             // rura wyładowcza złożona wzdłuż lewego boku, z wylotem z tyłu
@@ -264,6 +268,24 @@ object MachineModels {
         return l
     }
 
+    /** Inna maszyna za ciągnikiem (np. agregat uprawowy): rama, zęby i wał doprawiający. */
+    private fun cultivator(w: Double): List<Part> {
+        val c = Color(0xFFB0662A)
+        val l = ArrayList<Part>()
+        l += box(0.0, -1.35, 0.7, 0.5, 0.45, 0.6, DARK)
+        l += box(0.0, -2.4, w, 0.14, 0.75, 0.14, c)
+        l += box(0.0, -3.0, w, 0.14, 0.75, 0.14, c)
+        l += box(0.0, -2.7, 0.3, 1.1, 0.8, 0.1, c)
+        l += tubeX(0.0, -3.75, w, 0.28, 0.27, shade(c, 0.8f), 10)                                                    // wał
+        val n = (w / 0.45).toInt().coerceIn(4, 30)
+        for (i in 0 until n) {
+            val x = -w / 2 + w * (i + 0.5) / n
+            val y = if (i % 2 == 0) -2.4 else -3.0
+            l += Part(x, 0.0, 0.04, listOf(y - 0.03 to 0.05, y + 0.1 to 0.05, y + 0.04 to 0.8, y - 0.03 to 0.8), STEEL, 0.0, false)
+        }
+        return l
+    }
+
     /** Siewnik: skrzynia nasienna z pokrywą, belka z redlicami (talerze), zagarniacz. */
     private fun seeder(w: Double): List<Part> {
         val blue = Color(0xFF3B6FA8)
@@ -291,7 +313,7 @@ object MachineModels {
             Kind.COMBINE -> combine(body, if (width > 0.5) width else 6.0)
             Kind.SPRAYER -> tractor(body) + sprayer(w)
             Kind.SEEDER -> tractor(body) + seeder(w)
-            Kind.TRACTOR -> tractor(body) + if (width > 0.5) listOf(box(0.0, -2.6, width, 0.9, 0.2, 0.8, Color(0xFFB0662A))) else emptyList()
+            Kind.TRACTOR -> tractor(body) + if (width > 0.5) cultivator(width) else emptyList()
         }
     }
 
