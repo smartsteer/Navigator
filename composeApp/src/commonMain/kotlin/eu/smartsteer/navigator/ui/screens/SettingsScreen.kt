@@ -205,8 +205,19 @@ private fun ColumnScope.ToolTab(p: VehicleProfile, set: (VehicleProfile) -> Unit
         }
         Label("Razem: ${p.sectionWidths.sum().pl(2)} m (= szerokość robocza)", Ss.TextSoft, 14.sp)
     }
-    Num("Włączanie z wyprzedzeniem", "Czas otwarcia zaworu / opadania", p.lookAheadOn, "s", 0.1, 0.0, 5.0, 1) { set(p.copy(lookAheadOn = it)) }
-    Num("Wyłączanie z wyprzedzeniem", "Czas zamknięcia zaworu", p.lookAheadOff, "s", 0.1, 0.0, 5.0, 1) { set(p.copy(lookAheadOff = it)) }
+    // jak w AgOpenGPS (ConfigTool): wyłączanie najwyżej 0,8 × włączanie; zmiana wyprzedzenia zeruje opóźnienie wyłączenia
+    Num("Włączanie z wyprzedzeniem", "Czas otwarcia zaworu / opadania", p.lookAheadOn, "s", 0.1, 0.0, 22.0, 1) {
+        set(p.copy(lookAheadOn = it, lookAheadOff = p.lookAheadOff.coerceAtMost(it * 0.8), turnOffDelay = 0.0))
+    }
+    Num("Wyłączanie z wyprzedzeniem", "Czas zamknięcia zaworu (najwyżej 0,8 × włączanie)", p.lookAheadOff, "s", 0.1, 0.0, 20.0, 1) {
+        set(p.copy(lookAheadOff = it.coerceAtMost(p.lookAheadOn * 0.8), turnOffDelay = 0.0))
+    }
+    Num("Opóźnienie wyłączenia", if (p.lookAheadOff > 0) "Działa tylko przy wyprzedzeniu wyłączania 0" else "Sekcja gaśnie dopiero po tym czasie", p.turnOffDelay, "s", 0.1, 0.0, 10.0, 1) {
+        set(p.copy(turnOffDelay = if (p.lookAheadOff > 0) 0.0 else it))
+    }
+    Num("Minimalne pokrycie", "100% = sekcja włącza się przy każdym kawałku nieobrobionym", p.minCoverage.toDouble(), "%", 1.0, 0.0, 100.0, 0) {
+        set(p.copy(minCoverage = it.toInt().coerceIn(0, 100)))
+    }
     Num("Sekcje stoją poniżej", null, p.slowSpeedCutoff, "km/h", 0.1, 0.0, 5.0, 1) { set(p.copy(slowSpeedCutoff = it)) }
     Toggle("Wyłączaj poza granicą pola", p.sectionOffWhenOut) { set(p.copy(sectionOffWhenOut = it)) }
     Toggle("Wyłączaj na uwrociu", p.sectionOffInHeadland) { set(p.copy(sectionOffInHeadland = it)) }

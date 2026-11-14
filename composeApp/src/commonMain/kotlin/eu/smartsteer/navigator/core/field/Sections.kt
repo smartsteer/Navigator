@@ -17,8 +17,8 @@ enum class SectionMode(val label: String) { OFF("WYŁ."), AUTO("AUTO"), MANUAL("
  *
  * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3):
  *  - SourceCode/GPS/Forms/Position.designer.cs — zaczep i maszyna ciągniona (hitchPos, toolPivotPos),
- *  - SourceCode/GPS/Forms/Sections.Designer.cs i Classes/CSection.cs — włączanie z wyprzedzeniem
- *    (lookAheadOn / lookAheadOff), wyłączanie poza granicą i przy małej prędkości,
+ *  - SourceCode/GPS/Forms/OpenGL.Designer.cs (oglBack_Paint: Section control, timery sekcji i malowania),
+ *    Position.designer.cs (CalculateSectionLookAhead), Classes/CHead.cs (WhereAreToolLookOnPoints), CSection.cs,
  *  - SourceCode/GPS/Forms/PGN.Designer.cs — PGN 239 (CPGN_EF).
  */
 class Sections {
@@ -99,10 +99,65 @@ class Sections {
         return Pair(c + right * l, c + right * (l + w[i]))
     }
 
+    /** Czy sekcja maluje pokrycie (isMappingOn) — z opóźnieniem względem [on], jak w AgOpenGPS. */
+    val mapping = BooleanArray(MAX)
+    private val offTimer = IntArray(MAX)
+    private val mappingOnTimer = IntArray(MAX)
+    private val mappingOffTimer = IntArray(MAX)
+    /** Prędkość krawędzi sekcji w „pikselach” AgOpenGPS (10 cm/s), ujemna = sekcja jedzie do tyłu. */
+    private val speedPixels = DoubleArray(MAX)
+    private val lastLeft = arrayOfNulls<Vec2>(MAX)
+    private val lastRight = arrayOfNulls<Vec2>(MAX)
+    /** Prędkość skrajnej lewej i prawej krawędzi maszyny, m/s (tool.farLeftSpeed / farRightSpeed). */
+    var farLeftSpeed = 0.0; private set
+    var farRightSpeed = 0.0; private set
+
     /**
-     * Decyzja o sekcjach i malowanie pokrycia.
+     * CalculateSectionLookAhead (Position.designer.cs): prędkość każdej krawędzi sekcji z przesunięcia od poprzedniej
+     * pozycji, kierunek (przód/tył) i wygładzone prędkości skrajnych krawędzi — na zakręcie wewnętrzna strona patrzy bliżej.
+     */
+    private fun sectionLookAhead(p: VehicleProfile, n: Int, avgSpeedKmh: Double, gpsHz: Double) {
+        val maxPx = abs(avgSpeedKmh) * 4.5
+        var leftSpeed = 0.0
+        var rightSpeed = 0.0
+        for (j in 0 until n) {
+            val (lp, rp) = edges(j, p) ?: return
+            val left = lp - (lastLeft[j] ?: lp)
+            lastLeft[j] = lp
+            if (j == 0) {
+                leftSpeed = left.length * gpsHz * 10
+                if (leftSpeed > maxPx) leftSpeed = maxPx
+            } else if (leftSpeed > rightSpeed) leftSpeed = rightSpeed
+            val right = rp - (lastRight[j] ?: rp)
+            lastRight[j] = rp
+            rightSpeed = right.length * gpsHz * 10
+            if (rightSpeed > maxPx) rightSpeed = maxPx
+            if (backwards(left) && leftSpeed > 0) leftSpeed = -leftSpeed
+            if (backwards(right) && rightSpeed > 0) rightSpeed = -rightSpeed
+            if (j == 0) farLeftSpeed = farLeftSpeed * 0.7 + (leftSpeed * 0.1).coerceAtLeast(0.1) * 0.3
+            if (j == n - 1) farRightSpeed = farRightSpeed * 0.7 + (rightSpeed * 0.1).coerceAtLeast(0.1) * 0.3
+            val sped: Double
+            if (leftSpeed > rightSpeed) { sped = leftSpeed; leftSpeed = rightSpeed } else sped = rightSpeed
+            speedPixels[j] = speedPixels[j] * 0.7 + sped * 0.3
+        }
+    }
+
+    private fun backwards(d: Vec2): Boolean {
+        var head = atan2(d.x, d.y)
+        if (head < 0) head += 2 * PI
+        return PI - abs(abs(head - toolHeading) - PI) > PI / 2
+    }
+
+    /**
+     * Decyzja o sekcjach i malowanie pokrycia — przeniesione 1:1 z AgOpenGPS (OpenGL.Designer.cs, oglBack_Paint, region
+     * „Section control” i timery sekcji). Zamiast odczytu pikseli z karty graficznej sprawdzamy te same punkty w siatce
+     * pokrycia: pas przed każdą sekcją od odległości wyłączania do odległości włączania (prędkość krawędzi × czas),
+     * sekcja potrzebna, gdy nieobrobionych jest więcej niż (100 − minCoverage)% punktów.
+     * Do modułu idzie [on] (isSectionOn), mapa maluje się według [mapping] (isMappingOn).
      * @param boundary granica pola (null = brak), [inner] = wnętrze bez uwrocia
      * @param workOn przełącznik roboczy pozwala pracować
+     * @param speedKmh średnia prędkość (avgSpeed)
+     * @param gpsHz częstotliwość pozycji (gpsHz) — timery sekcji liczą się w pozycjach
      */
     fun update(
         p: VehicleProfile, speedKmh: Double, coverage: Coverage,
@@ -112,45 +167,132 @@ class Sections {
         others: Coverage? = null,
         /** false — pozycja zbyt niepewna (np. ±20 m), sekcje stoją. */
         gpsOk: Boolean = true,
+        gpsHz: Double = 10.0,
     ) {
-        val n = p.sectionWidthsEffective.size
+        val widths = p.sectionWidthsEffective
+        val n = minOf(widths.size, MAX)
+        if (toolPos == null || n == 0) return
+        sectionLookAhead(p, n, speedKmh, gpsHz)
         val fwd = Vec2.forward(toolHeading)
-        val v = speedKmh / 3.6
-        val lookOn = (v * p.lookAheadOn).coerceAtLeast(MIN_LOOK)
-        val lookOff = (v * p.lookAheadOff).coerceAtLeast(MIN_LOOK)
-        val master = gpsOk && mode != SectionMode.OFF && speedKmh >= p.slowSpeedCutoff && (workOn || !p.useWorkSwitch)
+        val total = widths.take(n).sum().coerceAtLeast(0.01)
+        // odległości wyprzedzenia lewej i prawej krawędzi, m (piksele AgOpenGPS / 10, limity 200 i 160 pikseli)
+        val onL = (farLeftSpeed * p.lookAheadOn).coerceAtMost(20.0)
+        val onR = (farRightSpeed * p.lookAheadOn).coerceAtMost(20.0)
+        val offL = (farLeftSpeed * p.lookAheadOff).coerceAtMost(16.0)
+        val offR = (farRightSpeed * p.lookAheadOff).coerceAtMost(16.0)
+        val hasBnd = boundary != null && boundary.size >= 3
+        val headOn = hasBnd && p.sectionOffInHeadland && inner != null && inner.size >= 3
+        fun inFence(q: Vec2) = Polygon.contains(boundary!!, q) && obstacles.none { it.size >= 3 && Polygon.contains(it, q) }
+        fun inHead(q: Vec2) = Polygon.contains(inner!!, q)
 
-        fun needsWork(a: Vec2, b: Vec2, ahead: Double): Boolean {
-            for (k in 0..SAMPLES) {
-                // próbki wewnątrz sekcji (nie na samej krawędzi — tam zaczyna się sąsiedni pas)
-                val q = a + (b - a) * ((k + 0.5) / (SAMPLES + 1)) + fwd * ahead
-                if (boundary != null && p.sectionOffWhenOut && !Polygon.contains(boundary, q)) continue
-                if (inner != null && p.sectionOffInHeadland && inner.size >= 3 && !Polygon.contains(inner, q)) continue
-                if (p.sectionOffWhenOut && obstacles.any { Polygon.contains(it, q) }) continue
-                if (!coverage.isCovered(q) && others?.isCovered(q) != true) return true
+        for (j in n until MAX) { on[j] = false; mapping[j] = false; strips[j] = null }
+        val onRequest = BooleanArray(n)
+        var x0 = 0.0     // lewa krawędź sekcji od lewej krawędzi maszyny, m
+        for (j in 0 until n) {
+            val w = widths[j]
+            val xs = x0
+            x0 += w
+            val (a, b) = edges(j, p) ?: continue
+            // stan przycisku sekcji: przycisk główny WYŁ., brak pracy przełącznika lub słaby GPS = Off
+            val blocked = !gpsOk || (p.useWorkSwitch && !workOn)
+            val btnOff = blocked || mode == SectionMode.OFF || (mode == SectionMode.MANUAL && !manual[j])
+            val btnOn = !blocked && mode == SectionMode.MANUAL && manual[j]
+            // wyłączona, za wolno albo do tyłu — chyba że ręcznie włączona
+            if (btnOff || speedKmh < p.slowSpeedCutoff || speedPixels[j] < 0) { onRequest[j] = btnOn; continue }
+            if (btnOn) { onRequest[j] = true; continue }
+
+            // pas przed sekcją: kolumny co ~10 cm w poprzek, wiersze co 10 cm od odległości wyłączania do włączania
+            val cols = (w / COL_STEP).toInt().coerceIn(1, MAX_COLS)
+            var totalPixel = 1
+            var tagged = 0
+            var bandIn = false
+            var bandOut = false
+            for (c in 0 until cols) {
+                val xr = xs + w * (c + 0.5) / cols                   // od lewej krawędzi maszyny
+                val f = xr / total
+                val dOff = offL + (offR - offL) * f
+                val dOn = onL + (onR - onL) * f
+                val r0 = (dOff * 10).toInt()
+                val r1 = (dOn * 10).toInt()
+                if (r1 < r0) continue
+                val rows = r1 - r0 + 1
+                val step = if (rows > MAX_ROWS) rows.toDouble() / MAX_ROWS else 1.0
+                val base = a + (b - a) * ((xr - xs) / w)
+                var k = 0.0
+                while (k < rows) {
+                    val q = base + fwd * ((r0 + k + 0.5) * 0.1)
+                    totalPixel++
+                    if (!coverage.isCovered(q) && others?.isCovered(q) != true) tagged++
+                    if (headOn) { if (inHead(q)) bandIn = true else bandOut = true }
+                    k += step
+                }
             }
-            return false
+            var required = (tagged * 100) / totalPixel > (100 - p.minCoverage)
+
+            if (hasBnd) {
+                // w granicy: obie krawędzie (sekcje gasną poza polem) albo choć jedna
+                val li = inFence(a); val ri = inFence(b)
+                val inBoundary = if (p.sectionOffWhenOut) li && ri else li || ri
+                if (!inBoundary) {
+                    onRequest[j] = false
+                    offTimer[j] = 0
+                    continue
+                }
+                if (headOn) {
+                    // WhereAreToolLookOnPoints: oba punkty włączania na uwrociu? linia uwrocia w pasie przed sekcją?
+                    val lookL = a + fwd * (onL + (onR - onL) * (xs / total))
+                    val lookR = b + fwd * (onL + (onR - onL) * ((xs + w) / total))
+                    val lookOnInHeadland = !inHead(lookL) && !inHead(lookR)
+                    val headlandInLookOn = bandIn && bandOut
+                    if (required && lookOnInHeadland && !headlandInLookOn) required = false
+                }
+            }
+            onRequest[j] = required
         }
 
-        for (i in 0 until MAX) {
-            if (i >= n) { on[i] = false; strips[i] = null; continue }
-            val e = edges(i, p)
-            if (e == null) { on[i] = false; continue }
-            val (a, b) = e
-            on[i] = when {
-                !master -> false
-                mode == SectionMode.MANUAL -> manual[i]
-                on[i] -> needsWork(a, b, lookOff)
-                else -> needsWork(a, b, lookOn)
+        // timery: włączenie od razu, wyłączenie z opóźnieniem; malowanie z wyprzedzeniem włączania/wyłączania
+        for (j in 0 until n) {
+            val req = onRequest[j]
+            val offReq = !req
+            if (req) on[j] = true
+            if (p.turnOffDelay > 0) {
+                if (!offReq) offTimer[j] = (gpsHz * p.turnOffDelay).toInt()
+                if (offTimer[j] > 0) offTimer[j]--
+                if (offReq && offTimer[j] == 0) on[j] = false
+            } else if (offReq) on[j] = false
+
+            if (req && !mapping[j] && mappingOnTimer[j] == 0) {
+                mappingOnTimer[j] = (p.lookAheadOn * gpsHz - 1).toInt()
+            } else if (req && mapping[j] && mappingOffTimer[j] > 1) {
+                mappingOffTimer[j] = 0
+                mappingOnTimer[j] = (p.lookAheadOn * gpsHz - 1).toInt()
             }
-            if (on[i]) {
+            if (p.lookAheadOff > 0) {
+                if (offReq && mapping[j] && mappingOffTimer[j] == 0) mappingOffTimer[j] = (p.lookAheadOff * gpsHz + 4).toInt()
+            } else if (p.turnOffDelay > 0) {
+                if (offReq && mapping[j] && mappingOffTimer[j] == 0) mappingOffTimer[j] = (p.turnOffDelay * gpsHz).toInt()
+            } else mappingOffTimer[j] = 0
+
+            if (req) {
+                mappingOffTimer[j] = 0
+                if (mappingOnTimer[j] > 1) mappingOnTimer[j]-- else mapping[j] = true
+            }
+            if (offReq) {
+                mappingOnTimer[j] = 0
+                if (mappingOffTimer[j] > 1) mappingOffTimer[j]-- else mapping[j] = false
+            }
+
+            // malowanie pokrycia
+            val e = edges(j, p)
+            if (mapping[j] && e != null) {
+                val (a, b) = e
                 // skok pozycji (np. po utracie GPS) — zaczynamy nowy pas zamiast malować wielki czworokąt
-                val old = strips[i]
+                val old = strips[j]
                 val jump = old != null && old.left.isNotEmpty() && old.left.last().distanceTo(a) > MAX_JUMP
-                val s = if (old == null || jump) coverage.newStrip().also { strips[i] = it } else old
+                val s = if (old == null || jump) coverage.newStrip().also { strips[j] = it } else old
                 coverage.extend(s, a, b)
             } else {
-                strips[i] = null
+                strips[j] = null
             }
         }
     }
@@ -166,14 +308,18 @@ class Sections {
     fun anyOn() = on.any { it }
 
     fun reset() {
-        on.fill(false); strips.fill(null); toolPos = null; hitchPos = null; lastPivot = null
+        on.fill(false); mapping.fill(false); strips.fill(null); toolPos = null; hitchPos = null; lastPivot = null
+        offTimer.fill(0); mappingOnTimer.fill(0); mappingOffTimer.fill(0); speedPixels.fill(0.0)
+        lastLeft.fill(null); lastRight.fill(null); farLeftSpeed = 0.0; farRightSpeed = 0.0
+        tankPos = null; toolPivot = null; startCounter = 0
     }
 
     companion object {
         const val MAX = 64
-        private const val SAMPLES = 4
-        /** Najkrótsze wyprzedzenie — żeby sekcja nie „widziała” pasa, który sama właśnie maluje. */
-        private const val MIN_LOOK = 0.4
+        /** Kolumny pasa przed sekcją co tyle metrów (piksel AgOpenGPS = 10 cm; siatka pokrycia ma 25 cm). */
+        private const val COL_STEP = 0.1
+        private const val MAX_COLS = 40
+        private const val MAX_ROWS = 80
         private const val MAX_JUMP = 5.0
 
         /** PGN 238 — konfiguracja modułu maszyny (CPGN_EE): czasy podnośnika, włączenie, ustawienia, 4 wartości użytkownika. */

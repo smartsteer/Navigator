@@ -64,6 +64,10 @@ data class VehicleProfile(
     val lookAheadOn: Double = 1.0,
     /** Wyprzedzenie wyłączania sekcji, s. */
     val lookAheadOff: Double = 0.5,
+    /** Opóźnienie wyłączenia sekcji, s (AgOpenGPS setVehicle_toolOffDelay; działa tylko przy wyprzedzeniu wyłączania 0). */
+    val turnOffDelay: Double = 0.0,
+    /** Minimalne pokrycie, %: sekcja włącza się, gdy nieobrobione jest więcej niż (100 − to)% pola przed nią (setVehicle_minCoverage). */
+    val minCoverage: Int = 100,
     /** Poniżej tej prędkości sekcje się wyłączają, km/h. */
     val slowSpeedCutoff: Double = 0.5,
     /** Sekcje wyłączają się poza granicą pola. */
@@ -289,7 +293,7 @@ data class VehicleProfile(
         "supSteerErrS" to supSteerErrS, "supCorrAgeS" to supCorrAgeS, "supLoopGapS" to supLoopGapS,
         "hitchLength" to hitchLength, "toolTrailing" to toolTrailing, "trailingHitchLength" to trailingHitchLength,
         "toolTbt" to toolTbt, "tankHitchLength" to tankHitchLength, "trailingToolToPivot" to trailingToolToPivot, "articulated" to articulated,
-        "numSections" to numSections, "lookAheadOn" to lookAheadOn, "lookAheadOff" to lookAheadOff,
+        "numSections" to numSections, "lookAheadOn" to lookAheadOn, "lookAheadOff" to lookAheadOff, "turnOffDelay" to turnOffDelay, "minCoverage" to minCoverage,
         "slowSpeedCutoff" to slowSpeedCutoff, "sectionOffWhenOut" to sectionOffWhenOut,
         "sectionOffInHeadland" to sectionOffInHeadland, "useWorkSwitch" to useWorkSwitch,
         "workSwitchActiveLow" to workSwitchActiveLow,
@@ -370,6 +374,8 @@ data class VehicleProfile(
                 numSections = int("numSections", d.numSections).coerceIn(1, 64),
                 lookAheadOn = num("lookAheadOn", d.lookAheadOn),
                 lookAheadOff = num("lookAheadOff", d.lookAheadOff),
+                turnOffDelay = num("turnOffDelay", d.turnOffDelay),
+                minCoverage = num("minCoverage", d.minCoverage.toDouble()).toInt().coerceIn(0, 100),
                 slowSpeedCutoff = num("slowSpeedCutoff", d.slowSpeedCutoff),
                 sectionOffWhenOut = bool("sectionOffWhenOut", d.sectionOffWhenOut),
                 sectionOffInHeadland = bool("sectionOffInHeadland", d.sectionOffInHeadland),

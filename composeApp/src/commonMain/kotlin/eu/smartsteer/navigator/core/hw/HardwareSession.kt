@@ -220,6 +220,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         }
     }
 
+    /** Częstotliwość pozycji GPS, Hz (gpsHz w AgOpenGPS). */
+    var gpsHz = 10.0; private set
+
     private fun onPosition(g: Gga, nowS: Double) {
         lastGga = g
         fix = g.fix
@@ -227,6 +230,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         val pl = plane ?: LocalPlane(g.latitude, g.longitude).also { plane = it }
         val p = pl.toLocal(g.latitude, g.longitude)
         antenna = p
+        // gpsHz jak w AgOpenGPS (UpdateFixPosition): 1 / czas od poprzedniej pozycji, 3–70 Hz, wygładzone 0,98/0,02
+        if (lastFixTimeS.isFinite() && nowS > lastFixTimeS) gpsHz = 0.98 * gpsHz + 0.02 * (1 / (nowS - lastFixTimeS)).coerceIn(3.0, 70.0)
         lastFixTimeS = nowS
         updateHeading(p, nowS)
         // antena → środek ciągnika (przesunięcie w bok, + = antena po lewej; przechył na zboczu) → tylna oś
@@ -264,7 +269,7 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
             sectionLog.addLast("${(nowS * 10).roundToInt() / 10.0}s ${(speedKmh * 10).roundToInt() / 10.0} km/h: $why")
             while (sectionLog.size > 60) sectionLog.removeFirst()
         }
-        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS) && !reversing, obstacles, othersSameWork.takeIf { it.cellCount > 0 }, gpsOk = !gpsTooPoorForSections)
+        sections.update(profile, speedKmh, coverage, boundary, headland, workSwitchOn(nowS), obstacles, othersSameWork.takeIf { it.cellCount > 0 }, gpsOk = !gpsTooPoorForSections, gpsHz = gpsHz)
         // mapa wykonania: szerokość pracujących sekcji i dawka z mapy
         if (sections.anyOn()) {
             val w = profile.sectionWidthsEffective.withIndex().sumOf { (i, sw) -> if (i < Sections.MAX && sections.on[i]) sw else 0.0 }

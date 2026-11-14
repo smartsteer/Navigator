@@ -154,7 +154,7 @@ class HardwareSessionTest {
         h.onDatagram(b, b.size, 1.0)
         val p = assertNotNull(h.antenna)
         assertTrue(p.distanceTo(Vec2(0.0, 0.0)) < 0.01, "pierwsza pozycja = początek pola")
-        assertEquals(5.0, h.speedKmh, 1e-9)
+        assertEquals(5.0 * 0.25, h.speedKmh, 1e-9, "średnia jak AverageTheSpeed w AgOpenGPS: 0,75·poprzednia + 0,25·nowa")
         assertTrue(abs(h.headingRad - PI / 2) < 1e-9)
     }
 

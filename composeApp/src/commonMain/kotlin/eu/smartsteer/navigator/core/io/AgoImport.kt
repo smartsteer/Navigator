@@ -70,6 +70,8 @@ object AgoImport {
         i("setVehicle_numSections")?.let { p = p.copy(numSections = it.coerceIn(1, 16)) }
         d("setVehicle_toolLookAheadOn")?.let { p = p.copy(lookAheadOn = it) }
         d("setVehicle_toolLookAheadOff")?.let { p = p.copy(lookAheadOff = it) }
+        d("setVehicle_toolOffDelay")?.let { p = p.copy(turnOffDelay = it) }
+        d("setVehicle_minCoverage")?.let { p = p.copy(minCoverage = it.toInt().coerceIn(0, 100)) }
         d("setVehicle_slowSpeedCutoff")?.let { p = p.copy(slowSpeedCutoff = it) }
         b("setTool_isSectionOffWhenOut")?.let { p = p.copy(sectionOffWhenOut = it) }
         b("setF_isWorkSwitchEnabled")?.let { p = p.copy(useWorkSwitch = it) }

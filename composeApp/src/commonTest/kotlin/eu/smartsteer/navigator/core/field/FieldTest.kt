@@ -108,6 +108,23 @@ class FieldTest {
         assertFalse(c5.isCovered(Vec2(0.0, 0.0)))
     }
 
+    /** Jak w AgOpenGPS: malowanie rusza po czasie wyprzedzenia włączania (mappingOnTimer), cofanie gasi sekcje (speedPixels < 0). */
+    @Test
+    fun mappingLagsAndReverseTurnsSectionsOffLikeAgOpenGps() {
+        val p = VehicleProfile(toolWidth = 3.0, numSections = 1, hitchLength = 0.0, toolTrailing = false, lookAheadOff = 0.5, lookAheadOn = 1.0)
+        val c = Coverage()
+        val s = Sections()
+        var y = 0.0
+        for (k in 0..5) { s.updateTool(Vec2(0.0, y), 0.0, p); s.update(p, 7.2, c, null, null, true); y += 0.2 }
+        assertTrue(s.on[0], "zawór otwarty od razu")
+        assertFalse(s.mapping[0], "mapa jeszcze nie maluje (lookAheadOn × gpsHz − 1 = 9 pozycji)")
+        for (k in 0..10) { s.updateTool(Vec2(0.0, y), 0.0, p); s.update(p, 7.2, c, null, null, true); y += 0.2 }
+        assertTrue(s.mapping[0])
+        // cofanie tą samą drogą z kursem do przodu
+        for (k in 0..5) { y -= 0.2; s.updateTool(Vec2(0.0, y), 0.0, p); s.update(p, 7.2, c, null, null, true) }
+        assertFalse(s.on[0], "do tyłu sekcja gaśnie")
+    }
+
     @Test
     fun trailingToolFollowsHitch() {
         val p = VehicleProfile(hitchLength = -1.0, toolTrailing = true, trailingHitchLength = -3.0)
