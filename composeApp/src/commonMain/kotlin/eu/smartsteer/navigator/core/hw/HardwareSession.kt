@@ -1202,6 +1202,9 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         SteerConfig(setting0, maxPulseCounts, minSteerSpeed, setting1).toFrame()
     }
 
+    /** Status w PGN 254 — AgOpenGPS: status 0 przy cofaniu (poza cofaniem w zawrocie K) i przy zmianie kierunku bez IMU. */
+    private fun steerStatus() = engaged && !(reversing && kPhase != 2 && kPhase != 3) && !(changingDirection && !imu.headingAlive(steerFrameTimeS))
+
     /** Ramka PGN 254 do modułu skrętu. */
     fun steerFrame(): ByteArray = if (freeDrive) {
         // Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs
@@ -1211,8 +1214,8 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
         SteerData(
             speedKmh = speedKmh,
             // AgOpenGPS: status 0 przy cofaniu (poza cofaniem w zawrocie K) i przy zmianie kierunku bez IMU
-            autosteerOn = engaged && !(reversing && kPhase != 2 && kPhase != 3) && !(changingDirection && !imu.headingAlive(steerFrameTimeS)),
-            steerAngleDeg = if (engaged) deadZoned(steerSetDeg) else 0.0,
+            autosteerOn = steerStatus(),
+            steerAngleDeg = if (engaged) deadZoned(steerSetDeg, steerStatus()) else 0.0,
             lineDistanceCm = xteCm.roundToInt(),
             sections = (sections.bits() and 0xFFFF).toInt(),
         ).toFrame()
@@ -1220,22 +1223,28 @@ class HardwareSession(profile: VehicleProfile = VehicleProfile()) {
 
     // ---------------- martwa strefa ----------------
     private var deadZoneCounter = 0
+    private var deadZoneTickS = Double.NEGATIVE_INFINITY
+    private var inDeadZone = false
     private var lastSentAngle = 0.0
 
     /**
-     * Martwa strefa: gdy kąt zadany jest blisko kąta kół przez [VehicleProfile.deadZoneDelay] kroków,
-     * wysyłamy dalej poprzedni kąt (silnik nie „drga”).
-     * Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), plik SourceCode/GPS/Forms/Position.designer.cs (dead zone).
+     * Martwa strefa 1:1 z AgOpenGPS (Position.designer.cs „delay on dead zone”, GUI.Designer.cs: licznik rośnie raz na sekundę):
+     * gdy autoster pracuje, nie cofamy, a kąt zadany różni się od kąta kół mniej niż [VehicleProfile.deadZoneDeg] dłużej niż
+     * [VehicleProfile.deadZoneDelay] sekund — płytka dostaje dalej poprzedni kąt, aż różnica wyjdzie poza strefę.
      */
-    private fun deadZoned(set: Double): Double {
+    private fun deadZoned(set: Double, status: Boolean): Double {
+        val now = steerFrameTimeS
+        if (now - deadZoneTickS >= 1.0) { deadZoneCounter++; deadZoneTickS = now }
         val actual = autosteer?.actualAngleDeg
-        if (actual != null && kotlin.math.abs(set - actual) < profile.deadZoneDeg) {
-            if (++deadZoneCounter > profile.deadZoneDelay) return lastSentAngle
+        // AgOpenGPS porównuje w setnych stopnia: guidanceLineSteerAngle (short) − actual × 100 < deadZoneHeading
+        if (status && !reversing && actual != null && kotlin.math.abs((set * 100).toInt() - actual * 100) < profile.deadZoneDeg * 100) {
+            if (deadZoneCounter > profile.deadZoneDelay) inDeadZone = true
         } else {
             deadZoneCounter = 0
+            inDeadZone = false
         }
-        lastSentAngle = set
-        return set
+        if (!inDeadZone) lastSentAngle = set
+        return lastSentAngle
     }
 
     /** Ramka PGN 238 (konfiguracja modułu maszyny) z profilu. */

@@ -368,7 +368,7 @@ private fun ColumnScope.ModuleTab(hw: HardwareController, p: VehicleProfile, set
     Num("Ackermann", "Korekta różnicy skrętu w lewo i w prawo", p.ackerman.toDouble(), "%", 1.0, 1.0, 200.0, 0) { set(p.copy(ackerman = it.toInt())) }
     SectionTitle("Martwa strefa")
     Num("Martwa strefa kąta", "Poniżej tej różnicy kąta silnik nie poprawia", p.deadZoneDeg, "°", 0.05, 0.0, 2.0, 2) { set(p.copy(deadZoneDeg = it)) }
-    Num("Opóźnienie martwej strefy", "Ile kroków po 0,1 s", p.deadZoneDelay.toDouble(), "", 1.0, 0.0, 50.0, 0) { set(p.copy(deadZoneDelay = it.toInt())) }
+    Num("Opóźnienie martwej strefy", "Po tylu sekundach w strefie kąt przestaje się zmieniać", p.deadZoneDelay.toDouble(), "s", 1.0, 0.0, 50.0, 0) { set(p.copy(deadZoneDelay = it.toInt())) }
     SectionTitle("Silnik / zawór")
     Num("Wzmocnienie P", "Jak mocno silnik reaguje na różnicę kąta", p.gainP.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(gainP = it.toInt())) }
     Num("Maksymalny PWM", null, p.highPwm.toDouble(), "", 1.0, 0.0, 255.0, 0) { set(p.copy(highPwm = it.toInt())) }

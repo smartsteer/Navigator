@@ -108,7 +108,7 @@ data class VehicleProfile(
 
     /** Martwa strefa: kąt zadany bliżej kąta kół niż tyle stopni nie jest poprawiany (setAS_deadZoneHeading / 100). */
     val deadZoneDeg: Double = 0.1,
-    /** Martwa strefa: po ilu krokach (×100 ms) zaczyna działać (setAS_deadZoneDelay). */
+    /** Martwa strefa: po ilu sekundach zaczyna działać (setAS_deadZoneDelay; w AgOpenGPS licznik rośnie raz na sekundę). */
     val deadZoneDelay: Int = 5,
 
     // --- IMU (żyroskop) ---
