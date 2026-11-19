@@ -4,7 +4,7 @@
 |---|---|
 | `maszyna.py` | schemat jako kod (SKiDL) — źródło prawdy; `python3 maszyna.py` → `maszyna.net` + `piny.tsv` |
 | `maszyna.net` | netlista KiCad (279 elementów) |
-| `maszyna.kicad_pro` / `.kicad_pcb` | projekt i płytka: 165 × 120 mm, 4 warstwy (F.Cu sygnały, In1 masa, In2 +12 V, B.Cu sygnały), elementy **rozmieszczone, bez ścieżek** |
+| `maszyna.kicad_pro` / `.kicad_pcb` | projekt i płytka: 165 × 120 mm, 4 warstwy (F.Cu sygnały, In1 masa, In2 +12 V, B.Cu sygnały), elementy rozmieszczone, **ścieżki ok. 90 %** (Freerouting) |
 | `place.py` / `netclass.py` | skrypty rozmieszczenia i klas połączeń (Moc20A 3 mm, Moc2A 1 mm, Zasilanie 0,6 mm) |
 | `review.py` → `../przeglad_schematu.pdf` | raport połączeń do przeglądu (pin → sieć → z czym połączony) |
 | `smartsteer.pretty` | footprint AMPSEAL 35 (wyprowadzony z 23‑pin — sprawdzić z rysunkiem TE 776231) |
@@ -19,18 +19,24 @@
   polygony 20–30 A na F.Cu/B.Cu dla VIN_RAW → Q1 → V12 i U8 → LAMPA_OUT → J2 7–8 (miedź 2 oz),
   wylanie masy na F.Cu/B.Cu, DRC, potem pliki do JLCPCB (Gerber, wiercenia, BOM, CPL).
 
-## Ścieżki automatem (Freerouting) — u siebie, ok. 10 minut
+## Ścieżki (Freerouting, 2026-11-19) — stan
 
-`maszyna.dsn` jest gotowy (wyeksportowany bez wylewek masy na F.Cu/B.Cu — warstwy wewnętrzne to płaszczyzny GND i V12).
+Freerouting 1.9 w przebiegu (za zgodą właściciela): **ok. 90 % połączeń poprowadzone, 129 padów jeszcze niepołączonych**
+(głównie wokół DRV8962 U18–U25: nFAULT, DVDD/VREF, IN/EN, kilka wyjść sekcji, DRV_nSLEEP, REG_RCLK; 15 × V12; silnik 15 A).
+Podgląd: `../plytka_sciezki.png`. DRC: brak naruszeń odstępów i zwarć; reszta raportu to sitodruk, biblioteki footprintów
+i przelotki termiczne w footprincie DRV8962 (drill_out_of_range) — do przejrzenia, nie blokują.
 
-1. Zainstaluj Javę 21 i pobierz Freerouting z https://github.com/freerouting/freerouting/releases (plik `freerouting-*.jar`).
-2. `java -jar freerouting.jar -de maszyna.dsn -do maszyna.ses -mp 25`
-   (w DSN są już klasy: Moc20A 3 mm — VIN_RAW, V12, V12_ZAWORY, LAMPA_OUT; Moc2A 1 mm — sekcje, zawory, rezerwa; Zasilanie 0,6 mm.
-   GPS_RF jest poprowadzony ręcznie 0,36 mm i zablokowany. Pary USB_DP/USB_DM i CANH/CANL najlepiej poprowadzić ręcznie —
-   w GUI Freeroutingu można je odznaczyć przed routingiem.)
-3. KiCad → otwórz `maszyna.kicad_pcb` → Plik → Import → Specctra Session → `maszyna.ses`.
-4. Dodaj wylewki masy na F.Cu i B.Cu (B: wypełnij strefy), sprawdź DRC, popraw ścieżki mocy (polygony 20–30 A).
-5. Plik → Fabrication Outputs → Gerbers + Drill; BOM/CPL do JLCPCB.
+Kolejność (do powtórzenia):
+1. `python3 netclass.py` — klasy: Moc20A 2 mm, Moc12V 0,8 mm, Moc2A 0,5 mm, Zasilanie 0,4 mm, odstęp 0,15 mm
+   (szersze ścieżki nie wchodzą w pady HTSSOP 0,635 mm — prąd 20–30 A niosą wylewki, V12 płaszczyzna In2).
+2. Eksport DSN (pcbnew.ExportSpecctraDSN) → `python3 dsn_prep.py wej.dsn maszyna.dsn`.
+3. `xvfb-run java -jar freerouting-1.9.0.jar -de maszyna.dsn -do maszyna.ses -mp 4` (ok. 30 min na 2 rdzeniach).
+4. `python3 ses2pcb.py maszyna.ses` (import bez GUI) → `python3 tie_pins.py` (łączy sąsiednie piny tej samej sieci).
+
+**Do zrobienia w KiCad (ręcznie, elektronik):** 129 brakujących połączeń (zakładka „Niepołączone” w DRC; przy ciasnych
+miejscach przesunąć rezystory/kondensatory przy DRV8962 o 1–2 mm), wylewki mocy VIN_RAW → Q1/Q2 → V12 i U8 → LAMPA_OUT → J2 7–8
+oraz SILNIK_A/B (≥ 5–8 mm, obie strony, przelotki co 3–4 mm), pary USB_DP/DM i CANH/CANL do poprawienia ręcznie, DRC,
+potem Gerber + BOM/CPL JLCPCB.
 
 ## Przegląd zewnętrzny 2026-11-12 — co zmieniono, co nie
 
