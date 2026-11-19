@@ -61,6 +61,28 @@ jobs:
           name: navigator-windows-msi
           path: composeApp/build/compose/binaries/main/msi/*.msi
 
+  firmware:
+    name: Firmware płytki Maszyna (ESP32)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testy logiki (g++)
+        working-directory: firmware/maszyna/test
+        run: g++ -std=c++17 -Wall -Wextra -Werror -I ../src ../src/protocol.cpp ../src/machine.cpp ../src/sensors.cpp test_main.cpp -o test && ./test
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('firmware/maszyna/platformio.ini') }}
+      - name: Budowa (PlatformIO)
+        run: |
+          pip install -q platformio
+          pio run -d firmware/maszyna
+          mkdir -p dist-fw && cp firmware/maszyna/.pio/build/maszyna/firmware.bin dist-fw/maszyna-firmware.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maszyna-firmware
+          path: dist-fw/maszyna-firmware.bin
+
   release:
     name: Wydanie (GitHub Release)
     needs: [android, windows]
