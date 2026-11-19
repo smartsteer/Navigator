@@ -449,8 +449,13 @@ drv_t = Part(tool=SKIDL, name="DRV8962DDW", ref_prefix="U", dest=TEMPLATE,
              pins=[Pin(num=n, name=nm, func=Pin.types.PASSIVE) for n, nm in drv_pins], value="DRV8962QDDWRQ1")
 
 # wyjścia mostków → złącza: 0–12 sekcje (kostka A 1–26), 13 zawór główny (B 9–10), 14 regulacyjny (B 11–12), 15 rezerwa (B 21–22)
-bridge_pins = [(J1[2 * b + 1], J1[2 * b + 2]) for b in range(13)] + [(J2[9], J2[10]), (J2[11], J2[12]), (J2[21], J2[22])]
-bridge_names = [f"SEKCJA{b + 1}" for b in range(13)] + ["ZAW_GLOWNY", "ZAW_REG", "REZERWA"]
+# Mostek → sekcja dobrany do położenia (2026-11-19, routing): piny kostki A idą od prawej do lewej w 3 rzędach, a układy
+# DRV8962 stoją od lewej do prawej — mostki 0–12 przypisane sekcjom wg położenia X ich pinów, żeby ścieżki się nie krzyżowały.
+# Ta sama tabela w firmware: firmware/maszyna/src/machine.h (SECTION_BRIDGE).
+BRIDGE_SECTION = [6, 11, 5, 10, 4, 9, 12, 3, 8, 2, 13, 7, 1]   # mostek b (0–12) → sekcja 1–13
+bridge_pins = [(J1[2 * s - 1], J1[2 * s]) for s in BRIDGE_SECTION] + [(J2[9], J2[10]), (J2[11], J2[12]), (J2[21], J2[22])]
+bridge_names = [f"SEKCJA{s}" for s in BRIDGE_SECTION] + ["ZAW_GLOWNY", "ZAW_REG", "REZERWA"]
+out_nets = {}
 bit = 0
 for k in range(8):
     u = drv_t()
@@ -506,11 +511,13 @@ for k in range(8):
             o += n
             R("10k", n, GND)      # stan bezpieczny: mostek wyłączony
             bit += 1
-        # ochrona wyjść na kostce (ESD / indukcja przewodów)
-        for n in (na, nb):
-            d = Part("Device", "D_TVS", footprint="Diode_SMD:D_SOD-323", value="PESD24VS1UL")
-            d[1] += n
-            d[2] += GND
+        out_nets[bridge_names[b]] = (na, nb)
+# ochrona wyjść na kostce (ESD / indukcja przewodów) — po kolei sekcjami 1–13, potem główny, regulacyjny, rezerwa
+for name in [f"SEKCJA{s}" for s in range(1, 14)] + ["ZAW_GLOWNY", "ZAW_REG", "REZERWA"]:
+    for n in out_nets[name]:
+        d = Part("Device", "D_TVS", footprint="Diode_SMD:D_SOD-323", value="PESD24VS1UL")
+        d[1] += n
+        d[2] += GND
 # 74HC165 wejścia D0–D7 = nFAULT układów 0–7 (zrobione wyżej)
 
 # ---------------------------------------------------------------- mostek silnika 15 A (siewnik / zasuwa / siłownik)

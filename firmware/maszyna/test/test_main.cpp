@@ -23,6 +23,7 @@ static int fails = 0, checks = 0;
 static bool bit(uint64_t bits, int b, int k) { return (bits >> (3 * b + k)) & 1; }
 static bool en(uint64_t bits, int b) { return bit(bits, b, 2); }
 static bool ina(uint64_t bits, int b) { return bit(bits, b, 0); }
+static int S(int section) { return bridgeOfSection(section - 1); }  // sekcja 1–13 → mostek
 static bool inb(uint64_t bits, int b) { return bit(bits, b, 1); }
 
 // Ramka z Navigatora: SprayerCommand(5, mainOpen, sekcje 1 i 3 z 3, 3‑pin, lampy, 2,5 s, impuls −120 ms)
@@ -108,8 +109,8 @@ static void testFailsafeAndThreePin() {
     b = m.tick(t);
   }
   CHECK(!m.failsafe());
-  CHECK(ina(b, BRIDGE_MAIN) && ina(b, 0) && ina(b, 1) && !ina(b, 2) && ina(b, 3) && !ina(b, 4));
-  CHECK(!ina(b, 5));  // poza liczbą sekcji
+  CHECK(ina(b, BRIDGE_MAIN) && ina(b, S(1)) && ina(b, S(2)) && !ina(b, S(3)) && ina(b, S(4)) && !ina(b, S(5)));
+  CHECK(!ina(b, S(6)));  // poza liczbą sekcji
   // kolejne przestawianie: zaraz po poleceniu tylko jeden zawór
   Machine m2;
   m2.command(cmd(1, true, 0x1FFF, 13, true), 0);
@@ -141,11 +142,11 @@ static void testTwoPin() {
     m.command(cmd((uint8_t)t, true, 1, 1, false), t);
     b = m.tick(t);
     if (t == start + 500) {
-      sawOpen = en(b, 0) && ina(b, 0) && !inb(b, 0) && en(b, BRIDGE_MAIN) && ina(b, BRIDGE_MAIN);
+      sawOpen = en(b, S(1)) && ina(b, S(1)) && !inb(b, S(1)) && en(b, BRIDGE_MAIN) && ina(b, BRIDGE_MAIN);
     }
   }
   CHECK(sawOpen);
-  CHECK(!en(b, 0) && !en(b, BRIDGE_MAIN));
+  CHECK(!en(b, S(1)) && !en(b, BRIDGE_MAIN));
 }
 
 static void testRegValve() {
@@ -179,6 +180,12 @@ static void testRegValve() {
   CHECK(m.failsafe() && m.regPendingMs() == 0 && !ina(b, BRIDGE_REG) && !inb(b, BRIDGE_REG));
 }
 
+static void testMapping() {
+  bool seen[13] = {false};
+  for (int b = 0; b < 13; b++) seen[BRIDGE_SECTION[b] - 1] = true;
+  for (int s = 0; s < 13; s++) CHECK(seen[s] && BRIDGE_SECTION[bridgeOfSection(s)] == s + 1);
+}
+
 static void testFaults() {
   Machine m;
   m.command(cmd(1, true, 0x1FFF, 10, true), 0);
@@ -187,7 +194,8 @@ static void testFaults() {
   m.faults(0xFF, sf, mf);
   CHECK(sf == 0 && mf == 0);
   m.faults((uint8_t)~((1 << 0) | (1 << 6) | (1 << 7)), sf, mf);  // układy 0, 6, 7
-  CHECK(sf == 0x3);                 // sekcje 1–2 (12–13 poza liczbą sekcji)
+  // układ 0 = mostki 0–1 = sekcje 6 i 11 (11 poza liczbą sekcji), układ 6 = mostek 12 (sekcja 1) + główny
+  CHECK(sf == ((1 << 5) | (1 << 0)));
   CHECK(mf == (FAULT_MAIN | FAULT_REG));
 }
 
@@ -237,6 +245,7 @@ int main() {
   testFailsafeAndThreePin();
   testTwoPin();
   testRegValve();
+  testMapping();
   testFaults();
   testSensors();
   printf("%d sprawdzeń, %d błędów\n", checks, fails);

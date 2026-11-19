@@ -84,7 +84,7 @@ termiczne, podnapięciowe, sygnał nFAULT.
 
 | Mostek | Układ | Funkcja |
 |---|---|---|
-| 1–13 | U1–U7 | sekcje 1–13 |
+| 1–13 | U1–U7 | sekcje — kolejność wg położenia pinów kostki A (2026-11-19, pod ścieżki): mostek 1…13 = sekcja 6, 11, 5, 10, 4, 9, 12, 3, 8, 2, 13, 7, 1 (`BRIDGE_SECTION` w kicad/maszyna.py i w firmware) |
 | 14 | U7 (2. mostek) | zawór główny |
 | 15 | U8 (1. mostek) | zawór regulacyjny |
 | 16 | U8 (2. mostek) | rezerwa (mieszadło, mały siłownik — do 2 A) |

@@ -4,7 +4,7 @@
 |---|---|
 | `maszyna.py` | schemat jako kod (SKiDL) — źródło prawdy; `python3 maszyna.py` → `maszyna.net` + `piny.tsv` |
 | `maszyna.net` | netlista KiCad (279 elementów) |
-| `maszyna.kicad_pro` / `.kicad_pcb` | projekt i płytka: 165 × 120 mm, 4 warstwy (F.Cu sygnały, In1 masa, In2 +12 V, B.Cu sygnały), elementy rozmieszczone, **ścieżki ok. 90 %** (Freerouting) |
+| `maszyna.kicad_pro` / `.kicad_pcb` | projekt i płytka: 165 × 120 mm, 4 warstwy (F.Cu sygnały, In1 masa, In2 +12 V, B.Cu sygnały), elementy rozmieszczone, **ścieżki 95 %** (Freerouting), wylewki mocy |
 | `place.py` / `netclass.py` | skrypty rozmieszczenia i klas połączeń (Moc20A 3 mm, Moc2A 1 mm, Zasilanie 0,6 mm) |
 | `review.py` → `../przeglad_schematu.pdf` | raport połączeń do przeglądu (pin → sieć → z czym połączony) |
 | `smartsteer.pretty` | footprint AMPSEAL 35 (wyprowadzony z 23‑pin — sprawdzić z rysunkiem TE 776231) |
@@ -21,22 +21,27 @@
 
 ## Ścieżki (Freerouting, 2026-11-19) — stan
 
-Freerouting 1.9 w przebiegu (za zgodą właściciela): **ok. 90 % połączeń poprowadzone, 129 padów jeszcze niepołączonych**
-(głównie wokół DRV8962 U18–U25: nFAULT, DVDD/VREF, IN/EN, kilka wyjść sekcji, DRV_nSLEEP, REG_RCLK; 15 × V12; silnik 15 A).
-Podgląd: `../plytka_sciezki.png`. DRC: brak naruszeń odstępów i zwarć; reszta raportu to sitodruk, biblioteki footprintów
-i przelotki termiczne w footprincie DRV8962 (drill_out_of_range) — do przejrzenia, nie blokują.
+**95 % połączeń poprowadzone, 87 padów jeszcze niepołączonych** (z ok. 1640). DRC: bez zwarć i naruszeń odstępów
+(zostały tylko uwagi o sitodruku, bibliotekach footprintów, przelotkach termicznych DRV8962 oraz 4 + 2 wewnątrz footprintów USB‑C / ESP32).
+Podgląd: `../plytka_sciezki.png`. Pliki robocze JLCPCB: `../produkcja` (**nie zamawiać** przed dokończeniem).
 
-Kolejność (do powtórzenia):
-1. `python3 netclass.py` — klasy: Moc20A 2 mm, Moc12V 0,8 mm, Moc2A 0,5 mm, Zasilanie 0,4 mm, odstęp 0,15 mm
-   (szersze ścieżki nie wchodzą w pady HTSSOP 0,635 mm — prąd 20–30 A niosą wylewki, V12 płaszczyzna In2).
-2. Eksport DSN (pcbnew.ExportSpecctraDSN) → `python3 dsn_prep.py wej.dsn maszyna.dsn`.
-3. `xvfb-run java -jar freerouting-1.9.0.jar -de maszyna.dsn -do maszyna.ses -mp 4` (ok. 30 min na 2 rdzeniach).
-4. `python3 ses2pcb.py maszyna.ses` (import bez GUI) → `python3 tie_pins.py` (łączy sąsiednie piny tej samej sieci).
+Zmiany względem 16b cz. 2:
+- **Kolejność sekcji na mostkach** dobrana do położenia pinów kostki A (`BRIDGE_SECTION` w `maszyna.py`, ta sama tabela w firmware) —
+  wcześniej 26 ścieżek sekcji krzyżowało się (piny kostki idą od prawej do lewej). Wyprowadzenia kostki A (sekcja 1 = piny 1–2 …) bez zmian.
+- Klasy pod router (`netclass.py`): Moc20A 2 mm, Moc12V 0,8 mm, Moc2A 0,5 mm, Zasilanie 0,4 mm, odstęp 0,15 mm.
+- Sygnały logiczne (klasa domyślna) mogą iść też warstwą In2 (płaszczyzna V12); In1 (masa) zostaje ciągła.
+- **Wylewki mocy** (`power_zones.py`): VIN_RAW, V12 (część mocy), LAMPA_OUT, SILNIK_A/B, bocznik — na F.Cu i B.Cu, pady pełną miedzią,
+  przelotki zszywające (V12 do In2).
 
-**Do zrobienia w KiCad (ręcznie, elektronik):** 129 brakujących połączeń (zakładka „Niepołączone” w DRC; przy ciasnych
-miejscach przesunąć rezystory/kondensatory przy DRV8962 o 1–2 mm), wylewki mocy VIN_RAW → Q1/Q2 → V12 i U8 → LAMPA_OUT → J2 7–8
-oraz SILNIK_A/B (≥ 5–8 mm, obie strony, przelotki co 3–4 mm), pary USB_DP/DM i CANH/CANL do poprawienia ręcznie, DRC,
-potem Gerber + BOM/CPL JLCPCB.
+Kolejność (do powtórzenia): `netclass.py` → eksport DSN → `dsn_prep.py` → Freerouting 1.9 (`xvfb-run java -jar freerouting-1.9.0.jar
+-de maszyna.dsn -do maszyna.ses -mp 4`, ok. 1 h na 2 rdzeniach) → `ses2pcb.py` → `tie_pins.py` → `power_zones.py` → `fab.py`.
+
+**Do zrobienia w KiCad (elektronik):**
+1. 87 brakujących połączeń: głównie wokół DRV8962 (nFAULT, DVDD, VREF, IN/EN, 11 × V12 na pinach VM), kilka wyjść sekcji,
+   sterownik silnika U26 (MOT_*). Tam, gdzie ciasno — przesunąć rezystory 10 k / kondensatory przy DRV8962 o 1–2 mm.
+2. **VIN_RAW z kostki B (piny 1–3, góra płytki) do Q1/Q2 (dół)** idzie ścieżką 2 mm — wystarcza na kilka A; główne zasilanie
+   przez DTP (X1/X2). Jeśli kostka B ma nieść więcej — poszerzyć albo poprowadzić drugą wylewką.
+3. Pary USB_DP/DM i CANH/CANL poprawić ręcznie, sprawdzić wylewki mocy, DRC, podgląd Gerber u JLCPCB.
 
 ## Przegląd zewnętrzny 2026-11-12 — co zmieniono, co nie
 

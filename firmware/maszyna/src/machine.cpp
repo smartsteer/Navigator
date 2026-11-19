@@ -2,6 +2,12 @@
 
 namespace ss {
 
+int bridgeOfSection(int sectionIndex) {
+  for (int b = 0; b < 13; b++)
+    if (BRIDGE_SECTION[b] == sectionIndex + 1) return b;
+  return -1;
+}
+
 void Machine::command(const Command& c, uint32_t nowMs) {
   cmd_ = c;
   have_ = true;
@@ -47,15 +53,16 @@ uint64_t Machine::tick(uint32_t nowMs) {
 
   // Zadany stan zaworów: zabezpieczenie / brak poleceń = wszystko zamknięte.
   int8_t want[14];
-  for (int b = 0; b < 13; b++)
-    want[b] = (active && cmd_.mainOpen && b < cmd_.sectionCount && (cmd_.sections & (1u << b))) ? 1 : 0;
+  for (int b = 0; b < 13; b++) {
+    int s = BRIDGE_SECTION[b] - 1;
+    want[b] = (active && cmd_.mainOpen && s < cmd_.sectionCount && (cmd_.sections & (1u << s))) ? 1 : 0;
+  }
   want[BRIDGE_MAIN] = (active && cmd_.mainOpen) ? 1 : 0;
 
   // Kolejno, co SWITCH_GAP_MS: najpierw zawór główny, potem sekcje.
   if ((int32_t)(nowMs - nextSwitchMs_) >= 0) {
-    static const int order[14] = {13, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
     for (int i = 0; i < 14; i++) {
-      int b = order[i];
+      int b = i == 0 ? BRIDGE_MAIN : bridgeOfSection(i - 1);  // najpierw główny, potem sekcje 1–13
       if (applied_[b] != want[b]) {
         applied_[b] = want[b];
         driving_[b] = true;
@@ -112,7 +119,8 @@ void Machine::faults(uint8_t nFault, uint16_t& sectionFaults, uint8_t& machineFa
     if (nFault & (1u << k)) continue;  // 1 = w porządku
     for (int b = 2 * k; b <= 2 * k + 1; b++) {
       if (b < 13) {
-        if (b < cmd_.sectionCount) sectionFaults |= 1u << b;
+        int s = BRIDGE_SECTION[b] - 1;
+        if (s < cmd_.sectionCount) sectionFaults |= 1u << s;
       } else if (b == BRIDGE_MAIN) {
         machineFaults |= FAULT_MAIN;
       } else if (b == BRIDGE_REG) {

@@ -2,7 +2,7 @@
 // stan wyjść 16 mostków DRV8962 (48 bitów do łańcucha 6 × 74HC595). Testy: firmware/maszyna/test.
 //
 // Bity rejestrów (hardware/maszyna/kicad/maszyna.py): mostek b → bit 3b = IN_A, 3b+1 = IN_B, 3b+2 = EN.
-// Mostki: 0–12 sekcje 1–13, 13 zawór główny, 14 zawór regulacyjny, 15 rezerwa.
+// Mostki: 0–12 sekcje (kolejność w BRIDGE_SECTION), 13 zawór główny, 14 zawór regulacyjny, 15 rezerwa.
 // DRV8962: EN=1 + IN=1 → wyjście +12 V, EN=1 + IN=0 → masa, EN=0 → wyłączone (wysoka impedancja).
 #pragma once
 #include <stdint.h>
@@ -12,6 +12,10 @@
 namespace ss {
 
 const int BRIDGES = 16;
+// Mostek 0–12 → sekcja 1–13 (płytka: hardware/maszyna/kicad/maszyna.py BRIDGE_SECTION — dobrane pod ścieżki).
+const uint8_t BRIDGE_SECTION[13] = {6, 11, 5, 10, 4, 9, 12, 3, 8, 2, 13, 7, 1};
+// Sekcja 1–13 (indeks 0–12) → mostek.
+int bridgeOfSection(int sectionIndex);
 const int BRIDGE_MAIN = 13;
 const int BRIDGE_REG = 14;
 const uint32_t SWITCH_GAP_MS = 50;     // sekcje przestawiane kolejno (szczyt prądu)

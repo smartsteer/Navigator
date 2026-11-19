@@ -10,6 +10,7 @@ Płytka: [hardware/maszyna](../../hardware/maszyna) (piny z `kicad/maszyna.py`).
 - Po starcie: mostki uśpione, rejestry wyzerowane; potem wszystkie zawory przestawiane na **zamknięte** (2‑pin też, bo ich położenie po zaniku zasilania jest nieznane).
 - Zawory **3‑pin**: wyjście A = sygnał na stałe. **2‑pin**: biegunowość przez czas z Navigatora (domyślnie 3 s), potem wyłączone.
 - Zawory przestawiane **kolejno co 50 ms** (najpierw główny) — mniejszy szczyt prądu.
+- Sekcje na mostkach w kolejności płytki (`BRIDGE_SECTION` w `src/machine.h` = ta sama tabela co w `hardware/maszyna/kicad/maszyna.py`) — kostka A ma sekcje 1–13 na pinach 1–26 bez zmian.
 - **Zawór regulacyjny:** impulsy ms z Navigatora wykonywane raz na licznik, zaległe się sumują (jak w symulatorze), po impulsie 100 ms hamowania.
 - Przepływomierz: przerwanie na GPIO35, czas między impulsami (gdy przerwa > 1,5 × ostatni okres — podawana przerwa, szybsza reakcja na zamknięcie).
 - ADS1115: ciśnienie (0,5–4,5 V albo 4–20 mA, zakres w `src/config.h`, domyślnie 10 bar) i napięcie zasilania (alarm < 10,5 V i > 16 V).
