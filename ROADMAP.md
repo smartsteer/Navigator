@@ -160,4 +160,6 @@ Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (st
   Do zrobienia przez elektronika: 87 połączeń (głównie przy DRV8962 i U26), VIN_RAW z kostki B, pary USB/CAN, numery LCSC w BOM.
 - 2026-11-20 — BŁĄD Z TABLETU (Windows): pełny ekran zostawiał pasek tytułu i pas pulpitu z lewej (WindowPlacement.Fullscreen przy skalowaniu ekranu). Teraz okno bez ramki, granice liczone z ekranu: PEŁNY EKRAN = cały ekran, wyłączony = obszar roboczy z paskiem zadań; co 2 s dopasowanie po obrocie / zmianie skalowania. Ustawienia „skakały” po − / +: dotyk przychodzi jako mysz, drobny ruch palca przewijał listę z rozpędem — przewijanie dopiero po 24 dp ruchu, rozpęd tylko po prawdziwym przeciągnięciu, z limitem.
   Na tablecie: PEŁNY EKRAN — brak paska tytułu i pulpitu; kilka razy − / + w Ustawieniach → lista stoi; przewijanie palcem dalej działa.
+- 2026-11-20 — Windows: tylko jeden Navigator naraz (blokada pliku w katalogu tymczasowym + 127.0.0.1:47917); drugie uruchomienie pokazuje okno pierwszego i się zamyka; po aktualizacji kilka prób, zanim stary proces się zamknie.
+  Na tablecie: uruchomić Navigator drugi raz (skrót) — ma wyskoczyć działające okno, bez drugiej kopii.
 

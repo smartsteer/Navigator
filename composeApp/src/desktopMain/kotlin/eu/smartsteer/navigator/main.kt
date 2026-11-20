@@ -18,11 +18,20 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import eu.smartsteer.navigator.ui.DisplayPrefs
 import kotlinx.coroutines.delay
+import kotlin.system.exitProcess
+import java.awt.EventQueue
+import java.awt.Frame
 import java.awt.Rectangle
 import java.awt.Toolkit
 import java.awt.Window as AwtWindow
 
-fun main() = application {
+fun main() {
+    // tylko jeden Navigator naraz — drugie uruchomienie pokazuje okno pierwszego (SingleInstance)
+    if (!SingleInstance.acquire()) exitProcess(0)
+    navigatorApp()
+}
+
+private fun navigatorApp() = application {
     // ikona okna i paska zadań (z branding/logo.png — tools/make_icons.py)
     val icon = remember {
         Thread.currentThread().contextClassLoader?.getResourceAsStream("icon.png")?.use { BitmapPainter(loadImageBitmap(it)) }
@@ -44,6 +53,15 @@ fun main() = application {
             if (e.type == KeyEventType.KeyDown && e.key == Key.F11) { DisplayPrefs.toggleFullScreen(); true } else false
         },
     ) {
+        SingleInstance.onActivate = {
+            EventQueue.invokeLater {
+                if (window.extendedState and Frame.ICONIFIED != 0) window.extendedState = window.extendedState and Frame.ICONIFIED.inv()
+                window.isAlwaysOnTop = true   // Windows nie pozwala zwykłym toFront() wyskoczyć nad inne okno
+                window.toFront()
+                window.requestFocus()
+                window.isAlwaysOnTop = false
+            }
+        }
         LaunchedEffect(DisplayPrefs.fullScreen) {
             var last: Rectangle? = null
             while (true) {
