@@ -2,6 +2,7 @@
 
 Zewnętrzny panel do przypięcia w kabinie w dowolnym miejscu: przełączniki sekcji jak w klasycznym terminalu,
 diody RGB pokazujące to samo co Navigator, pokrętło dawki. Bez kabla — zasilanie z 6 baterii AA.
+Wizualizacja koncepcji: [wizualizacja.png](wizualizacja.png).
 Licencja GPLv3. **Przed zamówieniem projekt przegląda elektronik** (lista „Do sprawdzenia” na końcu).
 
 Decyzje właściciela (2026-11-20): przełączniki dźwigniowe IP67, diody RGB w stylu ekranu Navigatora,
