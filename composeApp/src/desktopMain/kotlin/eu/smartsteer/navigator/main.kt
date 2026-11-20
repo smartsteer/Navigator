@@ -37,7 +37,12 @@ private fun navigatorApp() = application {
         Thread.currentThread().contextClassLoader?.getResourceAsStream("icon.png")?.use { BitmapPainter(loadImageBitmap(it)) }
     }
     DisplayPrefs.fullScreenSupported = true
-    val state = rememberWindowState(width = 1280.dp, height = 800.dp)
+    // od razu na właściwym miejscu i w rozmiarze ekranu (bez startu w domyślnym miejscu Windows i przesuwania)
+    val start = remember { screenArea(null, DisplayPrefs.fullScreen) }
+    val state = rememberWindowState(
+        position = WindowPosition(start.x.dp, start.y.dp),
+        size = DpSize(start.width.dp, start.height.dp),
+    )
     // Okno bez ramki (paska tytułu) na cały ekran — tablet w kabinie. WindowPlacement.Fullscreen na Windows przy skalowaniu
     // ekranu 125–200 % zostawiał pasek tytułu i pas pulpitu z boku, dlatego granice liczymy sami z ekranu, na którym jest okno:
     //  - PEŁNY EKRAN (Ustawienia → Ekran albo F11): cały ekran, pasek zadań zakryty,
@@ -67,8 +72,10 @@ private fun navigatorApp() = application {
             while (true) {
                 // co 2 s: obrót tabletu albo zmiana rozdzielczości / skalowania → dopasuj okno od nowa
                 val r = screenArea(window, DisplayPrefs.fullScreen)
-                if (r != last) {
+                // co 2 s sprawdzamy też samo okno: Windows potrafi przesunąć okno bez ramki przy starcie / zmianie skalowania
+                if (r != last || window.bounds != r) {
                     applyBounds(state, r)
+                    window.bounds = r   // bezpośrednio w AWT (te same jednostki), gdyby stan Compose nie przesunął okna
                     last = r
                 }
                 delay(2000)
@@ -79,8 +86,9 @@ private fun navigatorApp() = application {
 }
 
 /** Obszar ekranu z oknem w jednostkach okna (te same co dp w WindowState — Windows sam przelicza skalowanie). */
-private fun screenArea(w: AwtWindow, full: Boolean): Rectangle {
-    val gc = w.graphicsConfiguration
+private fun screenArea(w: AwtWindow?, full: Boolean): Rectangle {
+    val gc = w?.graphicsConfiguration
+        ?: java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
     val b = gc.bounds
     if (full) return Rectangle(b)
     val i = Toolkit.getDefaultToolkit().getScreenInsets(gc)
