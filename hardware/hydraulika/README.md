@@ -17,19 +17,15 @@ Płytka Maszyna ma 16 wyjść po 2 A (pełne mostki, diagnostyka) + mostek 15 A 
 hydrauliki 12 V (zwykle 1,5–2 A). **Do sprawdzenia w konkretnym opryskiwaczu:** prąd cewek; większe — na mostek 15 A
 albo przez przekaźnik.
 
-## Funkcje (pierwsza wersja)
+## Funkcje — 12 dźwigni dwukierunkowych
 
-| Dźwignia (chwilowa, samopowrót do środka) | Wyjścia |
-|---|---|
-| Składanie lewe: wewnątrz / zewnątrz | 2 |
-| Składanie prawe: wewnątrz / zewnątrz | 2 |
-| Wysokość belki: góra / dół | 2 |
-| Pochylenie: lewo / prawo | 2 |
-| Wahania: blokada / wolne (stała, nie chwilowa) | 1–2 |
-| Zawór główny hydrauliki (otwierany przy każdym ruchu) | 1 |
+Przykładowe przypisanie (wymienne paski z opisem — każdy ustawia pod swój opryskiwacz):
+składanie L1, L2, P1, P2 (belka 2‑stopniowa), wysokość, pochylenie, blokada wahań, dyszel skrętny, znacznik L, znacznik P,
+funkcja 11, funkcja 12. Przy każdej dźwigni dioda — świeci, gdy funkcja pracuje.
 
-Razem ~10–11 wyjść z 16 — zapas na znacznik pianowy, rozkładanie znaczników, mieszadło hydrauliczne itp.
-Przypisanie wyjść i czasy (np. opóźnienie zaworu głównego) ustawiane w firmware płytki — opis w etapie 23b.
+**Wyjścia płytki Maszyna:** jeden mostek DRV8962 ma dwa półmostki — każdy zasila jedną cewkę (A albo B) jednej funkcji
+(cewki do wspólnej masy). 16 mostków = **do 16 funkcji dwukierunkowych (32 cewki)**, 2 A na cewkę; panel ma 12 dźwigni,
+4 mostki zapasu (np. zawór główny hydrauliki, funkcje stałe). Przypisanie dźwignia → mostek ustawiane raz przez USB.
 
 ## Bezpieczeństwo (najważniejsze)
 

@@ -62,7 +62,7 @@ Kolejność (jeden etap na przebieg). Terminal w Navigatorze najpierw działa z 
   - [ ] 22c. Obudowa (OpenSCAD/CadQuery → STL).
   - [ ] 22d. Firmware panelu + BLE w płytce Maszyna (PGN 162/163) + Navigator (parowanie, bateria, „panel niedostępny”).
 - [ ] 23. **Hydraulika belki — osobny panel** (decyzja właściciela 2026-11-20): sterowanie tylko panelem + płytką (bez Navigatora), płytka wykonawcza = płytka Maszyna w trybie „Hydraulika”; panel z własną płytką pod obudowę (wspólny schemat bloków i firmware z panelem oprysku). Opis: hardware/hydraulika/README.md.
-  - [x] 23a. Specyfikacja i wizualizacja (składanie L/P, wysokość, pochylenie, wahania; dźwignie chwilowe, HYDR. AKTYWNA, zabezpieczenie 0,3 s).
+  - [x] 23a. Specyfikacja i wizualizacja: 12 dźwigni chwilowych dwukierunkowych z diodami i wymiennymi opisami (składanie 2‑stopniowe L/P, wysokość, pochylenie, wahania, dyszel, znaczniki, 2 wolne), HYDR. AKTYWNA, zabezpieczenie 0,3 s; płytka Maszyna do 16 funkcji (mostek = 2 cewki).
   - [ ] 23b. Firmware płytki Maszyna — tryb „Hydraulika”.
   - [ ] 23c. PCB panelu hydrauliki pod jego obudowę (schemat bloków z 22b) + firmware panelu w wersji hydraulika + obudowa.
 
