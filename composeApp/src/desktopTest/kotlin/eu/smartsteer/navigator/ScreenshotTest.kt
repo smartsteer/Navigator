@@ -83,6 +83,18 @@ class ScreenshotTest {
                 } finally { scene.close() }
             }
             hw.updateSprayerOnly(false)
+            // kreator kalibracji: krok „Próba z miarką” (wpisywanie wyników)
+            run {
+                hw.sprayer.startCalibration()
+                val w = hw.sprayer.calibration!!
+                repeat(4) { w.next() }
+                val scene = ImageComposeScene(1280, 800, Density(1f)) { App(hw, Screen.Sprayer) }
+                try {
+                    var img = scene.render(0)
+                    for (k in 1..3) img = scene.render(k * 100_000_000L)
+                    img.encodeToData(EncodedImageFormat.PNG)?.bytes?.let { File(dir, "sprayer_kalibracja.png").writeBytes(it) }
+                } finally { scene.close(); hw.sprayer.finishCalibration(false) }
+            }
             // podkład: sprawdzenie adresów kafelków (wynik w kafelki.txt) i zrzuty mapy z podkładem
             val (lat, lon) = s.plane!!.toGeo(s.pivot!!)
             val z = 18
