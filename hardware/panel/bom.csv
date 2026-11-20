@@ -1,0 +1,16 @@
+Oznaczenie;Ilosc;Opis;Producent;MPN (do sprawdzenia);Obudowa;LCSC;Uwagi
+U1;1;Procesor + Bluetooth LE 5;Espressif;ESP32-C3-MINI-1-N4;moduł SMD;;antena przy krawędzi, bez miedzi pod anteną
+U2,U3;2;Sterownik 36 kanałów PWM LED, I2C;Lumissil;IS31FL3236A-QFLS2;QFN-44;;14 diod RGB = 42 kanały
+U4-U6;3;Ekspander 8 wejść I2C z przerwaniem;Texas Instruments;TCA9534PWR;TSSOP-16;;wybudzanie z dźwigni/przycisków
+U7;1;Przetwornica obniżająca 3,3 V, Iq ~5 µA;Texas Instruments;TPS62177DQCR;WSON-10;;wejście 6 × AA (6–10 V)
+Q1;1;MOSFET P ochrona przed odwrotnym włożeniem baterii;;DMP3099L;SOT-23;;
+Q2;1;Klucz dzielnika pomiaru baterii;;BSS84;SOT-23;;prąd tylko podczas pomiaru
+D1;1;TVS zasilania;;SMAJ12A;SMA;;
+LED1-LED14;14;Dioda RGB wspólna anoda;;(do wyboru: 5050 SMD albo 5 mm THT pod soczewką);;;wybór razem z obudową (22c)
+PH1;1;Fototranzystor światła otoczenia;Vishay;TEMT6000X01;1206;;jasność diod dzień/noc
+SW1-SW13;13;Przełącznik dźwigniowy ON-OFF IP67 panelowy;APEM / C&K;600H / 7000 z uszczelnieniem (wybór w 22b);THT panelowy;;sekcje
+SW14,SW15;2;Przełącznik dźwigniowy ON-OFF IP67 panelowy;APEM / C&K;jak wyżej;THT panelowy;;AUTO/RĘCZNIE, oświetlenie
+SW16;1;Przycisk wandaloodporny Ø22 IP67 z pierścieniem RGB;;(do wyboru);panelowy;;START/STOP
+ENC1;1;Enkoder z przyciskiem, uszczelniony;Bourns;PEC11R-4220K-S0024 + uszczelka panelowa (albo enkoder IP65);THT;;dawka
+BT1;1;Koszyk 6 × AA z przewodami;;(do wyboru);;;komora w obudowie, osobna uszczelka
+R*;17;Rezystor podciągający 1 MΩ;;;0402;;mały pobór przy włączonej dźwigni
