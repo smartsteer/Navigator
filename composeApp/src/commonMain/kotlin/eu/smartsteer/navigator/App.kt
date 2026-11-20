@@ -183,7 +183,7 @@ private fun PowerBanner(hw: HardwareController) {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "Brak zasilania z ciągnika — ${if (hw.powerShutdownPc) "wyłączenie komputera" else "zamknięcie programu"} za $left s",
+                "Brak zasilania z ciągnika — ${if (hw.powerShutdownPc) "wyłączenie Windows" else "zamknięcie programu"} za $left s",
                 color = androidx.compose.ui.graphics.Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold,
             )
             Box(

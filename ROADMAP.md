@@ -162,4 +162,6 @@ Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (st
   Na tablecie: PEŁNY EKRAN — brak paska tytułu i pulpitu; kilka razy − / + w Ustawieniach → lista stoi; przewijanie palcem dalej działa.
 - 2026-11-20 — Windows: tylko jeden Navigator naraz (blokada pliku w katalogu tymczasowym + 127.0.0.1:47917); drugie uruchomienie pokazuje okno pierwszego i się zamyka; po aktualizacji kilka prób, zanim stary proces się zamknie.
   Na tablecie: uruchomić Navigator drugi raz (skrót) — ma wyskoczyć działające okno, bez drugiej kopii.
+- 2026-11-20 — zasilanie (Ustawienia → Ciągnik → Zasilanie): „Po zaniku zasilania z ciągnika: Nic nie rób / Zamknij program / Wyłącz Windows” (wcześniej wyłączenie komputera było ukrytym przełącznikiem pod „Zamknij”). Przed wyłączeniem: autoster wyłączony, pole zapisane, potem shutdown /s /t 5.
+  Na tablecie: wybrać „Wyłącz Windows”, 10 s, wyjąć zasilacz — pasek odliczania, potem Windows się wyłącza; włożyć zasilacz w trakcie odliczania — anulowane.
 

@@ -457,11 +457,17 @@ private fun ColumnScope.PowerSettings(hw: HardwareController) {
         Label("Autostart: ${pp.setAutostart(true) ?: "—"}", Ss.TextMuted, 12.sp)
     }
     msg?.let { Label(it, Ss.Warning, 12.sp) }
-    Toggle("Zamknij po zaniku zasilania", hw.powerAutoClose) { hw.setPowerOptions(autoClose = it) }
+    // jedna decyzja zamiast dwóch przełączników: nic / zamknij program / wyłącz cały komputer (Windows)
+    val opts = if (pp.canShutdownSystem) listOf("Nic nie rób", "Zamknij program", "Wyłącz Windows") else listOf("Nic nie rób", "Zamknij program")
+    val sel = if (!hw.powerAutoClose) 0 else if (hw.powerShutdownPc && pp.canShutdownSystem) 2 else 1
+    Choice("Po zaniku zasilania z ciągnika", opts, sel) { i -> hw.setPowerOptions(autoClose = i > 0, shutdownPc = i == 2) }
     if (hw.powerAutoClose) {
         Num("Po ilu sekundach", "Krótkie przerwy (rozruch silnika) nie zamykają programu", hw.powerDelayS.toDouble(), "s", 1.0, 3.0, 600.0, 0) { hw.setPowerOptions(delayS = it.toInt()) }
-        if (pp.canShutdownSystem) Toggle("Wyłącz też komputer", hw.powerShutdownPc) { hw.setPowerOptions(shutdownPc = it) }
-        Label("Przed zamknięciem: autoster wyłączony, pole zapisane. Na pasku odliczania można anulować.", Ss.TextMuted, 12.sp)
+        Label(
+            if (hw.powerShutdownPc) "Przed wyłączeniem: autoster wyłączony, pole zapisane, potem program się zamyka i Windows wyłącza komputer (5 s). Na pasku odliczania można anulować."
+            else "Przed zamknięciem: autoster wyłączony, pole zapisane. Na pasku odliczania można anulować.",
+            Ss.TextMuted, 12.sp,
+        )
     }
 }
 
