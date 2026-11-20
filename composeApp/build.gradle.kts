@@ -97,12 +97,12 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
-            packageName = "SmartSteer Navigator"
+            packageName = "WAR Navigator"
             packageVersion = appVersion
-            vendor = "SmartSteer"
+            vendor = "WAR"
             description = "Prowadzenie i autosterowanie zgodne z płytkami AgOpenGPS"
             windows {
-                menuGroup = "SmartSteer"
+                menuGroup = "WAR"
                 shortcut = true
                 dirChooser = true
                 upgradeUuid = "8f0c6a9e-2b1d-4c7e-9a3f-5d2e7b1c4a60"

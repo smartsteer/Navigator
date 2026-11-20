@@ -101,8 +101,8 @@ jobs:
         run: |
           V="0.1.${{ github.run_number }}"
           mkdir out
-          cp dist/navigator-windows-msi/*.msi "out/SmartSteer-Navigator-$V.msi"
-          cp dist/navigator-android-debug/*.apk "out/SmartSteer-Navigator-$V.apk"
+          cp dist/navigator-windows-msi/*.msi "out/WAR-Navigator-$V.msi"
+          cp dist/navigator-android-debug/*.apk "out/WAR-Navigator-$V.apk"
           printf 'Automatyczne wydanie z budowy nr %s.\n\n%s\n' "${{ github.run_number }}" "$COMMIT_MSG" > notes.md
           # GitHub API czasem odpowiada 500 — ponawiamy do 4 razy
           for i in 1 2 3 4; do
@@ -110,7 +110,7 @@ jobs:
               gh release upload "v$V" out/* --clobber --repo "$GITHUB_REPOSITORY" && exit 0
             elif gh release create "v$V" out/* \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title "SmartSteer Navigator $V" --notes-file notes.md --latest; then
+              --title "WAR Navigator $V" --notes-file notes.md --latest; then
               exit 0
             fi
             echo "Próba $i nieudana, czekam…"; sleep $((i * 15))

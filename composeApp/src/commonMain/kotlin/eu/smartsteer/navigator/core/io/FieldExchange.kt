@@ -50,7 +50,7 @@ object FieldExchange {
         val sb = StringBuilder()
         sb.append("{\"type\":\"FeatureCollection\",\n")
         sb.append("\"properties\":{")
-        sb.append("\"program\":\"SmartSteer Navigator\",")
+        sb.append("\"program\":\"WAR Navigator\",")
         sb.append("\"pole\":\"").append(esc(field.name)).append("\",")
         sb.append("\"start\":\"").append(esc(startedText)).append("\",")
         sb.append("\"koniec\":\"").append(esc(finishedText)).append("\",")

@@ -30,10 +30,19 @@ actual object PowerPlatform {
 
     @Volatile private var started = false
 
+    /** Autostart wskazujący stary plik programu (np. po zmianie nazwy na „WAR Navigator”) → przepisz na obecny. */
+    private fun fixAutostartPath() {
+        val path = exe ?: return
+        val r = run("reg", "query", RUN_KEY, "/v", VALUE)
+        if (r.first != 0) return
+        if (!r.second.contains(path, ignoreCase = true)) setAutostart(true)
+    }
+
     /** Jeden proces PowerShell co 2 s podaje, czy laptop/tablet jest na zasilaczu (Online) czy na baterii (Offline). */
     actual fun startMonitor() {
         if (!windows || started) return
         started = true
+        Thread({ fixAutostartPath() }, "autostart").apply { isDaemon = true }.start()
         Thread({
             while (true) {
                 try {

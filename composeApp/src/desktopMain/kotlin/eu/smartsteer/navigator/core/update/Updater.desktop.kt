@@ -80,7 +80,12 @@ private object DesktopUpdater : PlatformUpdater {
             append("Start-Process -FilePath 'msiexec.exe' -ArgumentList @('/i', ")
             append(q("\"" + msi.absolutePath + "\""))
             append(", '/passive', '/norestart') -Wait; ")
-            if (launcher != null) append("Start-Process -FilePath ").append(q(launcher))
+            if (launcher != null) {
+                // od wersji „WAR Navigator” katalog programu ma nową nazwę — uruchom tę ścieżkę, która istnieje
+                val renamed = launcher.replace("SmartSteer Navigator", "WAR Navigator")
+                append("if (Test-Path ").append(q(renamed)).append(") { Start-Process -FilePath ").append(q(renamed))
+                append(" } else { Start-Process -FilePath ").append(q(launcher)).append(" }")
+            }
         }
         val encoded = Base64.getEncoder().encodeToString(script.toByteArray(Charsets.UTF_16LE))
         withContext(Dispatchers.IO) {

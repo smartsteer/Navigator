@@ -219,7 +219,7 @@ private fun TopBar(ctrl: DemoController, hw: HardwareController) {
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Row(Modifier.width(224.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            val brand = remember { brandImage() }
+            val brand = remember(DisplayPrefs.day) { brandImage(DisplayPrefs.day) }
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (brand != null) {
                     // „WAR Navigator” ze znakiem WAR (branding/war-navigator-naglowek.svg)
@@ -280,7 +280,7 @@ private fun HwTopBar(hw: HardwareController) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            val brand = remember { brandImage() }
+            val brand = remember(DisplayPrefs.day) { brandImage(DisplayPrefs.day) }
             if (brand != null) Image(brand, contentDescription = "WAR Navigator", modifier = Modifier.height(26.dp))
             else NavIcon(IconKind.Logo, Ss.Accent, 26.dp)
             Text(clock, color = Ss.Text, fontSize = 20.sp, fontWeight = FontWeight.Bold)

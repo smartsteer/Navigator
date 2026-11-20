@@ -240,7 +240,7 @@ object WarProtocol {
             )
         }
         return Json.obj(
-            "v" to 1, "id" to w.id, "zrodlo" to "SmartSteer Navigator", "war_sync" to w.version, "komputer" to c.machineId,
+            "v" to 1, "id" to w.id, "zrodlo" to "WAR Navigator", "war_sync" to w.version, "komputer" to c.machineId,
             "pole" to Json.Raw(pole),
             "narzedzie" to Json.Raw(Json.obj("nazwa" to w.tool, "szerokosc" to w.width)), "pojazd" to w.tractor,
             "start" to w.start, "koniec" to w.end,

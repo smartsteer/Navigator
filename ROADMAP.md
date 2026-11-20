@@ -164,4 +164,6 @@ Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (st
   Na tablecie: uruchomić Navigator drugi raz (skrót) — ma wyskoczyć działające okno, bez drugiej kopii.
 - 2026-11-20 — zasilanie (Ustawienia → Ciągnik → Zasilanie): „Po zaniku zasilania z ciągnika: Nic nie rób / Zamknij program / Wyłącz Windows” (wcześniej wyłączenie komputera było ukrytym przełącznikiem pod „Zamknij”). Przed wyłączeniem: autoster wyłączony, pole zapisane, potem shutdown /s /t 5.
   Na tablecie: wybrać „Wyłącz Windows”, 10 s, wyjąć zasilacz — pasek odliczania, potem Windows się wyłącza; włożyć zasilacz w trakcie odliczania — anulowane.
+- 2026-11-20 — nazwa programu „WAR Navigator” wszędzie (instalator, katalog programu, skrót i grupa w menu Start, pliki wydań WAR-Navigator-X.msi/apk, ekran startowy, raporty); logo na górnym pasku w trybie Dzień z ciemnym „Navigator” (brand_day.png). Przejście: katalog programu zmienia się na „WAR Navigator” — autostart sam przepisuje ścieżkę, a aktualizacja od tej wersji uruchamia nową ścieżkę.
+  Na tablecie: po tej jednej aktualizacji uruchomić program ręcznie (nowy skrót „WAR Navigator”) i zezwolić w zaporze Windows (sieć prywatna i publiczna); tryb Dzień — napis „Navigator” czarny.
 

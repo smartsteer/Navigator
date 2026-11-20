@@ -56,7 +56,7 @@ fun SplashScreen(message: String, visible: Boolean = true, onHidden: () -> Unit 
             LinearProgressIndicator(modifier = Modifier.width(220.dp).height(4.dp), color = SplashAccent, trackColor = Color(0xFF1E2A21))
         }
         Text(
-            "SmartSteer${version?.let { " · wersja $it" } ?: ""}",
+            "WAR Navigator${version?.let { " · wersja $it" } ?: ""}",
             color = SplashText.copy(alpha = 0.6f), fontSize = 12.sp,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
         )

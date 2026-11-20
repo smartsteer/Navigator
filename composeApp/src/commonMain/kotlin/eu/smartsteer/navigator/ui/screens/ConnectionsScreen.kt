@@ -353,7 +353,7 @@ private fun Tutorial(hw: HardwareController) {
     Step(
         4, "Zapora Windows przepuszcza dane", if (hw.hardware && pcInSubnet) hw.receiving() else null,
         "Przy pierwszym uruchomieniu Windows pyta o dostęp do sieci — zaznacz OBIE: prywatne i publiczne (sieć z płytką jest zwykle „publiczna, niezidentyfikowana”). " +
-            "Jeśli okna nie było: Zabezpieczenia Windows → Zapora i ochrona sieci → Zezwalaj aplikacji przez zaporę → Zmień ustawienia → zaznacz SmartSteer Navigator w obu kolumnach. " +
+            "Jeśli okna nie było: Zabezpieczenia Windows → Zapora i ochrona sieci → Zezwalaj aplikacji przez zaporę → Zmień ustawienia → zaznacz WAR Navigator w obu kolumnach. " +
             "Gdy nadal nic nie przychodzi: „Szukaj modułów” — pokaże, w jakiej sieci jest płytka.",
     )
     Step(
