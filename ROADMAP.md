@@ -58,13 +58,13 @@ Kolejność (jeden etap na przebieg). Terminal w Navigatorze najpierw działa z 
 - [ ] 22. **Panel przełączników opryskiwacza** (decyzja właściciela 2026-11-20): zewnętrzny, bezprzewodowy (BLE do płytki Maszyna), 6 × AA; dźwignie sekcji IP67, diody RGB jak na ekranie Navigatora (zielona/żółta/czerwona, miganie przy niezgodności), START/STOP, AUTO/RĘCZNIE, oświetlenie, pokrętło dawki; płytka w całości z JLCPCB; nowoczesna opływowa obudowa (własny projekt), mocowanie magnes / kula RAM.
   - [x] 22a. Specyfikacja: hardware/panel/README.md + bom.csv (ESP32‑C3, 2 × IS31FL3236A, TPS62177, bilans baterii).
   - [x] 22a‑2. Wersja 2 (wizualizacja_v2.png): obudowa pod dłoń z podparciem, roller dawki (AS5600 za ścianką), e‑papier 4,2"; dźwignie sekcji chwilowe (stan tylko na diodzie: zielona / żółta / ciemna, czerwona = błąd), włącznik zasilania; ta sama płytka do panelu hydrauliki.
-  - [ ] 22b. Schemat i PCB w KiCad, pliki JLCPCB.
+  - [ ] 22b. Schemat bloków wspólny dla obu paneli + PCB panelu oprysku pod obudowę (wszystko wlutowane, „włóż, skręć, działa”), pliki JLCPCB.
   - [ ] 22c. Obudowa (OpenSCAD/CadQuery → STL).
   - [ ] 22d. Firmware panelu + BLE w płytce Maszyna (PGN 162/163) + Navigator (parowanie, bateria, „panel niedostępny”).
-- [ ] 23. **Hydraulika belki — osobny panel** (decyzja właściciela 2026-11-20): sterowanie tylko panelem + płytką (bez Navigatora), płytki zamienne z oprysku: płytka Maszyna w trybie „Hydraulika”, płytka panelu z inną płytą czołową. Opis: hardware/hydraulika/README.md.
+- [ ] 23. **Hydraulika belki — osobny panel** (decyzja właściciela 2026-11-20): sterowanie tylko panelem + płytką (bez Navigatora), płytka wykonawcza = płytka Maszyna w trybie „Hydraulika”; panel z własną płytką pod obudowę (wspólny schemat bloków i firmware z panelem oprysku). Opis: hardware/hydraulika/README.md.
   - [x] 23a. Specyfikacja i wizualizacja (składanie L/P, wysokość, pochylenie, wahania; dźwignie chwilowe, HYDR. AKTYWNA, zabezpieczenie 0,3 s).
   - [ ] 23b. Firmware płytki Maszyna — tryb „Hydraulika”.
-  - [ ] 23c. Firmware panelu (wersja hydraulika) + płyta czołowa.
+  - [ ] 23c. PCB panelu hydrauliki pod jego obudowę (schemat bloków z 22b) + firmware panelu w wersji hydraulika + obudowa.
 
 Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (strona sklepu blokuje automatyczne pobieranie — instrukcja/PDF albo zdjęcie tabliczki: zasilanie, interfejs RS232/TTL/CAN, prędkość, format ramek), modele zaworów Arag (prąd), typ przepływomierza (impulsy/l), czujnik ciśnienia (zakres, 0,5–4,5 V czy 4–20 mA), moc oświetlenia roboczego (A).
 

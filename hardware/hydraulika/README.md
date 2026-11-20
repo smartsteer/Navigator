@@ -3,14 +3,14 @@
 Wizualizacja panelu: [wizualizacja_panel.png](wizualizacja_panel.png). Licencja GPLv3.
 
 Decyzja właściciela (2026-11-20): hydraulika sterowana **tylko panelem i płytką**, bez Navigatora;
-płytki zamienne z oprysku — żadnych nowych projektów elektroniki.
+płytka wykonawcza ta sama co w oprysku (płytka Maszyna); panel z własną płytką pod swoją obudowę.
 
 ## Z czego się składa
 
 | Część | Co to | Różnica względem oprysku |
 |---|---|---|
 | Płytka wykonawcza | **ta sama płytka Maszyna** (hardware/maszyna) | firmware w trybie „Hydraulika” (zworka albo ustawienie z USB) |
-| Panel | **ta sama płytka panelu** (hardware/panel) | płyta czołowa, napisy i firmware; zamiast 13 dźwigni sekcji — dźwignie chwilowe hydrauliki |
+| Panel | **własna płytka** pod obudowę hydrauliki (ten sam schemat bloków i firmware co panel oprysku) | dźwignie i przyciski wlutowane dokładnie pod otwory — włóż, skręć, działa |
 | Łączność | BLE panel ↔ płytka bezpośrednio | bez Navigatora i bez tabletu |
 
 Płytka Maszyna ma 16 wyjść po 2 A (pełne mostki, diagnostyka) + mostek 15 A — wystarcza na typowe cewki zaworów

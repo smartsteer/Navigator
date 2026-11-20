@@ -21,7 +21,12 @@ pokrętło do dawki, 6 × AA, płytka w całości montowana w JLCPCB, nowoczesna
   **czerwona** = błąd zaworu sekcji. Nie ma już niezgodności dźwignia ↔ ekran (miganie niepotrzebne), a dźwignie w spoczynku
   nie pobierają prądu. Zmiana z tabletu po prostu zmienia diodę.
 - **Włącznik zasilania** (kołyskowy I/O, uszczelniony) — odcina baterie całkowicie; panel wraca do ostatnio połączonej płytki.
-- Ta sama płytka panelu służy też do **panelu hydrauliki** (hardware/hydraulika) — inna płyta czołowa i firmware.
+- **Montaż „włóż, skręć, działa”** (decyzja właściciela 2026-11-20): każdy panel ma **własną płytkę**, wymiarami i położeniem
+  otworów dokładnie pod swoją obudowę — dźwignie, przyciski, roller, diody i e‑papier są wlutowane w płytkę (JLCPCB),
+  płytkę trzymają nakrętki dźwigni + 4 wkręty, baterie jedną wtyczką z komory. Zero przewodów do lutowania.
+  Wspólny jest **schemat bloków** (procesor, zasilanie, sterownik diod, BLE) i **firmware** — płytka rozpoznaje sama,
+  czy jest panelem oprysku, czy hydrauliki (rezystor identyfikacyjny na płytce).
+- ~~Ta sama płytka panelu~~ Panel hydrauliki ma osobną płytkę o tym samym schemacie bloków — **panelu hydrauliki** (hardware/hydraulika) — inna płyta czołowa i firmware.
 
 ## Elementy na panelu
 
