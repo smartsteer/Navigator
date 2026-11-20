@@ -33,6 +33,8 @@ Zmiany względem 16b cz. 2:
 - **Wylewki mocy** (`power_zones.py`): VIN_RAW, V12 (część mocy), LAMPA_OUT, SILNIK_A/B, bocznik — na F.Cu i B.Cu, pady pełną miedzią,
   przelotki zszywające (V12 do In2).
 
+`maszyna.dsn` = płytka **bez ścieżek**, gotowa do Freeroutingu na własnym komputerze (GUI: File → Open, Autorouter, Export Specctra Session; potem w KiCad Plik → Importuj → Specctra Session).
+
 Kolejność (do powtórzenia): `netclass.py` → eksport DSN → `dsn_prep.py` → Freerouting 1.9 (`xvfb-run java -jar freerouting-1.9.0.jar
 -de maszyna.dsn -do maszyna.ses -mp 4`, ok. 1 h na 2 rdzeniach) → `ses2pcb.py` → `tie_pins.py` → `power_zones.py` → `fab.py`.
 
