@@ -57,9 +57,14 @@ Kolejność (jeden etap na przebieg). Terminal w Navigatorze najpierw działa z 
 - [ ] 21. **Na sam koniec:** obsługa protokołu AgOpenGPS Rate Control w firmware płytki Maszyna (dawka, przepływ, zawór regulacyjny sterowane z programu Rate Controller do AgOpenGPS) — płytka uniwersalna: Navigator albo AgOpenGPS (decyzja właściciela 2026-11-12). Protokół implementować według otwartego kodu RateController (GPL), oznaczyć pochodzenie.
 - [ ] 22. **Panel przełączników opryskiwacza** (decyzja właściciela 2026-11-20): zewnętrzny, bezprzewodowy (BLE do płytki Maszyna), 6 × AA; dźwignie sekcji IP67, diody RGB jak na ekranie Navigatora (zielona/żółta/czerwona, miganie przy niezgodności), START/STOP, AUTO/RĘCZNIE, oświetlenie, pokrętło dawki; płytka w całości z JLCPCB; nowoczesna opływowa obudowa (własny projekt), mocowanie magnes / kula RAM.
   - [x] 22a. Specyfikacja: hardware/panel/README.md + bom.csv (ESP32‑C3, 2 × IS31FL3236A, TPS62177, bilans baterii).
+  - [x] 22a‑2. Wersja 2 (wizualizacja_v2.png): obudowa pod dłoń z podparciem, roller dawki (AS5600 za ścianką), e‑papier 4,2"; ta sama płytka do panelu hydrauliki.
   - [ ] 22b. Schemat i PCB w KiCad, pliki JLCPCB.
   - [ ] 22c. Obudowa (OpenSCAD/CadQuery → STL).
   - [ ] 22d. Firmware panelu + BLE w płytce Maszyna (PGN 162/163) + Navigator (parowanie, bateria, „panel niedostępny”).
+- [ ] 23. **Hydraulika belki — osobny panel** (decyzja właściciela 2026-11-20): sterowanie tylko panelem + płytką (bez Navigatora), płytki zamienne z oprysku: płytka Maszyna w trybie „Hydraulika”, płytka panelu z inną płytą czołową. Opis: hardware/hydraulika/README.md.
+  - [x] 23a. Specyfikacja i wizualizacja (składanie L/P, wysokość, pochylenie, wahania; dźwignie chwilowe, HYDR. AKTYWNA, zabezpieczenie 0,3 s).
+  - [ ] 23b. Firmware płytki Maszyna — tryb „Hydraulika”.
+  - [ ] 23c. Firmware panelu (wersja hydraulika) + płyta czołowa.
 
 Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (strona sklepu blokuje automatyczne pobieranie — instrukcja/PDF albo zdjęcie tabliczki: zasilanie, interfejs RS232/TTL/CAN, prędkość, format ramek), modele zaworów Arag (prąd), typ przepływomierza (impulsy/l), czujnik ciśnienia (zakres, 0,5–4,5 V czy 4–20 mA), moc oświetlenia roboczego (A).
 
@@ -176,4 +181,5 @@ Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (st
 - 2026-11-20 — opryskiwacz (uwagi z tabletu): zbiornik nie odświeżał się na ekranie (stan spoza Compose) — poprawione; kafelek DAWKA mieścił się bez trzeciej linii — mniejsza liczba; kafelek CIŚNIENIE podzielony: u góry ciśnienie (przy „sam przepływomierz” albo bez czujnika — teoretyczne z przepływu i tabeli dysz), na dole licznik hektarów: dzienny, dotknięcie = całkowity, przytrzymanie 3 s = pytanie o wyzerowanie dziennego; całkowitego nie da się wyzerować (oprysk_ha.txt).
   Na tablecie: START w symulatorze — zbiornik ma ubywać, hektary rosnąć; dotknąć/przytrzymać licznik hektarów.
 - 2026-11-20 — etap 22a: specyfikacja panelu przełączników opryskiwacza (hardware/panel): BLE przez płytkę Maszyna, Navigator jedynym „szefem” stanu, dźwignia w dół zawsze wygrywa, 6 × AA ≈ 200 h w dzień / 500 h w nocy (szacunek), uśpienie ~15 µA.
+- 2026-11-20 — panel oprysku wersja 2 (pod dłoń, roller, e‑papier) i osobny panel hydrauliki (etap 23a) na tych samych płytkach; wizualizacje w hardware/panel i hardware/hydraulika.
 

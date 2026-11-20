@@ -11,6 +11,8 @@ PH1;1;Fototranzystor światła otoczenia;Vishay;TEMT6000X01;1206;;jasność diod
 SW1-SW13;13;Przełącznik dźwigniowy ON-OFF IP67 panelowy;APEM / C&K;600H / 7000 z uszczelnieniem (wybór w 22b);THT panelowy;;sekcje
 SW14,SW15;2;Przełącznik dźwigniowy ON-OFF IP67 panelowy;APEM / C&K;jak wyżej;THT panelowy;;AUTO/RĘCZNIE, oświetlenie
 SW16;1;Przycisk wandaloodporny Ø22 IP67 z pierścieniem RGB;;(do wyboru);panelowy;;START/STOP
-ENC1;1;Enkoder z przyciskiem, uszczelniony;Bourns;PEC11R-4220K-S0024 + uszczelka panelowa (albo enkoder IP65);THT;;dawka
+ENC1;1;Czujnik kąta magnetyczny (roller dawki, magnes w kółku za ścianką);ams OSRAM;AS5600-ASOM;SOIC-8;;bez otworu w obudowie
+SW17;1;Mikroprzełącznik pod uszczelką (wciśnięcie rollera);;(do wyboru);;;
+DISP1;1;Wyświetlacz e-papier 4,2" SPI 400x300;;(moduł do wyboru, np. GDEY042T81);złącze FPC;;dawka, ciśnienie, zbiornik, hektary
 BT1;1;Koszyk 6 × AA z przewodami;;(do wyboru);;;komora w obudowie, osobna uszczelka
 R*;17;Rezystor podciągający 1 MΩ;;;0402;;mały pobór przy włączonej dźwigni

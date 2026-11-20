@@ -2,11 +2,21 @@
 
 Zewnętrzny panel do przypięcia w kabinie w dowolnym miejscu: przełączniki sekcji jak w klasycznym terminalu,
 diody RGB pokazujące to samo co Navigator, pokrętło dawki. Bez kabla — zasilanie z 6 baterii AA.
-Wizualizacja koncepcji: [wizualizacja.png](wizualizacja.png).
+Wizualizacja: [wersja 2 — pod dłoń, e‑papier, roller](wizualizacja_v2.png) (aktualna), [wersja 1](wizualizacja.png).
 Licencja GPLv3. **Przed zamówieniem projekt przegląda elektronik** (lista „Do sprawdzenia” na końcu).
 
 Decyzje właściciela (2026-11-20): przełączniki dźwigniowe IP67, diody RGB w stylu ekranu Navigatora,
 pokrętło do dawki, 6 × AA, płytka w całości montowana w JLCPCB, nowoczesna opływowa obudowa (własny projekt).
+
+## Wersja 2 (decyzja właściciela 2026-11-20)
+
+- **Obudowa pod dłoń**: z prawej wyprofilowane podparcie dłoni (miękka nakładka); kciuk: roller dawki i START/STOP, palce: dźwignie sekcji.
+  Wersja dla leworęcznych — lustrzana obudowa, ta sama płytka.
+- **Roller zamiast pokrętła**: kółko pod kciuk z magnesem, czujnik magnetyczny **AS5600** pod zamkniętą ścianką (bez otworu → łatwe IP67);
+  wciśnięcie (mikroprzełącznik pod uszczelką) = powrót do dawki zadanej.
+- **Wyświetlacz e‑papier 4,2"** (np. moduł SPI 400 × 300): dawka zadana/rzeczywista, ciśnienie, zbiornik, hektary, prędkość;
+  czytelny w słońcu, prąd tylko przy odświeżeniu (co 2–5 s przy pracy) — bilans baterii prawie bez zmian.
+- Ta sama płytka panelu służy też do **panelu hydrauliki** (hardware/hydraulika) — inna płyta czołowa i firmware.
 
 ## Elementy na panelu
 
@@ -17,7 +27,7 @@ pokrętło do dawki, 6 × AA, płytka w całości montowana w JLCPCB, nowoczesna
 | Przycisk START/STOP z podświetlanym pierścieniem, IP67 | 1 | to samo co duży przycisk na ekranie Oprysk (zawór główny) |
 | Przełącznik AUTO / RĘCZNIE (regulacja dawki) | 1 | jak na ekranie |
 | Przełącznik oświetlenia roboczego | 1 | jak na ekranie |
-| Pokrętło (enkoder) z przyciskiem, IP67 | 1 | obrót: dawka ±5 % (AUTO) albo impulsy zaworu regulacyjnego (RĘCZNIE); wciśnięcie: powrót do dawki zadanej |
+| Roller pod kciuk (magnes + AS5600), z wciśnięciem | 1 | obrót: dawka ±5 % (AUTO) albo impulsy zaworu regulacyjnego (RĘCZNIE); wciśnięcie: powrót do dawki zadanej |
 | Dioda stanu RGB | 1 | łączność (zielona), szukanie (niebieska miga), bateria słaba (żółta), brak łączności (czerwona) |
 | Czujnik światła | 1 | jasność diod: pełna w dzień, przygaszona w nocy |
 
