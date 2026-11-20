@@ -166,4 +166,6 @@ Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (st
   Na tablecie: wybrać „Wyłącz Windows”, 10 s, wyjąć zasilacz — pasek odliczania, potem Windows się wyłącza; włożyć zasilacz w trakcie odliczania — anulowane.
 - 2026-11-20 — nazwa programu „WAR Navigator” wszędzie (instalator, katalog programu, skrót i grupa w menu Start, pliki wydań WAR-Navigator-X.msi/apk, ekran startowy, raporty); logo na górnym pasku w trybie Dzień z ciemnym „Navigator” (brand_day.png). Przejście: katalog programu zmienia się na „WAR Navigator” — autostart sam przepisuje ścieżkę, a aktualizacja od tej wersji uruchamia nową ścieżkę.
   Na tablecie: po tej jednej aktualizacji uruchomić program ręcznie (nowy skrót „WAR Navigator”) i zezwolić w zaporze Windows (sieć prywatna i publiczna); tryb Dzień — napis „Navigator” czarny.
+- 2026-11-20 — BŁĄD Z TABLETU: po wyłączeniu przez zanik zasilania program zapamiętywał tryb „symulator”, więc autostart włączał symulator — teraz zostaje SPRZĘT. Dodatkowe ściemnienie ekranu (czarna warstwa 20–80 %, Ustawienia → Ciągnik → Ekran; przycisk na pasku: DZIEŃ → NOC → NOC −40 % → NOC −70 %).
+  Na tablecie: wyjąć zasilacz (zamknięcie), włączyć — ma być tryb SPRZĘT; w nocy przycisk NOC kilka razy.
 

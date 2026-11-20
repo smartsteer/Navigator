@@ -107,6 +107,8 @@ fun SettingsScreen(hw: HardwareController, startTab: Int = 0) {
                         Choice("Dźwięki (autoster, alarmy, zawrót, sekcje)", listOf("WŁ.", "WYŁ."), if (hw.soundOn) 0 else 1) { hw.setSound(it == 0) }
                         Choice("Ekran", listOf("Zwykły", "Tablet (powiększony)"), if (DisplayPrefs.tablet) 1 else 0) { DisplayPrefs.updateTablet(it == 1) }
                         Choice("Kolory", listOf("Noc (ciemne)", "Dzień (jasne)"), if (DisplayPrefs.day) 1 else 0) { DisplayPrefs.updateDay(it == 1) }
+                        val dims = listOf(0, 20, 40, 60, 80)
+                        Choice("Dodatkowe ściemnienie ekranu", dims.map { if (it == 0) "WYŁ." else "$it %" }, dims.indexOfLast { it <= DisplayPrefs.dim }.coerceAtLeast(0)) { DisplayPrefs.updateDim(dims[it]) }
                         TrailColorPicker()
                         TractorIconPicker(hw)
                         if (DisplayPrefs.fullScreenSupported) Toggle("Pełny ekran (F11)", DisplayPrefs.fullScreen) { DisplayPrefs.updateFullScreen(it) }

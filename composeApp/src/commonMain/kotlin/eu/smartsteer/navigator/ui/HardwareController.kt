@@ -1323,7 +1323,8 @@ class HardwareController {
             // zapis pola i bezpieczne wyłączenie autosteru, potem zamknięcie
             if (session.engaged) session.setEngaged(false, t)
             saveField()
-            if (hardware) setHardwareMode(false)
+            // remember = false: po ponownym włączeniu (autostart) program wraca w trybie SPRZĘT, a nie symulator
+            if (hardware) setHardwareMode(false, remember = false)
             exitAt = t + 1.0
         }
     }

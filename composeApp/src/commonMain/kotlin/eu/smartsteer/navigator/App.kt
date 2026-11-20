@@ -159,6 +159,8 @@ fun App(hwIn: HardwareController? = null, startScreen: Screen = Screen.Map, sett
             }
         }
         PowerBanner(hw)
+        // dodatkowe ściemnienie (noc): czarna warstwa nad mapą i panelami — dotyk przechodzi pod spód
+        if (DisplayPrefs.dim > 0) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black.copy(alpha = DisplayPrefs.dim / 100f)))
         // po zamknięciu pola z WAR: „co robiłeś?” (pod klawiaturą, która otwiera się nad oknem)
         if (hw.hardware) TreatmentDialog(hw.war)
         // klawiatura na ekranie (liczby; tekst na Windows) — nad wszystkim
@@ -443,7 +445,11 @@ private fun NavRail(current: Screen, items: List<Screen>, onClose: () -> Unit, o
             }
         }
         Box(Modifier.weight(1f))
-        RailToggle(if (DisplayPrefs.day) "DZIEŃ" else "NOC", DisplayPrefs.day) { DisplayPrefs.updateDay(!DisplayPrefs.day) }
+        // jeden przycisk jasności (pasek nie mieści więcej): DZIEŃ → NOC → NOC −40 % → NOC −70 % → DZIEŃ
+        RailToggle(
+            if (DisplayPrefs.day) "DZIEŃ" else if (DisplayPrefs.dim > 0) "NOC\n−${DisplayPrefs.dim}%" else "NOC",
+            DisplayPrefs.day || DisplayPrefs.dim > 0,
+        ) { DisplayPrefs.cycleBrightness() }
         RailToggle("TABLET", DisplayPrefs.tablet) { DisplayPrefs.updateTablet(!DisplayPrefs.tablet) }
         if (DisplayPrefs.fullScreenSupported) RailToggle("PEŁNY\nEKRAN", DisplayPrefs.fullScreen) { DisplayPrefs.toggleFullScreen() }
         CloseButton(onClose)

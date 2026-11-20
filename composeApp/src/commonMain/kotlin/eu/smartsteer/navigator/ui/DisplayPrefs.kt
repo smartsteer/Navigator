@@ -34,6 +34,21 @@ object DisplayPrefs {
         private set
     fun updateDay(on: Boolean) { day = on; save() }
 
+    /** Dodatkowe ściemnienie całego ekranu w % (0–80) — w nocy, gdy najniższa jasność tabletu dalej razi. */
+    var dim by mutableStateOf(saved["sciemn"]?.toIntOrNull()?.coerceIn(0, 80) ?: 0)
+        private set
+    fun updateDim(p: Int) { dim = p.coerceIn(0, 80); save() }
+    /** Przycisk na pasku: DZIEŃ → NOC → NOC −40 % → NOC −70 % → DZIEŃ. */
+    fun cycleBrightness() {
+        when {
+            day -> { day = false; dim = 0 }
+            dim == 0 -> dim = 40
+            dim < 70 -> dim = 70
+            else -> { day = true; dim = 0 }
+        }
+        save()
+    }
+
     /** Kolor śladu (pokrycia) tej maszyny, „#RRGGBB”; pusty = domyślny zielony. Inne Navigatory gospodarstwa rysują jej pracę tym kolorem. */
     var trailColor by mutableStateOf(saved["kolor"]?.takeIf { TrailColors.valid(it) } ?: "")
         private set
@@ -90,7 +105,7 @@ object DisplayPrefs {
     }
 
     private fun save() {
-        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nkolor=$trailColor\nikona=$tractorIcon\nkolor_c=$tractorColor\nniebo=${if (sky3d) 1 else 0}\nmodele=${if (machineModels) 1 else 0}\npodpisy=${if (machineLabels) 1 else 0}\nflota_kolory=${fleetColors.entries.joinToString(";") { it.key.filter { c -> c != ';' && c != '|' } + "|" + it.value }}\n") }
+        runCatching { vehicleFiles().write(FILE, "tablet=${if (tablet) 1 else 0}\npelny=${if (fullScreen) 1 else 0}\npodklad=$background\ndzien=${if (day) 1 else 0}\nsciemn=$dim\nkolor=$trailColor\nikona=$tractorIcon\nkolor_c=$tractorColor\nniebo=${if (sky3d) 1 else 0}\nmodele=${if (machineModels) 1 else 0}\npodpisy=${if (machineLabels) 1 else 0}\nflota_kolory=${fleetColors.entries.joinToString(";") { it.key.filter { c -> c != ';' && c != '|' } + "|" + it.value }}\n") }
     }
 }
 
