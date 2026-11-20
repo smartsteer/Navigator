@@ -66,6 +66,7 @@ Kolejność (jeden etap na przebieg). Terminal w Navigatorze najpierw działa z 
   - [x] 23a. Specyfikacja i wizualizacja: 12 dźwigni chwilowych dwukierunkowych z diodami i wymiennymi opisami (składanie 2‑stopniowe L/P, wysokość, pochylenie, wahania, dyszel, znaczniki, 2 wolne), HYDR. AKTYWNA, zabezpieczenie 0,3 s; płytka Maszyna do 16 funkcji (mostek = 2 cewki).
   - [ ] 23b. Firmware płytki Maszyna — tryb „Hydraulika”.
   - [ ] 23c. PCB panelu hydrauliki pod jego obudowę (schemat bloków z 22b) + firmware panelu w wersji hydraulika + obudowa.
+- [ ] 24. **Na przyszłość (decyzja właściciela 2026-11-20: odłożone):** osobna aplikacja na Androida „WAR Oprysk” — ten sam kod co Navigator (osobny wariant budowy, własna ikona), od razu w trybie „Tylko opryskiwacz”, bez nawigacji; łączy się z płytką Maszyna / Maszyna Lite przez USB i Bluetooth (ten sam protokół PGN 160/161). Przy okazji: Bluetooth LE w firmware płytki, żeby działało też z iPhone (iOS nie obsługuje klasycznego Bluetooth SPP).
 
 Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (strona sklepu blokuje automatyczne pobieranie — instrukcja/PDF albo zdjęcie tabliczki: zasilanie, interfejs RS232/TTL/CAN, prędkość, format ramek), modele zaworów Arag (prąd), typ przepływomierza (impulsy/l), czujnik ciśnienia (zakres, 0,5–4,5 V czy 4–20 mA), moc oświetlenia roboczego (A).
 
