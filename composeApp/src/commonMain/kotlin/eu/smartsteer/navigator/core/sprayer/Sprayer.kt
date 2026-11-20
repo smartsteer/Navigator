@@ -300,6 +300,13 @@ class SprayerComputer(var config: SprayerConfig) {
     }
 
     /** Dawka w tolerancji (±10 %), do alarmu. */
+    /** Ciśnienie teoretyczne z przepływu i tabeli dysz (gdy brak czujnika); null = nic nie płynie. */
+    fun theoreticalBar(sectionMask: Int): Double? {
+        val open = config.openNozzles(sectionMask)
+        if (open == 0 || flowLpm <= 0.05) return null
+        return config.nozzle.pressureFor(flowLpm / open / config.liquidFactor)
+    }
+
     fun rateOk() = targetLpm <= 0 || abs(flowLpm - targetLpm) <= 0.1 * targetLpm
 }
 

@@ -73,7 +73,17 @@ class SprayerController(private val files: TextFiles) {
     var fieldUsedL by mutableStateOf(0.0); private set
     private var fieldName: String? = null
 
+    /** Licznik hektarów opryskanych: dzienny (zerowany przez rolnika) i całkowity (nigdy nie zerowany). */
+    private val haFile = "oprysk_ha.txt"
+    var dailyHa by mutableStateOf(0.0); private set
+    var totalHa by mutableStateOf(0.0); private set
+    fun resetDailyHa() { dailyHa = 0.0; saveHa(); tick++ }
+    private fun saveHa() { runCatching { files.write(haFile, "$dailyHa\n$totalHa\n") } }
+
     init {
+        runCatching { files.read(haFile).orEmpty().lines().mapNotNull { it.trim().toDoubleOrNull() } }.getOrNull()?.let {
+            dailyHa = it.getOrElse(0) { 0.0 }; totalHa = it.getOrElse(1) { 0.0 }
+        }
         runCatching { files.read(tankFile)?.trim()?.toDoubleOrNull() }.getOrNull()?.let { computer.tank.setLevel(it) }
         runCatching { files.read(linkFile)?.trim() }.getOrNull()?.let { s ->
             when {
@@ -231,7 +241,12 @@ class SprayerController(private val files: TextFiles) {
         mask = cmd.sections
         val used = before - computer.tank.liters
         if (used > 0) { usedL += used; fieldUsedL += used }
-        if (++tankSaveCountdown >= 50) { tankSaveCountdown = 0; if (computer.running) saveTank() }
+        // hektary: szerokość otwartych sekcji × przejechana droga (tylko przy pracy i jeździe)
+        if (cmd.mainOpen && cmd.sections != 0 && speedKmh > 0.3) {
+            val ha = config.openWidthM(cmd.sections) * speedKmh / 3.6 * dtMs / 1000.0 / 10_000.0
+            dailyHa += ha; totalHa += ha
+        }
+        if (++tankSaveCountdown >= 50) { tankSaveCountdown = 0; if (computer.running) { saveTank(); saveHa() } }
 
         val p = status?.pressureBar
         val kind = config.nozzleKind

@@ -66,6 +66,9 @@ import eu.smartsteer.navigator.ui.components.Segmented
 import eu.smartsteer.navigator.ui.pl
 import eu.smartsteer.navigator.ui.theme.Ss
 import kotlin.math.abs
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 
 /** Kolory dysz ISO 10625 (kolor korpusu dyszy). */
 private fun isoColor(n: Nozzle): Color = when (n.name) {
@@ -118,16 +121,13 @@ private fun SprayerWork(hw: HardwareController) {
     val speed = sp.speedKmh
     val running = pc.running
     val rateOk = pc.rateOk()
-    val pressure = st?.pressureBar
-    val kind = c.nozzleKind
-    val pressureOk = pressure == null || !running || pressure in kind.minBar..kind.maxBar
 
     Row(Modifier.fillMaxWidth().height(170.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         // Dawka — najważniejsza liczba
         SprayTile(Modifier.weight(1.4f), "DAWKA", if (running) (if (rateOk) Ss.Accent else Ss.Warning) else Ss.Border) {
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(if (running) pc.actualLha.pl(0) else "—", color = if (!running) Ss.TextMuted else if (rateOk) Ss.Accent else Ss.Warning, fontSize = 54.sp, fontWeight = FontWeight.Bold)
-                Text(" l/ha", color = Ss.TextSoft, fontSize = 18.sp, modifier = Modifier.padding(bottom = 10.dp))
+                Text(if (running) pc.actualLha.pl(0) else "—", color = if (!running) Ss.TextMuted else if (rateOk) Ss.Accent else Ss.Warning, fontSize = 46.sp, fontWeight = FontWeight.Bold, lineHeight = 48.sp)
+                Text(" l/ha", color = Ss.TextSoft, fontSize = 18.sp, modifier = Modifier.padding(bottom = 8.dp))
             }
             Text(
                 "zadana ${pc.targetLha.pl(0)} l/ha" + (if (pc.rateAdjustPercent != 0) " (${pc.rateAdjustPercent.toDouble().pl(0, plusSign = true)} %)" else "") +
@@ -145,11 +145,7 @@ private fun SprayerWork(hw: HardwareController) {
                 color = if (running && !rateOk) Ss.Warning else Ss.TextMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
             )
         }
-        SprayTile(Modifier.weight(1f), "CIŚNIENIE", if (pressureOk) Ss.Border else Ss.Warning) {
-            BigNumber(pressure?.pl(1) ?: "brak", "bar", if (pressureOk) Ss.Text else Ss.Warning)
-            Gauge(pressure ?: 0.0, 0.0, 10.0, kind.minBar, kind.maxBar)
-            Label("dysza: ${kind.minBar.pl(1)}–${kind.maxBar.pl(1)} bar", if (pressureOk) Ss.TextMuted else Ss.Warning, 13.sp)
-        }
+        PressureHaTile(hw, Modifier.weight(1f))
         SprayTile(Modifier.weight(1f), "PRZEPŁYW", Ss.Border) {
             BigNumber(pc.flowLpm.pl(1), "l/min", Ss.Text)
             Label("cel ${pc.targetLpm.pl(1)} l/min", Ss.TextSoft, 14.sp)
@@ -269,9 +265,83 @@ private fun Gauge(v: Double, min: Double, max: Double, okFrom: Double, okTo: Dou
     }
 }
 
+/**
+ * Kafelek dzielony: u góry ciśnienie (z czujnika albo teoretyczne z przepływu i tabeli dysz, gdy czujnika nie ma),
+ * na dole licznik hektarów — dotknięcie: dzienny ↔ całkowity, przytrzymanie 3 s: pytanie o wyzerowanie dziennego.
+ * Całkowitego nie da się wyzerować.
+ */
+@Composable
+private fun PressureHaTile(hw: HardwareController, modifier: Modifier) {
+    val sp = hw.sprayer
+    sp.tick
+    val c = sp.config
+    val pc = sp.computer
+    val kind = c.nozzleKind
+    val sensor = if (c.flowMode == FlowMode.FLOWMETER) null else sp.status?.pressureBar
+    val theory = if (sensor == null && pc.running) pc.theoreticalBar(sp.mask) else null
+    val pressure = sensor ?: theory
+    val pressureOk = pressure == null || !pc.running || pressure in kind.minBar..kind.maxBar
+    var total by remember { mutableStateOf(false) }
+    var askReset by remember { mutableStateOf(false) }
+    var holding by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier.fillMaxHeight().clip(shape).background(Ss.Surface)
+            .border(if (pressureOk) 1.dp else 2.dp, if (pressureOk) Ss.Border else Ss.Warning, shape),
+    ) {
+        Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(if (sensor == null) "CIŚNIENIE · TEORETYCZNE" else "CIŚNIENIE", color = Ss.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(pressure?.pl(1) ?: "—", color = if (pressureOk) Ss.Text else Ss.Warning, fontSize = 30.sp, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
+                Text(" bar", color = Ss.TextSoft, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
+            }
+            Label("dysza ${kind.minBar.pl(1)}–${kind.maxBar.pl(1)} bar" + if (sensor == null) " · z przepływu" else "",
+                if (pressureOk) Ss.TextMuted else Ss.Warning, 12.sp)
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Ss.Border))
+        Column(
+            Modifier.fillMaxWidth().weight(1f).background(if (holding) Ss.SurfaceHigh else Color.Transparent)
+                .pointerInput(Unit) {
+                    detectTapGestures(onPress = {
+                        if (askReset) return@detectTapGestures
+                        holding = true
+                        val released = withTimeoutOrNull(3000) { tryAwaitRelease() }
+                        holding = false
+                        when (released) {
+                            null -> askReset = true          // przytrzymane 3 s
+                            true -> total = !total           // krótkie dotknięcie
+                            false -> {}
+                        }
+                    })
+                }
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            if (askReset) {
+                Text("Wyzerować dzienny (${sp.dailyHa.pl(2)} ha)?", color = Ss.Warning, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ActionButton(Modifier.weight(1f), minHeight = 40.dp, background = Ss.Warning, contentColor = Ss.OnWarning, border = Color.Transparent,
+                        onClick = { sp.resetDailyHa(); askReset = false; total = false }) { ButtonText("TAK", Ss.OnWarning) }
+                    ActionButton(Modifier.weight(1f), minHeight = 40.dp, onClick = { askReset = false }) { ButtonText("NIE") }
+                }
+            } else {
+                Text(if (total) "HEKTARY · CAŁKOWITE" else "HEKTARY · DZIENNE", color = if (total) Ss.Info else Ss.TextMuted,
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text((if (total) sp.totalHa else sp.dailyHa).pl(2), color = if (total) Ss.Info else Ss.Text, fontSize = 30.sp, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
+                    Text(" ha", color = Ss.TextSoft, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
+                }
+                Label(if (holding) "trzymaj 3 s — zerowanie dziennego" else if (total) "dotknij: dzienny" else "dotknij: całkowity · 3 s: zeruj",
+                    Ss.TextMuted, 12.sp)
+            }
+        }
+    }
+}
+
 @Composable
 private fun TankTile(hw: HardwareController, modifier: Modifier) {
     val sp = hw.sprayer
+    sp.tick // poziom zbiornika nie jest stanem Compose — odświeżanie z każdym krokiem komputera opryskiwacza
     val t = sp.computer.tank
     val c = sp.config
     val frac = (t.liters / c.tankCapacityL).coerceIn(0.0, 1.0)

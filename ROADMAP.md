@@ -168,4 +168,6 @@ Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (st
   Na tablecie: po tej jednej aktualizacji uruchomić program ręcznie (nowy skrót „WAR Navigator”) i zezwolić w zaporze Windows (sieć prywatna i publiczna); tryb Dzień — napis „Navigator” czarny.
 - 2026-11-20 — BŁĄD Z TABLETU: po wyłączeniu przez zanik zasilania program zapamiętywał tryb „symulator”, więc autostart włączał symulator — teraz zostaje SPRZĘT. Dodatkowe ściemnienie ekranu (czarna warstwa 20–80 %, Ustawienia → Ciągnik → Ekran; przycisk na pasku: DZIEŃ → NOC → NOC −40 % → NOC −70 %).
   Na tablecie: wyjąć zasilacz (zamknięcie), włączyć — ma być tryb SPRZĘT; w nocy przycisk NOC kilka razy.
+- 2026-11-20 — opryskiwacz (uwagi z tabletu): zbiornik nie odświeżał się na ekranie (stan spoza Compose) — poprawione; kafelek DAWKA mieścił się bez trzeciej linii — mniejsza liczba; kafelek CIŚNIENIE podzielony: u góry ciśnienie (przy „sam przepływomierz” albo bez czujnika — teoretyczne z przepływu i tabeli dysz), na dole licznik hektarów: dzienny, dotknięcie = całkowity, przytrzymanie 3 s = pytanie o wyzerowanie dziennego; całkowitego nie da się wyzerować (oprysk_ha.txt).
+  Na tablecie: START w symulatorze — zbiornik ma ubywać, hektary rosnąć; dotknąć/przytrzymać licznik hektarów.
 
