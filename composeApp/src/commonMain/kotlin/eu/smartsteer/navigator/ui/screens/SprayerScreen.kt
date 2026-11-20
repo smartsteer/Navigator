@@ -122,7 +122,7 @@ private fun SprayerWork(hw: HardwareController) {
     val running = pc.running
     val rateOk = pc.rateOk()
 
-    Row(Modifier.fillMaxWidth().height(170.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth().height(186.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         // Dawka — najważniejsza liczba
         SprayTile(Modifier.weight(1.4f), "DAWKA", if (running) (if (rateOk) Ss.Accent else Ss.Warning) else Ss.Border) {
             Row(verticalAlignment = Alignment.Bottom) {
@@ -289,14 +289,14 @@ private fun PressureHaTile(hw: HardwareController, modifier: Modifier) {
         modifier.fillMaxHeight().clip(shape).background(Ss.Surface)
             .border(if (pressureOk) 1.dp else 2.dp, if (pressureOk) Ss.Border else Ss.Warning, shape),
     ) {
-        Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp, vertical = 5.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             Text(if (sensor == null) "CIŚNIENIE · TEORETYCZNE" else "CIŚNIENIE", color = Ss.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(pressure?.pl(1) ?: "—", color = if (pressureOk) Ss.Text else Ss.Warning, fontSize = 30.sp, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
-                Text(" bar", color = Ss.TextSoft, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
+                Text(pressure?.pl(1) ?: "—", color = if (pressureOk) Ss.Text else Ss.Warning, fontSize = 26.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
+                Text(" bar", color = Ss.TextSoft, fontSize = 13.sp, modifier = Modifier.padding(bottom = 3.dp))
             }
             Label("dysza ${kind.minBar.pl(1)}–${kind.maxBar.pl(1)} bar" + if (sensor == null) " · z przepływu" else "",
-                if (pressureOk) Ss.TextMuted else Ss.Warning, 12.sp)
+                if (pressureOk) Ss.TextMuted else Ss.Warning, 11.sp)
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(Ss.Border))
         Column(
@@ -314,8 +314,8 @@ private fun PressureHaTile(hw: HardwareController, modifier: Modifier) {
                         }
                     })
                 }
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
+                .padding(horizontal = 14.dp, vertical = 5.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             if (askReset) {
                 Text("Wyzerować dzienny (${sp.dailyHa.pl(2)} ha)?", color = Ss.Warning, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -328,11 +328,11 @@ private fun PressureHaTile(hw: HardwareController, modifier: Modifier) {
                 Text(if (total) "HEKTARY · CAŁKOWITE" else "HEKTARY · DZIENNE", color = if (total) Ss.Info else Ss.TextMuted,
                     fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text((if (total) sp.totalHa else sp.dailyHa).pl(2), color = if (total) Ss.Info else Ss.Text, fontSize = 30.sp, fontWeight = FontWeight.Bold, lineHeight = 32.sp)
-                    Text(" ha", color = Ss.TextSoft, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
+                    Text((if (total) sp.totalHa else sp.dailyHa).pl(2), color = if (total) Ss.Info else Ss.Text, fontSize = 26.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
+                    Text(" ha", color = Ss.TextSoft, fontSize = 13.sp, modifier = Modifier.padding(bottom = 3.dp))
                 }
                 Label(if (holding) "trzymaj 3 s — zerowanie dziennego" else if (total) "dotknij: dzienny" else "dotknij: całkowity · 3 s: zeruj",
-                    Ss.TextMuted, 12.sp)
+                    Ss.TextMuted, 11.sp)
             }
         }
     }
