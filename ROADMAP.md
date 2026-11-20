@@ -158,3 +158,6 @@ Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (st
   Do zrobienia przez elektronika w KiCad: brakujące połączenia, wylewki 20–30 A, pary USB/CAN, DRC, Gerber — dopiero potem zamówienie.
 - 2026-11-19 — etap 16b, ciąg dalszy: kolejność sekcji na mostkach dobrana pod ścieżki (BRIDGE_SECTION w maszyna.py i w firmware — kostka A bez zmian), routing od nowa: 95 % (87 padów zostało), wylewki mocy z przelotkami (power_zones.py), robocze Gerber/BOM/CPL w hardware/maszyna/produkcja (fab.py) — nie zamawiać przed dokończeniem.
   Do zrobienia przez elektronika: 87 połączeń (głównie przy DRV8962 i U26), VIN_RAW z kostki B, pary USB/CAN, numery LCSC w BOM.
+- 2026-11-20 — BŁĄD Z TABLETU (Windows): pełny ekran zostawiał pasek tytułu i pas pulpitu z lewej (WindowPlacement.Fullscreen przy skalowaniu ekranu). Teraz okno bez ramki, granice liczone z ekranu: PEŁNY EKRAN = cały ekran, wyłączony = obszar roboczy z paskiem zadań; co 2 s dopasowanie po obrocie / zmianie skalowania. Ustawienia „skakały” po − / +: dotyk przychodzi jako mysz, drobny ruch palca przewijał listę z rozpędem — przewijanie dopiero po 24 dp ruchu, rozpęd tylko po prawdziwym przeciągnięciu, z limitem.
+  Na tablecie: PEŁNY EKRAN — brak paska tytułu i pulpitu; kilka razy − / + w Ustawieniach → lista stoi; przewijanie palcem dalej działa.
+
