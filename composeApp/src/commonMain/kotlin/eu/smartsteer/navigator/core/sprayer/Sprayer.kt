@@ -52,6 +52,12 @@ enum class SpeedSource(val label: String) {
     MANUAL("Stała (wpisana)"),
 }
 
+/** Rodzaj sygnału czujnika ciśnienia (zworka na płytce). */
+enum class PressureInput(val label: String) {
+    VOLT("0,5–4,5 V"),
+    MA("4–20 mA"),
+}
+
 /** Skąd brać przepływ do regulacji. */
 enum class FlowMode(val label: String) {
     PRESSURE("Przepływ z ciśnienia (tabela dysz)"),
@@ -87,6 +93,16 @@ data class SprayerConfig(
     val tankCapacityL: Double = 1000.0,
     /** Próg rezerwy, l. */
     val tankReserveL: Double = 100.0,
+    /** Rzeczywisty wydatek dysz / katalogowy (próba z miarką w kreatorze; zużyte dysze > 1). */
+    val nozzleFactor: Double = 1.0,
+    /** Czujnik ciśnienia: rodzaj sygnału, zakres i zero (kreator). */
+    val pressureInput: PressureInput = PressureInput.VOLT,
+    val pressureRangeBar: Double = 10.0,
+    val pressureZeroBar: Double = 0.0,
+    /** Wyuczony zawór regulacyjny (kreator i praca): l/min pełnej belki na ms silnika (0 = jeszcze nie), czas ustalania, luz. */
+    val regGain: Double = 0.0,
+    val regSettleMs: Int = 450,
+    val regBacklashMs: Int = 0,
 ) {
     init {
         require(nozzlesPerSection.size in 1..SprayerPgn.MAX_SECTIONS) { "Liczba sekcji 1–13" }
@@ -113,11 +129,25 @@ data class SprayerConfig(
     val liquidFactor get() = 1.0 / sqrt(liquid.density)
 
     /** Wydatek jednej dyszy dla wybranej cieczy przy danym ciśnieniu. */
-    fun nozzleFlowAt(bar: Double) = nozzle.flowAt(bar) * liquidFactor
+    fun nozzleFlowAt(bar: Double) = nozzle.flowAt(bar) * liquidFactor * nozzleFactor
+
+    /**
+     * Ciśnienie z czujnika wg ustawień. Płytka przelicza napięcie jak dla czujnika 0,5–4,5 V / 0–10 bar —
+     * tu wracamy do napięcia i liczymy dla prawdziwego czujnika (inny zakres albo 4–20 mA na boczniku 150 Ω), minus zero.
+     */
+    fun sensorBar(reported: Double?): Double? {
+        if (reported == null) return null
+        val v = 0.5 + reported / 10.0 * 4.0
+        val p = when (pressureInput) {
+            PressureInput.VOLT -> (v - 0.5) / 4.0 * pressureRangeBar
+            PressureInput.MA -> (v / 150.0 * 1000.0 - 4.0) / 16.0 * pressureRangeBar
+        }
+        return (p - pressureZeroBar).coerceAtLeast(0.0)
+    }
 
     /** Ciśnienie, przy którym dysza da dawkę przy danej prędkości (do podpowiedzi i alarmu). */
     fun pressureFor(speedKmh: Double, rateLha: Double = targetLha) =
-        nozzle.pressureFor(rateLha * speedKmh * nozzleSpacingM / 600.0 / liquidFactor)
+        nozzle.pressureFor(rateLha * speedKmh * nozzleSpacingM / 600.0 / liquidFactor / nozzleFactor)
 
     /** Zakres prędkości, w którym dysza utrzyma dawkę w swoim zakresie ciśnień. */
     fun speedRangeKmh(rateLha: Double = targetLha): ClosedFloatingPointRange<Double> {
@@ -154,59 +184,140 @@ class FlowMeter(var pulsesPerLiter: Double) {
     fun resetTotal() { totalLiters = 0.0 }
 }
 
+/** Wyuczone cechy zaworu regulacyjnego (zapisywane w ustawieniach). */
+data class ValveLearned(val gain: Double, val settleMs: Int, val backlashMs: Int)
+
 /**
- * Regulator dawki — impulsy silnika zaworu regulacyjnego.
+ * Regulator dawki — impulsy silnika zaworu regulacyjnego. Bez współczynników do ręcznego ustawiania: wszystko się uczy.
  *
  * 1. Cel liczony od razu z prędkości i włączonych sekcji (wyprzedzenie), regulator dostaje gotowy przepływ docelowy.
  * 2. Impuls o długości z wyuczonego wzmocnienia zaworu (l/min na ms pracy silnika, odniesione do pełnej szerokości):
  *    daleko od celu = długi impuls, blisko = krótki; strefa martwa ±[SprayerConfig.deadband].
- * 3. Po impulsie przerwa na ustalenie się ciśnienia, potem pomiar i uczenie wzmocnienia (średnia ruchoma, w granicach).
- * 4. Zmiana sekcji / zatrzymanie: pomiar w trakcie zmiany nie uczy, regulacja czeka na ustalenie; na postoju zawór stoi.
+ * 3. Po impulsie czeka na ustalenie: najpierw wyuczony czas, potem dopóki przepływ jeszcze się zmienia (długie węże,
+ *    wolna pompa) — i uczy się tego czasu, żeby następnym razem nie pytać za wcześnie (to powoduje „bujanie”).
+ * 4. Luz zaworu: przy zmianie kierunku impuls wydłużony o wyuczony luz; luz mierzony z impulsów po zmianie kierunku.
+ * 5. Zmiana sekcji / zatrzymanie: pomiar w trakcie zmiany nie uczy, regulacja czeka na ustalenie; na postoju zawór stoi.
  */
 class RateController(
     nominalFlowLpm: Double,
     valveTravelMs: Int,
+    learned: ValveLearned? = null,
     val aggressiveness: Double = 0.7,
     val minPulseMs: Int = 15,
     val maxPulseMs: Int = 1000,
-    val settleMs: Int = 450,
 ) {
+    private val gain0 = nominalFlowLpm / valveTravelMs
     /** Wyuczone wzmocnienie: zmiana przepływu (l/min przy pełnej szerokości) na ms pracy silnika. */
-    var gain = nominalFlowLpm / valveTravelMs; private set
-    private val gainMin = gain / 8
-    private val gainMax = gain * 8
+    var gain = learned?.gain?.takeIf { it > 0 } ?: gain0; private set
+    private val gainMin = minOf(gain, gain0) / 8
+    private val gainMax = maxOf(gain, gain0) * 8
+    /** Czas ustalania się przepływu po impulsie (uczony). */
+    var settleMs = (learned?.settleMs ?: 450).coerceIn(MIN_SETTLE, MAX_SETTLE); private set
+    /** Luz zaworu przy zmianie kierunku (uczony). */
+    var backlashMs = (learned?.backlashMs ?: 0).coerceIn(0, MAX_BACKLASH); private set
+
+    fun learned() = ValveLearned(gain, settleMs, backlashMs)
+
+    /** Kilka impulsów w tę samą stronę bez reakcji: zawór regulacyjny na końcu (pompa za słaba / za mała dysza do dawki). */
+    val atLimit get() = noEffect >= 3
+    private var noEffect = 0
 
     private var waitMs = 0
     private var lastPulse = 0
+    private var lastDir = 0
+    private var lastWasReversal = false
     private var flowBefore = 0.0
     private var openFracAtPulse = 1.0
     private var lastMask = -1
+    // oczekiwanie na odpowiedź po impulsie
+    private var sincePulseMs = 0
+    private var expected = 0.0
+    private var responseMs = -1
+    private var holdMs = 0
+    private var timedOut = false
+    private var targetAtPulse = 0.0
+    private var prevMeasured = Double.NaN
+    private var unstableMs = 0
+    /** Szum pomiaru przepływu (średnia |zmiana| na 100 ms w spoczynku) — progi „stoi / rusza się” dopasowane do przepływomierza. */
+    private var noise = 0.0
 
     /**
      * Jeden krok co [dtMs]. Zwraca impuls zaworu w ms (+ więcej cieczy, − mniej), 0 = nic.
      * [openFraction] — udział otwartych dysz w całej belce (skaluje wzmocnienie).
      */
     fun step(dtMs: Int, active: Boolean, targetLpm: Double, measuredLpm: Double, sectionMask: Int, openFraction: Double, deadband: Double): Int {
+        val slope = if (prevMeasured.isNaN()) 0.0 else (measuredLpm - prevMeasured) * 100.0 / dtMs   // l/min na 100 ms
+        prevMeasured = measuredLpm
         if (sectionMask != lastMask) { lastMask = sectionMask; waitMs = maxOf(waitMs, settleMs); lastPulse = 0 }
         if (!active || targetLpm <= 0 || openFraction <= 0) { waitMs = settleMs; lastPulse = 0; return 0 }
         if (waitMs > 0) { waitMs -= dtMs; if (waitMs > 0) return 0 }
 
-        // uczenie z poprzedniego impulsu
-        if (lastPulse != 0 && abs(lastPulse) >= 40 && abs(openFraction - openFracAtPulse) < 1e-6) {
-            val observed = (measuredLpm - flowBefore) / openFraction / lastPulse
-            if (observed > 0) gain = (gain * 0.6 + observed * 0.4).coerceIn(gainMin, gainMax)
+        // duża zmiana celu (prędkość, dawka) w trakcie czekania — nie czekamy na stary impuls, reagujemy od razu (bez nauki)
+        if (lastPulse != 0 && abs(targetLpm - targetAtPulse) > 0.08 * targetAtPulse) { lastPulse = 0; responseMs = -1 }
+        if (lastPulse != 0) {
+            // Czekamy na odpowiedź: silnik musi skończyć, potem przepływ ma się zmienić o ~60 % oczekiwanej zmiany
+            // (opóźnienie w wężach / pompie bywa długie — pytanie za wcześnie powoduje „bujanie”), potem jeszcze chwila na resztę.
+            sincePulseMs += dtMs
+            if (sincePulseMs < abs(lastPulse)) return 0
+            val after = sincePulseMs - abs(lastPulse)
+            if (responseMs < 0) {
+                val d = (measuredLpm - flowBefore) * sign(lastPulse.toDouble())   // tylko zmiana w stronę impulsu
+                val nz = maxOf(0.02 * maxOf(flowBefore, targetLpm), 3 * noise)
+                if (d >= maxOf(0.6 * expected, nz)) { responseMs = after; timedOut = false }
+                else if (after < MAX_WAIT) return 0
+                else { responseMs = MAX_WAIT; timedOut = true }
+                holdMs = if (timedOut) 0 else (responseMs * 0.8).toInt().coerceIn(150, 1500)
+            }
+            if (holdMs > 0) { holdMs -= dtMs; return 0 }
+            // czas ustalania na przyszłość (zmiana sekcji, start) — tylko z prawdziwej odpowiedzi, nie z przekroczenia czasu
+            if (!timedOut) settleMs = (settleMs * 0.7 + responseMs * 1.8 * 0.3).toInt().coerceIn(MIN_SETTLE, MAX_SETTLE)
+            if (abs(lastPulse) >= 40 && abs(openFraction - openFracAtPulse) < 1e-6) {
+                val effLpm = (measuredLpm - flowBefore) / openFraction
+                if (lastWasReversal) {
+                    // ile z impulsu „zjadł” luz
+                    val effMs = effLpm / gain * sign(lastPulse.toDouble())
+                    val lost = (abs(lastPulse) - effMs).coerceIn(0.0, abs(lastPulse).toDouble())
+                    backlashMs = (backlashMs * 0.6 + lost * 0.4).toInt().coerceIn(0, MAX_BACKLASH)
+                } else {
+                    val observed = effLpm / lastPulse
+                    // brak reakcji (< 30 % oczekiwanej) — zawór na końcu albo pompa nie daje rady: nie uczymy się z tego
+                    if (observed > 0 && abs(effLpm * openFraction) >= 0.3 * expected) {
+                        gain = (gain * 0.6 + observed * 0.4).coerceIn(gainMin, gainMax)
+                        noEffect = 0
+                    } else noEffect++
+                }
+            }
+            lastPulse = 0
         }
-        lastPulse = 0
 
         val err = targetLpm - measuredLpm
-        if (abs(err) <= deadband * targetLpm) return 0
+        // szum mierzony tylko w spokoju (dawka w strefie martwej), nie w trakcie zmian
+        if (abs(err) <= deadband * targetLpm) { noise = noise * 0.95 + minOf(abs(slope), 0.05 * targetLpm) * 0.05; unstableMs = 0; return 0 }
+        // przepływ jeszcze się zmienia (po zmianie prędkości, ciśnienie dochodzi) — nie poprawiamy „w biegu”, chwilę czekamy
+        if (abs(slope) > maxOf(0.01 * targetLpm, 3 * noise, 0.05) && unstableMs < 1500) { unstableMs += dtMs; return 0 }
+        unstableMs = 0
         val ms = (abs(err) / (gain * openFraction) * aggressiveness).toInt().coerceIn(minPulseMs, maxPulseMs)
-        val pulse = (ms * sign(err)).toInt()
+        val dir = if (err > 0) 1 else -1
+        val reversal = lastDir != 0 && dir != lastDir
+        if (reversal) noEffect = 0
+        val pulse = (ms + if (reversal) backlashMs else 0) * dir
+        lastDir = dir
+        lastWasReversal = reversal
         lastPulse = pulse
         flowBefore = measuredLpm
+        targetAtPulse = targetLpm
         openFracAtPulse = openFraction
-        waitMs = abs(pulse) + settleMs
+        expected = gain * ms * openFraction
+        sincePulseMs = 0
+        responseMs = -1
         return pulse
+    }
+
+    companion object {
+        const val MIN_SETTLE = 250
+        const val MAX_SETTLE = 4000
+        const val MAX_WAIT = 3000
+        const val MAX_BACKLASH = 1500
     }
 }
 
@@ -249,20 +360,26 @@ class SprayerComputer(var config: SprayerConfig) {
     private fun newController() = RateController(
         nominalFlowLpm = config.nozzle.lpmAt3Bar * config.nozzlesPerSection.sum(),
         valveTravelMs = config.valveTravelMs,
+        learned = if (config.regGain > 0) ValveLearned(config.regGain, config.regSettleMs, config.regBacklashMs) else null,
     )
 
+    /** Co regulator wie o zaworze teraz (do zapisu w ustawieniach). */
+    fun learned() = controller.learned()
+
     fun reconfigure(c: SprayerConfig) {
-        val relearn = c.nozzle != config.nozzle || c.nozzlesPerSection != config.nozzlesPerSection || c.liquid != config.liquid
-        config = c
+        val nozzlesChanged = c.nozzle != config.nozzle || c.nozzlesPerSection != config.nozzlesPerSection || c.liquid != config.liquid
+        val learnedChanged = c.regGain != config.regGain || c.regSettleMs != config.regSettleMs || c.regBacklashMs != config.regBacklashMs ||
+            c.valveTravelMs != config.valveTravelMs
+        config = if (nozzlesChanged && !learnedChanged) c.copy(regGain = 0.0) else c
         flowMeter.pulsesPerLiter = c.pulsesPerLiter
         tank.capacityL = c.tankCapacityL
-        if (relearn) controller = newController()
+        if (nozzlesChanged || learnedChanged) controller = newController()
     }
 
     /** Przepływ użyty do regulacji wg wybranego trybu. */
     fun measuredFlow(status: SprayerStatus?, sectionMask: Int): Double {
-        val p = status?.pressureBar
-        val fromPressure = if (p == null || status.mainOpen.not()) 0.0 else config.openNozzles(sectionMask) * config.nozzleFlowAt(p)
+        val p = config.sensorBar(status?.pressureBar)
+        val fromPressure = if (p == null || status?.mainOpen != true) 0.0 else config.openNozzles(sectionMask) * config.nozzleFlowAt(p)
         return when (config.flowMode) {
             FlowMode.PRESSURE -> fromPressure
             FlowMode.FLOWMETER -> flowMeter.lpm
@@ -276,7 +393,7 @@ class SprayerComputer(var config: SprayerConfig) {
         val n = config.sectionCount
         val mask = sectionMask and ((1 shl n) - 1)
         if (status != null) flowMeter.update(status, dtMs)
-        pressureBar = status?.pressureBar
+        pressureBar = config.sensorBar(status?.pressureBar)
         val main = running && mask != 0
         flowLpm = measuredFlow(status, mask)
         if (main) tank.consume(flowLpm * dtMs / 60_000.0)
@@ -304,7 +421,7 @@ class SprayerComputer(var config: SprayerConfig) {
     fun theoreticalBar(sectionMask: Int): Double? {
         val open = config.openNozzles(sectionMask)
         if (open == 0 || flowLpm <= 0.05) return null
-        return config.nozzle.pressureFor(flowLpm / open / config.liquidFactor)
+        return config.nozzle.pressureFor(flowLpm / open / config.liquidFactor / config.nozzleFactor)
     }
 
     fun rateOk() = targetLpm <= 0 || abs(flowLpm - targetLpm) <= 0.1 * targetLpm
@@ -327,6 +444,13 @@ object SprayerConfigText {
         appendLine("przesuw=${c.valveTravelMs}")
         appendLine("predkosc=${c.speedSource.name}")
         appendLine("stala=${c.manualSpeedKmh}")
+        appendLine("dysze_wsp=${c.nozzleFactor}")
+        appendLine("cisn_sygnal=${c.pressureInput.name}")
+        appendLine("cisn_zakres=${c.pressureRangeBar}")
+        appendLine("cisn_zero=${c.pressureZeroBar}")
+        appendLine("zawor_wzm=${c.regGain}")
+        appendLine("zawor_ustal=${c.regSettleMs}")
+        appendLine("zawor_luz=${c.regBacklashMs}")
     }
 
     fun read(text: String?): SprayerConfig {
@@ -352,6 +476,13 @@ object SprayerConfigText {
                 valveTravelMs = dbl("przesuw", d.valveTravelMs.toDouble()).toInt().coerceIn(500, 30_000),
                 speedSource = SpeedSource.entries.firstOrNull { it.name == m["predkosc"] } ?: d.speedSource,
                 manualSpeedKmh = dbl("stala", d.manualSpeedKmh).coerceIn(0.5, 40.0),
+                nozzleFactor = dbl("dysze_wsp", d.nozzleFactor).coerceIn(0.5, 2.0),
+                pressureInput = PressureInput.entries.firstOrNull { it.name == m["cisn_sygnal"] } ?: d.pressureInput,
+                pressureRangeBar = dbl("cisn_zakres", d.pressureRangeBar).coerceIn(1.0, 100.0),
+                pressureZeroBar = dbl("cisn_zero", d.pressureZeroBar).coerceIn(-2.0, 2.0),
+                regGain = dbl("zawor_wzm", d.regGain).coerceAtLeast(0.0),
+                regSettleMs = dbl("zawor_ustal", d.regSettleMs.toDouble()).toInt().coerceIn(RateController.MIN_SETTLE, RateController.MAX_SETTLE),
+                regBacklashMs = dbl("zawor_luz", d.regBacklashMs.toDouble()).toInt().coerceIn(0, RateController.MAX_BACKLASH),
             )
         }.getOrDefault(d)
     }

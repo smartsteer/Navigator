@@ -77,6 +77,38 @@ class SprayerController(private val files: TextFiles) {
     private val haFile = "oprysk_ha.txt"
     var dailyHa by mutableStateOf(0.0); private set
     var totalHa by mutableStateOf(0.0); private set
+    /** Kreator kalibracji (null = zwykła praca). */
+    var calibration by mutableStateOf<eu.smartsteer.navigator.core.sprayer.CalibrationWizard?>(null); private set
+
+    fun startCalibration() {
+        calibration = eu.smartsteer.navigator.core.sprayer.CalibrationWizard(config)
+        tick++
+    }
+
+    /** Koniec kreatora: [save] = zapisz wyniki, inaczej wróć do ustawień sprzed kreatora. Zawory zamknięte. */
+    fun finishCalibration(save: Boolean) {
+        val c = calibration ?: return
+        calibration = null
+        computer.running = false
+        computer.autoRate = true
+        update(if (save) c.result else c.original)
+        tick++
+    }
+
+    private var learnCountdown = 0
+
+    /** Co regulator nauczył się w pracy → ustawienia (bez przebudowy regulatora). */
+    private fun storeLearned() {
+        val l = computer.learned()
+        val c = config
+        val changed = kotlin.math.abs(l.gain - c.regGain) > 0.05 * maxOf(c.regGain, 1e-9) ||
+            kotlin.math.abs(l.settleMs - c.regSettleMs) > 100 || kotlin.math.abs(l.backlashMs - c.regBacklashMs) > 50
+        if (!changed) return
+        config = c.copy(regGain = l.gain, regSettleMs = l.settleMs, regBacklashMs = l.backlashMs)
+        computer.config = config
+        runCatching { files.write(file, SprayerConfigText.write(config)) }
+    }
+
     fun resetDailyHa() { dailyHa = 0.0; saveHa(); tick++ }
     private fun saveHa() { runCatching { files.write(haFile, "$dailyHa\n$totalHa\n") } }
 
@@ -222,7 +254,14 @@ class SprayerController(private val files: TextFiles) {
         val before = computer.tank.liters
         val pulse = manualPulse; manualPulse = 0
         val st = if (simulated) status else rxStatus.takeIf { linkOk }
-        val cmd = computer.step(dtMs, speedKmh, m, st, pulse)
+        // kreator kalibracji przejmuje sterowanie: sekcje, START, regulację, impulsy zaworu i wirtualną prędkość
+        val cal = calibration
+        val calOut = cal?.step(eu.smartsteer.navigator.core.sprayer.CalibrationWizard.In(
+            dtMs, simulated || linkOk, st?.pulseCount, computer.flowLpm, computer.pressureBar, st?.pressureBar, computer.targetLpm,
+        ))
+        if (cal != null && cal.applyRequest) { cal.applyRequest = false; update(cal.result) }
+        if (calOut != null) { computer.running = calOut.running; computer.autoRate = calOut.autoRate; m = calOut.mask }
+        val cmd = computer.step(dtMs, calOut?.speedKmh ?: speedKmh, m, st, if (calOut != null) calOut.pulseMs else pulse)
         when (source) {
             SprayerSource.SIM -> {
                 sim.receive(cmd)
@@ -242,13 +281,14 @@ class SprayerController(private val files: TextFiles) {
         val used = before - computer.tank.liters
         if (used > 0) { usedL += used; fieldUsedL += used }
         // hektary: szerokość otwartych sekcji × przejechana droga (tylko przy pracy i jeździe)
-        if (cmd.mainOpen && cmd.sections != 0 && speedKmh > 0.3) {
+        if (cal == null && cmd.mainOpen && cmd.sections != 0 && speedKmh > 0.3) {
             val ha = config.openWidthM(cmd.sections) * speedKmh / 3.6 * dtMs / 1000.0 / 10_000.0
             dailyHa += ha; totalHa += ha
         }
+        if (cal == null && computer.running && ++learnCountdown >= 600) { learnCountdown = 0; storeLearned() }
         if (++tankSaveCountdown >= 50) { tankSaveCountdown = 0; if (computer.running) { saveTank(); saveHa() } }
 
-        val p = status?.pressureBar
+        val p = computer.pressureBar
         val kind = config.nozzleKind
         val fresh = alarms.step(dtMs, SprayerAlarms.Input(
             running = computer.running,

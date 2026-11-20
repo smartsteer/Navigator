@@ -101,14 +101,19 @@ fun SprayerScreen(hw: HardwareController, startInSettings: Boolean = false) {
                 else -> Pill("BRAK ŁĄCZNOŚCI Z PŁYTKĄ · ${sp.linkStatus.ifEmpty { sp.source.label }}", Color.White, Ss.Danger)
             }
             Box(Modifier.weight(1f))
-            Segmented(listOf("PRACA", "USTAWIENIA"), if (settings) 1 else 0, { settings = it == 1 })
+            if (sp.calibration == null) ActionButton(Modifier.width(150.dp), onClick = { sp.startCalibration() }) { ButtonText("KALIBRACJA", size = 14.sp) }
+            if (sp.calibration == null) Segmented(listOf("PRACA", "USTAWIENIA"), if (settings) 1 else 0, { settings = it == 1 })
             if (!hw.sprayerOnly) ActionButton(Modifier.width(150.dp), background = Ss.AccentSoft, contentColor = Ss.Accent, border = Ss.Accent,
                 onClick = { sp.navRequest = "Map" }) {
                 NavIcon(IconKind.Map, Ss.Accent)
                 ButtonText("MAPA", Ss.Accent, 16.sp, FontWeight.Bold)
             }
         }
-        if (settings) SprayerSettings(hw) else SprayerWork(hw)
+        when {
+            sp.calibration != null -> CalibrationWizardView(hw)
+            settings -> SprayerSettings(hw)
+            else -> SprayerWork(hw)
+        }
     }
 }
 
@@ -277,7 +282,7 @@ private fun PressureHaTile(hw: HardwareController, modifier: Modifier) {
     val c = sp.config
     val pc = sp.computer
     val kind = c.nozzleKind
-    val sensor = if (c.flowMode == FlowMode.FLOWMETER) null else sp.status?.pressureBar
+    val sensor = if (c.flowMode == FlowMode.FLOWMETER) null else pc.pressureBar
     val theory = if (sensor == null && pc.running) pc.theoreticalBar(sp.mask) else null
     val pressure = sensor ?: theory
     val pressureOk = pressure == null || !pc.running || pressure in kind.minBar..kind.maxBar
@@ -443,6 +448,16 @@ private fun SprayerSettings(hw: HardwareController) {
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(Modifier.weight(1f).fillMaxHeight().touchVerticalScroll(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             LinkPanel(hw)
+            Panel(Modifier.fillMaxWidth()) {
+                SectionTitle("Kalibracja")
+                Label("Na samej wodzie, na postoju, ok. 10 minut: czujnik ciśnienia, przepływomierz, nauka zaworu regulacyjnego, " +
+                    "próba z miarką i próba dawki. Bez ustawiania współczynników regulatora.", Ss.TextSoft, 13.sp)
+                if (c.regGain > 0) Label("Zawór nauczony: przesuw ${(c.valveTravelMs / 1000.0).pl(1)} s, ustalanie ${(c.regSettleMs / 1000.0).pl(1)} s, " +
+                    "luz ${c.regBacklashMs} ms · dysze ${((c.nozzleFactor - 1) * 100).pl(0, plusSign = true)} % · ${c.pulsesPerLiter.pl(1)} imp./l",
+                    Ss.TextMuted, 12.sp)
+                ActionButton(Modifier.fillMaxWidth().height(60.dp), background = Ss.Accent, contentColor = Ss.OnAccent, border = Color.Transparent,
+                    onClick = { sp.startCalibration() }) { ButtonText("KREATOR KALIBRACJI — krok po kroku", Ss.OnAccent, 17.sp, FontWeight.Bold) }
+            }
             Panel(Modifier.fillMaxWidth()) {
                 SectionTitle("Tryb pracy i prędkość")
                 SettingRow("Tryb") {
@@ -669,7 +684,7 @@ fun SprayerMini(hw: HardwareController, modifier: Modifier = Modifier) {
                 Text(" / ${pc.targetLha.pl(0)} l/ha", color = Ss.TextSoft, fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
             }
             Text(
-                "${sp.status?.pressureBar?.pl(1) ?: "—"} bar · ${pc.flowLpm.pl(1)} l/min",
+                "${pc.pressureBar?.pl(1) ?: "—"} bar · ${pc.flowLpm.pl(1)} l/min",
                 color = Ss.TextSoft, fontSize = 13.sp,
             )
             Text("zbiornik ${pc.tank.liters.pl(0)} l" + (if (low) " · REZERWA" else ""), color = if (low) Ss.Warning else Ss.Info, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
