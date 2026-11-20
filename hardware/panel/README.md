@@ -16,6 +16,11 @@ pokrętło do dawki, 6 × AA, płytka w całości montowana w JLCPCB, nowoczesna
   wciśnięcie (mikroprzełącznik pod uszczelką) = powrót do dawki zadanej.
 - **Wyświetlacz e‑papier 4,2"** (np. moduł SPI 400 × 300): dawka zadana/rzeczywista, ciśnienie, zbiornik, hektary, prędkość;
   czytelny w słońcu, prąd tylko przy odświeżeniu (co 2–5 s przy pracy) — bilans baterii prawie bez zmian.
+- **Dźwignie sekcji chwilowe** (samopowrót do środka): w górę = włącz, w dół = wyłącz. Stan pokazuje tylko dioda —
+  **zielona** = pryska, **żółta** = wyłączona przez automat (pokrycie, granica, uwrocie), **ciemna** = wyłączona,
+  **czerwona** = błąd zaworu sekcji. Nie ma już niezgodności dźwignia ↔ ekran (miganie niepotrzebne), a dźwignie w spoczynku
+  nie pobierają prądu. Zmiana z tabletu po prostu zmienia diodę.
+- **Włącznik zasilania** (kołyskowy I/O, uszczelniony) — odcina baterie całkowicie; panel wraca do ostatnio połączonej płytki.
 - Ta sama płytka panelu służy też do **panelu hydrauliki** (hardware/hydraulika) — inna płyta czołowa i firmware.
 
 ## Elementy na panelu

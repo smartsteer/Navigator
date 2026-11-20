@@ -37,6 +37,7 @@ Przypisanie wyjść i czasy (np. opóźnienie zaworu głównego) ustawiane w fir
 - Najpierw przycisk **HYDR. AKTYWNA** (świeci żółto; gaśnie sam po 60 s bez ruchu) — przypadkowe trącenie dźwigni nic nie robi.
 - Panel nadaje stan dźwigni co 100 ms; płytka **zamyka wszystkie zawory hydrauliki, gdy przez 0,3 s nie dostanie ramki**
   (utrata zasięgu, baterie, zawieszenie) albo po STOP.
+- Włącznik zasilania I/O na panelu (jak w panelu oprysku).
 - Dwa kierunki jednej funkcji nigdy naraz (blokada w firmware płytki i panelu).
 - Po włączeniu zasilania płytka startuje z zaworami zamkniętymi; hydraulika nieaktywna do naciśnięcia HYDR. AKTYWNA.
 

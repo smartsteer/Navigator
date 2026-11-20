@@ -57,7 +57,7 @@ Kolejność (jeden etap na przebieg). Terminal w Navigatorze najpierw działa z 
 - [ ] 21. **Na sam koniec:** obsługa protokołu AgOpenGPS Rate Control w firmware płytki Maszyna (dawka, przepływ, zawór regulacyjny sterowane z programu Rate Controller do AgOpenGPS) — płytka uniwersalna: Navigator albo AgOpenGPS (decyzja właściciela 2026-11-12). Protokół implementować według otwartego kodu RateController (GPL), oznaczyć pochodzenie.
 - [ ] 22. **Panel przełączników opryskiwacza** (decyzja właściciela 2026-11-20): zewnętrzny, bezprzewodowy (BLE do płytki Maszyna), 6 × AA; dźwignie sekcji IP67, diody RGB jak na ekranie Navigatora (zielona/żółta/czerwona, miganie przy niezgodności), START/STOP, AUTO/RĘCZNIE, oświetlenie, pokrętło dawki; płytka w całości z JLCPCB; nowoczesna opływowa obudowa (własny projekt), mocowanie magnes / kula RAM.
   - [x] 22a. Specyfikacja: hardware/panel/README.md + bom.csv (ESP32‑C3, 2 × IS31FL3236A, TPS62177, bilans baterii).
-  - [x] 22a‑2. Wersja 2 (wizualizacja_v2.png): obudowa pod dłoń z podparciem, roller dawki (AS5600 za ścianką), e‑papier 4,2"; ta sama płytka do panelu hydrauliki.
+  - [x] 22a‑2. Wersja 2 (wizualizacja_v2.png): obudowa pod dłoń z podparciem, roller dawki (AS5600 za ścianką), e‑papier 4,2"; dźwignie sekcji chwilowe (stan tylko na diodzie: zielona / żółta / ciemna, czerwona = błąd), włącznik zasilania; ta sama płytka do panelu hydrauliki.
   - [ ] 22b. Schemat i PCB w KiCad, pliki JLCPCB.
   - [ ] 22c. Obudowa (OpenSCAD/CadQuery → STL).
   - [ ] 22d. Firmware panelu + BLE w płytce Maszyna (PGN 162/163) + Navigator (parowanie, bateria, „panel niedostępny”).
