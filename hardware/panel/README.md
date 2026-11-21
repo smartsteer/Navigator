@@ -12,7 +12,7 @@ pokrętło do dawki, 6 × AA, płytka w całości montowana w JLCPCB, nowoczesna
 
 - **Obudowa pod dłoń**: z prawej wyprofilowane podparcie dłoni (miękka nakładka); kciuk: roller dawki i START/STOP, palce: dźwignie sekcji.
   Wersja dla leworęcznych — lustrzana obudowa, ta sama płytka.
-- **Roller zamiast pokrętła**: kółko pod kciuk z magnesem, czujnik magnetyczny **AS5600** pod zamkniętą ścianką (bez otworu → łatwe IP67);
+- **Roller zamiast pokrętła**: kółko pod kciuk z magnesami, czujniki Halla pod zamkniętą ścianką (bez otworu → łatwe IP67; zamiast AS5600 — patrz obudowa/README.md);
   wciśnięcie (mikroprzełącznik pod uszczelką) = powrót do dawki zadanej.
 - **Wyświetlacz e‑papier 4,2"** (np. moduł SPI 400 × 300): dawka zadana/rzeczywista, ciśnienie, zbiornik, hektary, prędkość;
   czytelny w słońcu, prąd tylko przy odświeżeniu (co 2–5 s przy pracy) — bilans baterii prawie bez zmian.

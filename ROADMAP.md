@@ -65,12 +65,12 @@ Kolejność (jeden etap na przebieg). Terminal w Navigatorze najpierw działa z 
   - [x] 22a. Specyfikacja: hardware/panel/README.md + bom.csv (ESP32‑C3, 2 × IS31FL3236A, TPS62177, bilans baterii).
   - [x] 22a‑2. Wersja 2 (wizualizacja_v2.png): obudowa pod dłoń z podparciem, roller dawki (AS5600 za ścianką), e‑papier 4,2"; dźwignie sekcji chwilowe (stan tylko na diodzie: zielona / żółta / ciemna, czerwona = błąd), włącznik zasilania; ta sama płytka do panelu hydrauliki.
   - [ ] 22b. Schemat bloków wspólny dla obu paneli + PCB panelu oprysku pod obudowę (wszystko wlutowane, „włóż, skręć, działa”), pliki JLCPCB.
-  - [ ] 22c. Obudowa (OpenSCAD/CadQuery → STL).
+  - [x] 22c. Obudowa (OpenSCAD → STL): hardware/panel/obudowa — pokrywa, spód z komorą 6 × AA i AMPS, klapka, garb, osłony dźwigni, roller (koło + widełki TPU), uchwyt magnesowy; tabela położeń otworów dla PCB 22b.
   - [ ] 22d. Firmware panelu + BLE w płytce Maszyna (PGN 162/163) + Navigator (parowanie, bateria, „panel niedostępny”).
 - [ ] 23. **Hydraulika belki — osobny panel** (decyzja właściciela 2026-11-20): sterowanie tylko panelem + płytką (bez Navigatora), płytka wykonawcza = płytka Maszyna w trybie „Hydraulika”; panel z własną płytką pod obudowę (wspólny schemat bloków i firmware z panelem oprysku). Opis: hardware/hydraulika/README.md.
   - [x] 23a. Specyfikacja i wizualizacja: 12 dźwigni chwilowych dwukierunkowych z diodami i wymiennymi opisami (składanie 2‑stopniowe L/P, wysokość, pochylenie, wahania, dyszel, znaczniki, 2 wolne), HYDR. AKTYWNA, zabezpieczenie 0,3 s; płytka Maszyna do 16 funkcji (mostek = 2 cewki).
   - [ ] 23b. Firmware płytki Maszyna — tryb „Hydraulika”.
-  - [ ] 23c. PCB panelu hydrauliki pod jego obudowę (schemat bloków z 22b) + firmware panelu w wersji hydraulika + obudowa.
+  - [ ] 23c. PCB panelu hydrauliki pod jego obudowę (schemat bloków z 22b) + firmware panelu w wersji hydraulika. (Obudowa gotowa 2026-11-21: hardware/hydraulika/obudowa.)
 - [ ] 24. **Na przyszłość (decyzja właściciela 2026-11-20: odłożone):** osobna aplikacja na Androida „WAR Oprysk” — ten sam kod co Navigator (osobny wariant budowy, własna ikona), od razu w trybie „Tylko opryskiwacz”, bez nawigacji; łączy się z płytką Maszyna / Maszyna Lite przez USB i Bluetooth (ten sam protokół PGN 160/161). Przy okazji: Bluetooth LE w firmware płytki, żeby działało też z iPhone (iOS nie obsługuje klasycznego Bluetooth SPP).
 
 Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (strona sklepu blokuje automatyczne pobieranie — instrukcja/PDF albo zdjęcie tabliczki: zasilanie, interfejs RS232/TTL/CAN, prędkość, format ramek), modele zaworów Arag (prąd), typ przepływomierza (impulsy/l), czujnik ciśnienia (zakres, 0,5–4,5 V czy 4–20 mA), moc oświetlenia roboczego (A).
@@ -194,3 +194,5 @@ Do dostarczenia przez właściciela (przed etapem 15/17): dokumentacja TM171 (st
   W polu: przejść kreator na wodzie (ok. 10 min) — szczególnie nauka zaworu i próba z miarką; potem jazda z dawką i porównanie zużycia wody z licznikiem.
 - 2026-11-21 — etap 16La: specyfikacja płytki Maszyna Lite (hardware/maszyna-lite: README.md, bom.csv) — mostek H na każde z 15 wyjść z ograniczeniem ~2 A i pomiarem prądu (koniec ruchu silniczka z krańcówką / bez), listwy rozłączne w skrzynce z dławikami, bez GPS i silnika 15 A. 16b (pełna płytka) nadal czeka na 87 połączeń ręcznie w KiCad.
   Do decyzji/sprawdzenia: DRV8870 czy tańszy AT8870, próg 2 A wystarczy dla silniczków „wycieraczkowych” Twoich klientów? (zmierzyć prąd rozruchu jednego takiego zaworu).
+- 2026-11-21 — etap 22c (prośba właściciela) + obudowa panelu hydrauliki: OpenSCAD + STL do druku bez podpór (hardware/panel/obudowa, hardware/hydraulika/obudowa); roller: zamiast AS5600 magnesy na obwodzie + czujniki Halla (AS5600 nie pasuje do poziomej osi nad płaską płytką). Następne: płytki paneli 22b i 23c pod te położenia otworów.
+  Przed drukiem: zmierzyć kupione dźwignie (długość tulei → `pcb_odst`), koszyk 6 × AA, włącznik kołyskowy; najpierw wydrukować roller i widełki z TPU.
