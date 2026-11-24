@@ -1,0 +1,3 @@
+kafelek z=18 x=146372 y=86316
+ORTO_PL: 7795
+ESRI: 18867
