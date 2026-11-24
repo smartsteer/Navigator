@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "smartsteer_lite")(type "KiCad")(uri "${KIPRJMOD}/smartsteer_lite.pretty")(options "")(descr "Maszyna Lite: ESP32 z przelotkami 0,3 mm (2 warstwy)"))
+)

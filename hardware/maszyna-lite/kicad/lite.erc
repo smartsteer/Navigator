@@ -1,0 +1,49 @@
+ERC WARNING: Only one pin (TRISTATE pin 7/QH of 74HC595/U10) attached to net NC_REG_140447249378096.
+ERC WARNING: Only one pin (INPUT pin 12/~{DCD} of CH340C/U4) attached to net NC_CH340_12.
+ERC WARNING: No drivers for net NC_CH340_12.
+ERC WARNING: Insufficient drive current on net NC_CH340_12 for pin INPUT pin 12/~{DCD} of CH340C/U4.
+ERC WARNING: Only one pin (BIDIRECTIONAL pin B8/SBU2 of USB_C_Receptacle_USB2.0_16P/J4) attached to net NC_B8.
+ERC WARNING: Only one pin (OPEN-COLLECTOR pin 4/PG of LMR33610ADDAR/U1) attached to net BUCK_PG.
+ERC WARNING: Only one pin (OUTPUT pin 9/QH' of 74HC595/U10) attached to net SR_CHAIN3.
+ERC WARNING: Only one pin (BIDIRECTIONAL pin A8/SBU1 of USB_C_Receptacle_USB2.0_16P/J4) attached to net NC_A8.
+ERC WARNING: Only one pin (NO-CONNECT pin 1/NC of 74LVC1G17/U6) attached to net NC_SCH.
+ERC WARNING: No drivers for net NC_SCH.
+ERC WARNING: Only one pin (INPUT pin 10/~{DSR} of CH340C/U4) attached to net NC_CH340_10.
+ERC WARNING: No drivers for net NC_CH340_10.
+ERC WARNING: Insufficient drive current on net NC_CH340_10 for pin INPUT pin 10/~{DSR} of CH340C/U4.
+ERC WARNING: Only one pin (INPUT pin 15/R232 of CH340C/U4) attached to net NC_CH340_15.
+ERC WARNING: No drivers for net NC_CH340_15.
+ERC WARNING: Insufficient drive current on net NC_CH340_15 for pin INPUT pin 15/R232 of CH340C/U4.
+ERC WARNING: Only one pin (PASSIVE pin 21/I10 of CD74HC4067SM/U11) attached to net NC_MUX_I10.
+ERC ERROR: Pin conflict on net V3V3, POWER-OUT pin 2/VO of AMS1117-3.3/U2 <==> POWER-OUT pin 4/V3 of CH340C/U4 (POWER-OUT connected to POWER-OUT)
+ERC WARNING: Only one pin (OUTPUT pin 8/~{OUT}/~{DTR} of CH340C/U4) attached to net NC_CH340_8.
+ERC WARNING: Only one pin (TRISTATE pin 6/QG of 74HC595/U10) attached to net NC_REG_140447249377872.
+ERC WARNING: Only one pin (INPUT pin 11/~{RI} of CH340C/U4) attached to net NC_CH340_11.
+ERC WARNING: No drivers for net NC_CH340_11.
+ERC WARNING: Insufficient drive current on net NC_CH340_11 for pin INPUT pin 11/~{RI} of CH340C/U4.
+ERC WARNING: Only one pin (INPUT pin 9/~{CTS} of CH340C/U4) attached to net NC_CH340_9.
+ERC WARNING: No drivers for net NC_CH340_9.
+ERC WARNING: Insufficient drive current on net NC_CH340_9 for pin INPUT pin 9/~{CTS} of CH340C/U4.
+ERC WARNING: Only one pin (NO-CONNECT pin 7/NC of CH340C/U4) attached to net NC_CH340_7.
+ERC WARNING: No drivers for net NC_CH340_7.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U26.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U17.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U18.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U16.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U19.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U20.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U12.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U21.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U22.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U13.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U14.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U23.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U24.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U15.
+ERC WARNING: Insufficient drive current on net V12_WYJSCIA for pin POWER-IN pin 5/VM of DRV8870DDA/U25.
+ERC WARNING: Unconnected pin: BIDIRECTIONAL pin 23/IO15 of ESP32-WROOM-32E/U3.
+ERC WARNING: Incorrectly connected pin: NO-CONNECT pin 7/NC of CH340C/U4 should not be connected to a net (NC_CH340_7).
+ERC WARNING: Incorrectly connected pin: NO-CONNECT pin 1/NC of 74LVC1G17/U6 should not be connected to a net (NC_SCH).
+ERC INFO: 45 warnings found while running ERC.
+ERC INFO: 1 errors found while running ERC.
+

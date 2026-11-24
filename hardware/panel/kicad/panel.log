@@ -1,0 +1,270 @@
+WARNING: KICAD_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap_external>:1027=>/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap>:488]
+WARNING: KICAD10_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap_external>:1027=>/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap>:488]
+WARNING: KICAD6_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap_external>:1027=>/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap>:488]
+WARNING: KICAD8_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap_external>:1027=>/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap>:488]
+WARNING: KICAD9_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap_external>:1027=>/home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap>:488]
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: fp-lib-table file was not found. Component footprints are not available.
+WARNING: Missing tag on Conn_01x02 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:52.
+WARNING: Random tag 1ypYoA3LMX generated for Conn_01x02.
+WARNING: Missing tag on Conn_01x02 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:56.
+WARNING: Random tag k9fN1Qxzc7 generated for Conn_01x02.
+WARNING: Missing tag on Q_PMOS_GSD instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:62.
+WARNING: Random tag XKfIUZGtIa generated for Q_PMOS_GSD.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag TZ2fn7dnA_ generated for R.
+WARNING: Missing tag on SMAJ12A instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:68.
+WARNING: Random tag 3PldjwdVXM generated for SMAJ12A.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag xxWh1NVzL1 generated for C.
+WARNING: Missing tag on TPS62177DQC instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:74.
+WARNING: Random tag NTyhidm0Px generated for TPS62177DQC.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag qtiqVlbVWt generated for R.
+WARNING: Missing tag on L instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:84.
+WARNING: Random tag LRN1XLxQdN generated for L.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag TQpWkX9dYN generated for C.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag PmUJPbZz9S generated for C.
+WARNING: Missing tag on BSS84 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:91.
+WARNING: Random tag yPX5Uun1D9 generated for BSS84.
+WARNING: Missing tag on Q_NMOS_GSD instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:92.
+WARNING: Random tag Jj8KuJgIF4 generated for Q_NMOS_GSD.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag sTPxYDEnvl generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag tGD1PxO5tB generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag wQnKwmawaR generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag M_llO9bGOU generated for R.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag IW5x09KVTy generated for C.
+WARNING: Missing tag on ESP32-S3-MINI-1 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:110.
+WARNING: Random tag qPr932Jr3h generated for ESP32-S3-MINI-1.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag qYJ1kSy8wb generated for R.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag 5vrOEhTI2P generated for C.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag 39aZVeZsBv generated for C.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag F23biigGlb generated for C.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag mRmz1HfUwh generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag 4eCKlbE37v generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag sk1VuzefFp generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag 432VK9TaFB generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag XWLxCd6Uub generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag 4I6WFpmg5r generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag 8740NegiFU generated for R.
+WARNING: Missing tag on Conn_01x08 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:152.
+WARNING: Random tag 0YcwckFUAd generated for Conn_01x08.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag Vu2b490lYy generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag y6gIiHisjS generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag soUx3ZwZzw generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag Cfamsp2lzi generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag DvnYaTTSxc generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag 1xGBsPTeB4 generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag T1kPjexrxb generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag ClQgTJL9bb generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag PejWxVq9yl generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag 4E8yEiTXEe generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag 4qqeyNIpZO generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag YXwvmKAMKV generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:165.
+WARNING: Random tag 0vnIKNoEFP generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:172.
+WARNING: Random tag c9pyiX2OjH generated for DZWIGNIA.
+WARNING: Missing tag on DZWIGNIA instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:172.
+WARNING: Random tag YBXdU0cO2x generated for DZWIGNIA.
+WARNING: Missing tag on TCA9534 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:181.
+WARNING: Random tag QlV0ccGz_z generated for TCA9534.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag vQ8F9Y076s generated for C.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag N_8S2hLPHt generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag n_wNxeW4_B generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag RF_8kWZc3P generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag v6EjN8PopB generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag ZUz8epigAg generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag JH12pKvW8p generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag HAlv3Sl0Qc generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag pHfVJbQqBT generated for R.
+WARNING: Missing tag on TCA9534 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:181.
+WARNING: Random tag mVxa2cfoFW generated for TCA9534.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag IaHkNI_oor generated for C.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag U0BHS2livX generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag r291VUZrl7 generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag mSILeZWGnC generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag _ZoLCJrX20 generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag Gc5OHG2twB generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag QwWT8FFBrL generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag KUmRlsR_si generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag Vs6LCcHeIu generated for R.
+WARNING: Missing tag on TCA9534 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:181.
+WARNING: Random tag iGkScXZxtm generated for TCA9534.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag Vkyu6cWeVw generated for C.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag K_o_ylUg3D generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag UYy1eP9_Fb generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag DahIpL28u5 generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag j8LIPg0RwF generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag em1cn0XPx5 generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag wszRCAACXl generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag RKpXv7jFrR generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag 8PbMG7EDeA generated for R.
+WARNING: Missing tag on TCA9534 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:181.
+WARNING: Random tag B6dkiP3JTh generated for TCA9534.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag jSE_EV0Qdw generated for C.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag jkZFKgKGVu generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag ObkicvAHrk generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag 06K0jzXY1w generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag 8VlN2twZJV generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag eE9CipeedC generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag Fii6C2KkFm generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag FhpC6no9Kd generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag hnmVlKUHbu generated for R.
+WARNING: Missing tag on Conn_01x06 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:200.
+WARNING: Random tag jYaYkeO98N generated for Conn_01x06.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag dgip7EQD_B generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag PfvSXuVUQu generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag yactYnspFX generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag rKKcHF23zh generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag 03j5mTehDp generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag hnmeRY19RA generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag 51zTK75Xv2 generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag ViPxf9rq4N generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag M0nfHFfP_Y generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag WiV_b1fXND generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag jr1a0NUCSo generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag GClxt9bS2p generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag DMdWYBMF9S generated for LED_RAGB.
+WARNING: Missing tag on LED_RAGB instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:208.
+WARNING: Random tag Gjk0IzEFS8 generated for LED_RAGB.
+WARNING: Missing tag on IS31FL3236A-TQ instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:219.
+WARNING: Random tag wL8s0M3aW_ generated for IS31FL3236A-TQ.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag L_ZSFEegL8 generated for R.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag ETS2ZWlUmO generated for C.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag 6UKDrL4qIA generated for C.
+WARNING: Missing tag on IS31FL3236A-TQ instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:219.
+WARNING: Random tag yRmuX5GhDE generated for IS31FL3236A-TQ.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag RkmWAKRhA_ generated for R.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag jepDOBY4hJ generated for C.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag YMMxTKtBmP generated for C.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag i5Bm7tpq9_ generated for C.
+WARNING: Missing tag on TMAG5111C2xxDBV instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:244.
+WARNING: Random tag MVMrL0Y5QP generated for TMAG5111C2xxDBV.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag HQfhcNFiWk generated for C.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag arxWbfTIfu generated for R.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag cIkUYv4z5r generated for R.
+WARNING: Missing tag on SM351LT instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:252.
+WARNING: Random tag 4OsgoPlVsz generated for SM351LT.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag pdqcbdn2uJ generated for C.
+WARNING: Missing tag on Q_Photo_NPN_CE instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:258.
+WARNING: Random tag 1ElKGcKrY6 generated for Q_Photo_NPN_CE.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag pFntH0kb8Y generated for R.
+WARNING: Missing tag on BSS84 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:264.
+WARNING: Random tag 0mNiqawuXY generated for BSS84.
+WARNING: Missing tag on R instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:30.
+WARNING: Random tag Cv1latMXz2 generated for R.
+WARNING: Missing tag on C instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:37.
+WARNING: Random tag UE169HmznD generated for C.
+WARNING: Missing tag on Conn_01x08 instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:271.
+WARNING: Random tag 3uIQMoPju1 generated for Conn_01x08.
+WARNING: Missing tag on OTWOR instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:278.
+WARNING: Random tag pDdPJ0YpPk generated for OTWOR.
+WARNING: Missing tag on OTWOR instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:278.
+WARNING: Random tag RJXzcBNmXC generated for OTWOR.
+WARNING: Missing tag on OTWOR instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:278.
+WARNING: Random tag OV_vEtL9HG generated for OTWOR.
+WARNING: Missing tag on OTWOR instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:278.
+WARNING: Random tag lKmZJ_eAbX generated for OTWOR.
+WARNING: Missing tag on OTWOR instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:278.
+WARNING: Random tag qg6iOxq82G generated for OTWOR.
+WARNING: Missing tag on OTWOR instantiated at /home/claude/navigator/hardware/panel/kicad/panel.py:278.
+WARNING: Random tag vRg3biHkNX generated for OTWOR.
+WARNING: Missing tag on  instantiated at /home/claude/navigator/hardware/panel/kicad/<frozen importlib._bootstrap>:488.
+INFO: 262 warnings found while generating netlist.
+INFO: 0 errors found while generating netlist.
+
