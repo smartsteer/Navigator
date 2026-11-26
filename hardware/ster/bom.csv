@@ -1,5 +1,5 @@
 Oznaczenie;Ilosc;Opis;Producent;MPN (do sprawdzenia);Obudowa;LCSC;Uwagi
-U1;1;Procesor Cortex-M7 600 MHz (jak Teensy 4.1);NXP;MIMXRT1062DVJ6A;MAPBGA-196 0,8 mm;;te same pady co Teensy 4.1 (zgodność firmware AIO)
+U1;1;Procesor Cortex-M7 600 MHz (jak Teensy 4.1);NXP;MIMXRT1062DVL6A;MAPBGA-196 12x12 0,8 mm;;te same pady co Teensy 4.1 (zgodność firmware AIO)
 U2;1;Flash QSPI 8 MB (program);Winbond;W25Q64JVXGIQ;XSON-8 4x4;;jak Teensy 4.1
 U3;1;Układ bootloadera PJRC (Teensy Loader);PJRC (NXP MKL02);MKL02Z32VFG4 zaprogramowany przez PJRC;QFN-16;;kupno w PJRC, nie w LCSC — część klienta albo lutowanie ręczne
 Y1;1;Kwarc 24 MHz;—;24 MHz 3225;SMD 3225;;
@@ -16,7 +16,7 @@ Q5,Q6;2;MOSFET N 40 V (idealna dioda / odwrotna polaryzacja);Nexperia;BUK7J1R4-4
 U7;1;Kontroler idealnej diody;Texas Instruments;LM74700QDBVRQ1;SOT-23-6;;
 D1;1;TVS 12 V samochodowy;Littelfuse;SMCJ24A;SMC;;sprawdzić zrzut obciążenia
 C1,C2;2;Kondensator 1000 uF 35 V (zasilanie silnika);Rubycon;35YXJ1000M12.5X20;THT 12,5 mm;C88743;jak w AIO
-U8;1;Przetwornica 12->5 V 2 A, wejście do 60 V;Texas Instruments;LMR16020PDDAR;SO-8 PowerPAD;;alternatywa TPS54202 (28 V) — patrz README pkt 6
+U8;1;Przetwornica 12->5 V 2 A, wejście do 60 V;Texas Instruments;LMR33620ADDAR;HSOIC-8;;15b: jak LMR33610 na płytkach Maszyna, wejście do 36 V
 U9;1;LDO 3,3 V 1 A (procesor, Ethernet);Texas Instruments;TLV75733PDBVR;SOT-23-5;;jak Teensy 4.1
 U10;1;LDO 3,3 V niskoszumowe (GNSS);Texas Instruments;TPS7A2033PDBVR;SOT-23-5;;osobna wylewka
 U11;1;Przetwornik ADC 16 bit (czujnik kąta);Texas Instruments;ADS1115IDGSR;MSOP-10;C37593;jak w AIO, adres 0x48
@@ -24,7 +24,7 @@ U12,U13;2;Nadajnik-odbiornik CAN (CAN3 ciągnik/Keya, CAN2 Maszyna);Microchip;MC
 D2,D3;2;Ochrona ESD linii CAN;Nexperia;PESD1CAN,215;SOT-23;C15771;jak w AIO
 U14-U17;4;Transoptor (Steer, Work, Remote, impuls prędkości);Everlight;EL3H7(B)(TA)-G;SOP-4;C32565;jak w AIO
 U18;1;Sterownik MOSFET (wyjście Danfoss, opcja);Microchip;TC4427AEOA713;SOIC-8;C20551;jak w AIO, można nie montować
-Q7;1;MOSFET P (blokada hydrauliki LOCK, 5 A);Infineon;IRF5305PBF;TO-220;C2623;jak w AIO (albo SMD odpowiednik w 15b)
+Q7;1;MOSFET P (blokada hydrauliki LOCK, 5 A);Alpha & Omega;AOD4185;TO-252;;15b: zamiast IRF5305 (jak Maszyna Lite)
 Q8,Q9;2;Tranzystor (sterowanie LOCK / Danfoss);CJ;2N7002;SOT-23;C8545;jak w AIO
 U19;1;Konwerter RS232 (TM171, tylko jeśli RS232);Texas Instruments;MAX3232EIDR;SOIC-16;;nie montować, dopóki TM171 niepotwierdzony
 J3;1;Złącze IMU TM171 / BNO085 RVC 6-pin;JST;SM06B-GHS-TB;GH 1,25 mm;;zasilanie 3,3/5/12 V zworką
@@ -38,3 +38,5 @@ SW4;1;Przycisk PROGRAM (bootloader);XKB;TS-1187A-B-A-B;SMD 5,1x5,1;;jak przycisk
 LED1-LED7;7;Diody stanu (zasilanie, Ethernet, GPS czerw./ziel., autoster czuwanie/aktywny, GGA);—;LED 0805;0805;;piny 5,6,9,10,11,12,13
 R2;1;Rezystor 250 Ohm 0,1 % (4-20 mA ciśnienie);—;0805 250R 0,1%;0805;;zworka 0-5 V / 4-20 mA
 JP1-JP6;6;Zworki lutowane (terminatory CAN x2, 4-20 mA, nSLEEP od pinu 3, zasilanie TM171, RS232/TTL);—;—;pad;;
+Q10,Q11;2;MOSFET N translator I2C 3,3/5 V (ADS1115);Nexperia;BSS138;SOT-23;;15b, jak AIO
+Q12,Q13;2;Kluczowanie 3,3 V procesora (PMIC_ON_REQ) jak Teensy 4.1;Diodes / —;DMG2305UX + 2N7002;SOT-23;;15b

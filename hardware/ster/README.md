@@ -11,13 +11,14 @@ github.com/AgOpenGPS-Official/Boards. Teensy 4.1: projekt referencyjny PJRC (sch
 
 > **Stan:** specyfikacja, schemat blokowy, przydział pinów, złącze i lista części ([bom.csv](bom.csv)). MPN do sprawdzenia
 > z kartami, numery LCSC uzupełnić wyszukiwarką JLCPCB. **Przed zamówieniem — przegląd elektronika** (lista na końcu).
-> Dalej: 15b schemat SKiDL → netlista, 15c PCB + pliki JLCPCB.
+> **15b (2026-11-26):** schemat SKiDL → netlista w [kicad/](kicad/README.md) — tabela pin Teensy → pad → kulka,
+> AMPSEAL 1:1 z AIO, zmiany względem tej specyfikacji i lista do sprawdzenia. Dalej: 15c PCB + pliki JLCPCB.
 
 ## Co jest na płytce (względem AIO v4.5 Std)
 
 | Blok | AIO v4.5 Std | Ster |
 |---|---|---|
-| Procesor | Teensy 4.1 wpinany w listwy | **MIMXRT1062DVJ6A** (BGA‑196) + flash QSPI 8 MB + **układ bootloadera PJRC** (MKL02) — jak Teensy 4.1 |
+| Procesor | Teensy 4.1 wpinany w listwy | **MIMXRT1062DVL6A** (BGA‑196 12 × 12 mm, 0,8 mm; Teensy ma DVJ6A 0,65 mm — ten sam rozkład kulek) + flash QSPI 8 MB + **układ bootloadera PJRC** (MKL02) — jak Teensy 4.1 |
 | Ethernet | zestaw Ethernet Teensy + RJ45 HR913550A | **DP83825I** na płytce (ten sam PHY co Teensy 4.1) + RJ45 z transformatorem HR913550A |
 | GPS | ZED‑F9P na płytce‑nakładce (jedna lub dwie) | **ZED‑F9P wlutowany**, jedna antena, gniazdo SMA na krawędzi |
 | IMU | BNO085 wpinany (RVC, Serial5) | **złącze TM171** (UART, zasilanie do wyboru) + miejsce na BNO085 RVC (ten sam port) |
