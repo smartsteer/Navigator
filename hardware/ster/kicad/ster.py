@@ -16,8 +16,8 @@ Pochodzenie:
 
 Wyprowadzenia sprawdzone ze źródeł: i.MXRT1062 (karta NXP), MKL02 i W25Q (SparkFun), ZED-F9P, MCP2562, USBLC6-2SC6,
 TLV757, MAX3232, ADS1115, LM74700 (biblioteki KiCad), DRV8701E, BUK7J1R4, LMR336x0, PESD2CAN, USB-C (jak płytki Maszyna).
-NIE sprawdzone (brak karty w sesji): DP83825I i HR913550A — piny mają NAZWY zamiast numerów, numery uzupełnić z karty
-w 15c (kinet2pcb zgłosi błąd, więc nie da się tego przeoczyć). Obudowy z biblioteką „smartsteer_ster:” — do zrobienia w 15c.
+DP83825I: numery z karty TI SNLS638C (tabela 4-1) — 15c. RJ45: HR911105A z bibliotek KiCad (diody 9–12 do potwierdzenia).
+Obudowy z bibliotek KiCad 7; tylko BGA-196 0,8 mm we własnej bibliotece smartsteer_ster.pretty (generator: bga196.py).
 """
 import csv
 import os
@@ -308,7 +308,7 @@ C("20p", x32i, GND, C04)
 C("20p", x32o, GND, C04)
 
 # flash QSPI (program) — SD_B1_06..11 jak Teensy 4.1
-U_FL = czesc("W25Q64JV", "U", "smartsteer_ster:WSON-8_6x5mm_P1.27mm",
+U_FL = czesc("W25Q64JV", "U", "Package_SON:WSON-8-1EP_6x5mm_P1.27mm_EP3.4x4.3mm",
              [(1, "~CS"), (2, "DO_IO1"), (3, "~WP_IO2"), (4, "GND"), (5, "DI_IO0"), (6, "CLK"), (7, "~HOLD_IO3"), (8, "VCC"),
               (9, "EP")], "W25Q64JVZPIQ (8 MB)")
 for pin, syg in ((1, "GPIO_SD_B1_06"), (6, "GPIO_SD_B1_07"), (5, "GPIO_SD_B1_08"), (2, "GPIO_SD_B1_09"),
@@ -323,7 +323,7 @@ C("0.1u", V3C, GND, C04)
 C("0.1u", V3C, GND, C04)
 
 # układ bootloadera PJRC (MKL02) — połączenia jak w Teensy 4.x
-U_BL = czesc("MKL02Z32VFG4", "U", "smartsteer_ster:QFN-16_3x3mm_P0.5mm_EP",
+U_BL = czesc("MKL02Z32VFG4", "U", "Package_DFN_QFN:QFN-16-1EP_3x3mm_P0.5mm_EP1.7x1.7mm",
              [(1, "VDD"), (2, "VSS"), (3, "PTA3"), (4, "PTA4"), (5, "PTA5"), (6, "PTA6"), (7, "PTA7"), (8, "PTB0"),
               (9, "PTB1"), (10, "PTB2"), (11, "PTB3"), (12, "PTB4"), (13, "PTB5"), (14, "PTA0"), (15, "PTA1"),
               (16, "PTA2"), (17, "EP")], "PJRC MKL02 (bootloader Teensy)")
@@ -345,7 +345,7 @@ polacz("DCDC_PSWITCH", trst)
 R("100k", trst, GND)
 prog = Net("PROGRAM")
 U_BL["PTB2"] += prog
-dwa("SW_Push", "SW", "Button_Switch_SMD:SW_SPST_TS-1187A", "PROGRAM", prog, GND)
+dwa("SW_Push", "SW", "Button_Switch_SMD:SW_SPST_TL3342", "PROGRAM", prog, GND)
 bled = Net("BL_LED")
 U_BL["PTB3"] += bled
 la = Net()
@@ -393,11 +393,15 @@ polacz("USB_OTG1_DN", usb_dm)
 usb_c("USB-C procesor (AgIO, wgrywanie)", usb_dp, usb_dm, VBUS)
 
 # ================================================================ Ethernet: DP83825I (RMII, zegar 50 MHz z i.MXRT) + RJ45
-# PINY NAZWAMI — numery z karty DP83825I (SNLS637) do uzupełnienia w 15c.
-U_PHY = czesc("DP83825I", "U", "smartsteer_ster:WQFN-24_3x3mm_P0.4mm_EP",
-              [(n, n) for n in ("TX_EN", "TX_D0", "TX_D1", "RX_D0", "RX_D1", "CRS_DV", "RX_ER", "MDC", "MDIO", "RST_N",
-                                "XI", "INT_PWDN_N", "LED0", "TD_P", "TD_M", "RD_P", "RD_M", "RBIAS", "VDDA3V3", "VDDIO",
-                                "GND")], "DP83825IRMQR")
+# Numery pinów: karta DP83825I (TI SNLS638C, tabela 4-1, obudowa RMQ 24). Tryb RMII „follower” jak Teensy 4.1:
+# 50 MHz z i.MXRT (GPIO_B1_10) na XI, XO wolne, pin 2 (50MHzOut/LED2) wolny; firmware ustawia RCSR (0x17) = 0x0081.
+U_PHY = czesc("DP83825I", "U", "Package_DFN_QFN:QFN-24-1EP_3x3mm_P0.4mm_EP1.75x1.6mm",
+              [(1, "TX_EN"), (2, "50MHZOUT_LED2"), (3, "INT_PWDN_N"), (4, "LED0"), (5, "RST_N"), (6, "VDDA3V3"),
+               (7, "RD_M"), (8, "RD_P"), (9, "GND"), (10, "TD_M"), (11, "TD_P"), (12, "XO"), (13, "XI"), (14, "RBIAS"),
+               (15, "MDIO"), (16, "MDC"), (17, "RX_D1"), (18, "RX_D0"), (19, "VDDIO"), (20, "CRS_DV"), (21, "GND2"),
+               (22, "RX_ER"), (23, "TX_D0"), (24, "TX_D1"), (25, "EP")], "DP83825IRMQR")
+U_PHY["XO"] += NC
+U_PHY["50MHZOUT_LED2"] += NC
 for syg, phy, nazwa in (("GPIO_B1_09", "TX_EN", "ENET_TX_EN"), ("GPIO_B1_07", "TX_D0", "ENET_TX0"),
                         ("GPIO_B1_08", "TX_D1", "ENET_TX1"), ("GPIO_B1_04", "RX_D0", "ENET_RX0"),
                         ("GPIO_B1_05", "RX_D1", "ENET_RX1"), ("GPIO_B1_06", "CRS_DV", "ENET_CRS_DV"),
@@ -411,6 +415,8 @@ R("1.5k", V3C, U_PHY["MDIO"])
 U_PHY["VDDA3V3"] += V3C
 U_PHY["VDDIO"] += V3C
 U_PHY["GND"] += GND
+U_PHY["GND2"] += GND
+U_PHY["EP"] += GND
 C("1u", V3C, GND, C04)
 C("0.1u", V3C, GND, C04)
 C("0.1u", V3C, GND, C04)
@@ -420,9 +426,15 @@ U_PHY["TD_P"] += td_p
 U_PHY["TD_M"] += td_m
 U_PHY["RD_P"] += rd_p
 U_PHY["RD_M"] += rd_m
-J_RJ = czesc("HR913550A", "J", "smartsteer_ster:RJ45_HanRun_HR913550A",
-             [(n, n) for n in ("TD+", "TD-", "TCT", "RD+", "RD-", "RCT", "LED_ZIEL_A", "LED_ZIEL_K", "LED_ZOLTA_A",
-                               "LED_ZOLTA_K", "SHIELD")], "HR913550A (RJ45 z transformatorem)")
+# HR911105A (LCSC C12074) zamiast HR913550A: ta sama funkcja (10/100, transformator, 2 diody), a symbol i obudowa
+# są w bibliotekach KiCad (Connector:RJ45_Hanrun_HR911105A_Horizontal). Piny 1–8 z symbolu KiCad; 9–12 = diody
+# (11/12 zielona A/K, 9/10 żółta — do potwierdzenia z kartą przed zamówieniem), 8 = masa ekranu par (Bob Smith).
+J_RJ = czesc("HR911105A", "J", "Connector_RJ:RJ45_Hanrun_HR911105A_Horizontal",
+             [(1, "TD+"), (2, "TD-"), (3, "RD+"), (4, "TCT"), (5, "RCT"), (6, "RD-"), (7, "NC7"), (8, "GND8"),
+              (9, "LED_ZOLTA_K"), (10, "LED_ZOLTA_A"), (11, "LED_ZIEL_A"), (12, "LED_ZIEL_K"), ("SH", "SHIELD")],
+             "HR911105A (RJ45 z transformatorem)")
+J_RJ["NC7"] += NC
+J_RJ["GND8"] += GND
 J_RJ["TD+"] += td_p
 J_RJ["TD-"] += td_m
 J_RJ["RD+"] += rd_p
@@ -470,7 +482,7 @@ U_GPS["RF_IN"] += rf
 R("10", vccrf, rfl)
 dwa("L", "L", "Inductor_SMD:L_0402_1005Metric", "47nH (zasilanie anteny)", rfl, rf)
 C("10n", rfl, GND, C04)
-J_SMA = czesc("SMA", "J", "smartsteer_ster:SMA_Edge_50R", [(1, "In"), (2, "Ext")], "SMA krawędziowe — antena GNSS")
+J_SMA = czesc("SMA", "J", "Connector_Coaxial:SMA_Amphenol_132289_EdgeMount", [(1, "In"), (2, "Ext")], "SMA krawędziowe — antena GNSS")
 J_SMA["In"] += rf
 J_SMA["Ext"] += GND
 gtx, grx = Net("GPS_TX_SERIAL7_RX"), Net("GPS_RX_SERIAL7_TX")
@@ -634,7 +646,7 @@ def wejscie(net_amp, pin_teensy, nazwa):
     led_a = Net()
     R("2.2k", V5, led_a)       # dioda stanu przełącznika (świeci przy zwarciu)
     dwa("LED", "LED", "LED_SMD:LED_0603_1608Metric", nazwa, k, led_a, "K", "A")   # za diodą: 12 V na pinie jej nie zniszczy
-    dwa("SW_Push", "SW", "Button_Switch_SMD:SW_SPST_TS-1187A", f"serwis {nazwa}", net_amp, GND)
+    dwa("SW_Push", "SW", "Button_Switch_SMD:SW_SPST_TL3342", f"serwis {nazwa}", net_amp, GND)
 
 
 wejscie(STEERPIN, 32, "STEER")

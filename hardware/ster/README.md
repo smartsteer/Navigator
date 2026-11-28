@@ -19,7 +19,7 @@ github.com/AgOpenGPS-Official/Boards. Teensy 4.1: projekt referencyjny PJRC (sch
 | Blok | AIO v4.5 Std | Ster |
 |---|---|---|
 | Procesor | Teensy 4.1 wpinany w listwy | **MIMXRT1062DVL6A** (BGA‑196 12 × 12 mm, 0,8 mm; Teensy ma DVJ6A 0,65 mm — ten sam rozkład kulek) + flash QSPI 8 MB + **układ bootloadera PJRC** (MKL02) — jak Teensy 4.1 |
-| Ethernet | zestaw Ethernet Teensy + RJ45 HR913550A | **DP83825I** na płytce (ten sam PHY co Teensy 4.1) + RJ45 z transformatorem HR913550A |
+| Ethernet | zestaw Ethernet Teensy + RJ45 HR913550A | **DP83825I** na płytce (ten sam PHY co Teensy 4.1) + RJ45 z transformatorem HR911105A (w 15a: HR913550A) |
 | GPS | ZED‑F9P na płytce‑nakładce (jedna lub dwie) | **ZED‑F9P wlutowany**, jedna antena, gniazdo SMA na krawędzi |
 | IMU | BNO085 wpinany (RVC, Serial5) | **złącze TM171** (UART, zasilanie do wyboru) + miejsce na BNO085 RVC (ten sam port) |
 | Silnik skrętu | Cytron MD13S wpinany | **DRV8701E + 4 × MOSFET 40 V**, do 15 A, pomiar prądu bocznikiem (zamiast ACS712) |

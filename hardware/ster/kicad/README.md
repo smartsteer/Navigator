@@ -9,6 +9,14 @@ Na podstawie AgOpenGPS (© Brian Tischler i współtwórcy, GPLv3), pliki `Teens
 | `ster.py` | schemat — źródło prawdy; `pip install skidl==1.2.3`, potem `python3 ster.py` → `ster.net` (bez bibliotek KiCad — wszystkie części zdefiniowane w kodzie) |
 | `ster.net` | netlista KiCad (248 części, 208 sieci) do 15c |
 | `imxrt1062_kulki.csv` | wszystkie 196 kulek MIMXRT1062 (MAPBGA‑196): kulka, sygnał, pin Teensy 4.1 |
+| `bga196.py` → `smartsteer_ster.pretty` | obudowa MAPBGA‑196 12 × 12 mm / 0,8 mm (pola NSMD 0,40 mm); reszta obudów z bibliotek KiCad 7 |
+| `place.py` | obrys 110 × 80 mm, 4 warstwy, rozmieszczenie (etap 15c1) |
+| `netclass.py` | klasy połączeń: Default 0,15/0,127 mm (przelotka 0,45/0,2), Moc 1,2 mm, Zasilanie 0,4 mm, RF 0,35 mm, USB 0,2 mm |
+| `ster.kicad_pcb`, `ster.kicad_pro` | płytka: części rozmieszczone, płaszczyzny In1 = GND, In2 = V3V3_STER; **bez ścieżek** (15c2) |
+
+Kolejność (narzędzia: `../../narzedzia/README.md`): `ster.py` → `kinet2pcb -i ster.net -w -l .` → `netclass.py` → `place.py`
+→ `plaszczyzny.py ster.kicad_pcb In1.Cu:GND In2.Cu:V3V3_STER` → (15c2) wyprowadzenie BGA, Freerouting, `dotrasuj.py`, wylewki mocy,
+`drc.py`, `fab_jlcpcb.py`.
 
 `ster.py` przy każdym uruchomieniu sprawdza (assert): AMPSEAL 1:1 z AIO v4.5 Std (poza 13 i 19 — CAN Maszyna), piny
 Teensy z firmware AIO na tych samych kulkach co w Teensy 4.1, wszystkie kulki zasilania i masy podłączone; ERC bez uwag.
@@ -93,11 +101,27 @@ z GPIO_B1_10 do XI układu PHY. Flash QSPI: GPIO_SD_B1_06…11.
 - Zasilanie z USB‑C przy programowaniu bez 12 V (dioda VBUS → 5 V).
 - Dioda stanu przy każdym wejściu Steer/Work/Remote.
 
+## Rozmieszczenie (15c1, 2026-11-28)
+
+Płytka **110 × 80 mm** (w 15a cel 100 × 75 — nie zmieściło się z AMPSEAL 23 o szerokości 61 mm i dwoma kondensatorami
+1000 µF; Hammond 1455N2201 ma 103 × 160 wewnątrz — do potwierdzenia przy obudowie).
+- Dół: AMPSEAL 23 (krawędź obudowy na krawędzi płytki), nad nim mostek silnika (4 × BUK7J1R4) i DRV8701E, LOCK (AOD4185) z lewej.
+- Prawy dół: wejście 12 V (idealna dioda 2 × BUK7J1R4 + LM74700, TVS SMCJ24A), LMR33620 z dławikiem, 2 × 1000 µF przy krawędzi.
+- Góra: RJ45 (lewy róg), USB‑C procesora, USB‑C GPS, SMA anteny (prawy róg, nad ZED‑F9P). Prawa krawędź: JST GH radio RTK i IMU.
+- Środek: i.MXRT1062 (strefa 16 × 16 mm wolna od drobnych części na wyprowadzenie BGA), flash, MKL02, kwarce, DP83825I między procesorem a RJ45.
+
+Zmiany obudów: RJ45 **HR911105A** (LCSC C12074, jest w bibliotece KiCad) zamiast HR913550A; przyciski TS‑1187A na footprincie
+**TL3342** (5,2 × 5,2 mm, 4 pady — TS‑1187A ma ten sam rozstaw, sprawdzić przy zakupie); DP83825I na QFN‑24 3 × 3 mm 0,4 mm,
+pole 1,75 × 1,6 mm (sprawdzić z rysunkiem RMQ0024A).
+
+DP83825I — numery pinów z karty TI SNLS638C (tabela 4‑1). Tryb RMII „follower” jak Teensy 4.1: 50 MHz z procesora na XI (13),
+XO (12) i pin 2 wolne; biblioteki NativeEthernet/QNEthernet same ustawiają rejestr RCSR (0x17) = 0x0081. Paski (piny 2, 4, 17,
+18, 20, 22) zostają na wewnętrznych ściągnięciach jak w Teensy 4.1 (adres PHY 0).
+
 ## Do sprawdzenia (przed 15c i przez elektronika)
 
-1. **DP83825I i RJ45 HR913550A — piny mają nazwy zamiast numerów** (brak karty w sesji). W 15c wpisać numery z karty
-   SNLS637 i HR913550A; dobrać rezystory konfiguracyjne (adres PHY 0, tryb RMII slave 50 MHz jak Teensy 4.1), RBIAS (6,49 kΩ?).
-2. Obudowy `smartsteer_ster:` (BGA‑196 0,8 mm, MKL02 QFN‑16, W25Q WSON‑8, DP83825 WQFN‑24, RJ45, SMA) — narysować w 15c.
+1. RJ45 HR911105A: piny diod 9–12 (zielona 11/12, żółta 9/10) z karty producenta przed zamówieniem.
+2. DP83825I: pole centralne (rysunek RMQ0024A), RBIAS 6,49 kΩ, czy firmware AIO (NativeEthernet) ustawia tryb 50 MHz — jak Teensy 4.1.
 3. Styk AMPSEAL dla silnika (5, 6, 18): prąd ciągły silnika na kierownicy u właściciela; w razie potrzeby grubszy przewód.
 4. LMR33620 do 36 V za SMCJ24A (napięcie zacisku ok. 39 V przy pełnym udarze) — jak na płytkach Maszyna; ewentualnie TVS 22 V.
 5. Lista z [`../README.md`](../README.md) (bootloader PJRC, zasilanie anteny, RF 50 Ω, TM171).

@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "smartsteer_ster")(type "KiCad")(uri "${KIPRJMOD}/smartsteer_ster.pretty")(options "")(descr "SmartSteer Ster"))
+)

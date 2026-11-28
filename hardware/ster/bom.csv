@@ -5,7 +5,7 @@ U3;1;Układ bootloadera PJRC (Teensy Loader);PJRC (NXP MKL02);MKL02Z32VFG4 zapro
 Y1;1;Kwarc 24 MHz;—;24 MHz 3225;SMD 3225;;
 Y2;1;Kwarc 32,768 kHz (RTC);—;32,768 kHz 2012;SMD 2012;;
 U4;1;Ethernet PHY 10/100 RMII;Texas Instruments;DP83825IRMQR;WQFN-24;;jak Teensy 4.1, zegar 50 MHz z i.MXRT (sprawdzić)
-J1;1;Gniazdo RJ45 z transformatorem i diodami;HanRun;HR913550A;THT;C163507;jak w AIO v4.5 Std
+J1;1;Gniazdo RJ45 z transformatorem i diodami;HanRun;HR911105A;THT;C12074;zamiast HR913550A z AIO (obudowa w bibliotece KiCad, 15c1)
 U5;1;Odbiornik GNSS RTK wielopasmowy;u-blox;ZED-F9P-04B;LGA-54 17x22;;największy koszt; jedna antena
 J2;1;Gniazdo SMA na krawędź płytki (antena GNSS);—;SMA-KE krawędziowe 50 Ohm;THT/SMD;;linia 50 Ohm do U5
 F1;1;Bezpiecznik PTC 100 mA (zasilanie anteny);—;0603 100 mA;0603;;
